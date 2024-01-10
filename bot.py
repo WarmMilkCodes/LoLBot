@@ -4,7 +4,7 @@ from discord.ext import commands
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
-logging.basicConfig(level=logging.INFO, filename="bot.log", filemode="a", format="%(asctime)s %(levelname)s:%(message)s")
+logging.basicConfig(level=logging.CRITICAL, filename="bot.log", filemode="a", format="%(asctime)s %(levelname)s:%(message)s")
 
 @bot.event
 async def on_ready():
