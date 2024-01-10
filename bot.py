@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO, filename="bot.log", filemode="a", format
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name="MetroLife RP"))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name="UR LoL"))
 
 # Load all cogs
 for filename in os.listdir('./cogs'):

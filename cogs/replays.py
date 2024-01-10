@@ -8,6 +8,7 @@ class ReplaysCog(commands.Cog):
         # Add logging
 
     @commands.slash_command(description="Upload replay file")
+    @commands.has_any_role("Bot Guy", "Owner", "League Ops")
     async def replay_submission(self, ctx, file: discord.Attachment):
         await ctx.defer()
         file_path = f"./temp/{file.filename}"
