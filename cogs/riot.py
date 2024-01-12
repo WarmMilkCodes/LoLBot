@@ -52,9 +52,8 @@ class RiotIDModal(discord.ui.Modal):
             embed.add_field(name="User", value=f"<@{interaction.user.id}>", inline=False)
             embed.add_field(name="Game Name", value=self.game_name.value, inline=False)
             embed.add_field(name="Tag Line", value=self.tag_line.value, inline=False)
-            embed.set_footer(text=interaction.user.id, icon_url=interaction.user.avatar_url)
-            embed.set_thumbnail(url=interaction.user.avatar_url)
-            
+            embed.set_thumbnail(url=interaction.user.avatar.url)
+
             await riot_id_log_channel.send(embed=embed)
         else:
             await interaction.response.send_message("Riot ID not updated.", ephemeral=True)
