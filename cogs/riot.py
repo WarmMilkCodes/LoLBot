@@ -47,7 +47,15 @@ class RiotIDModal(discord.ui.Modal):
         if update_result.modified_count:
             await interaction.response.send_message("Riot ID successfully updated.", ephemeral=True)
             riot_id_log_channel = self.bot.get_channel(config.riot_id_log_channel)
-            await riot_id_log_channel.send(f"{interaction.user.mention} updated their Riot ID: {self.game_name.value}#{self.tag_line.value}")
+            
+            embed = discord.Embed(title="Riot ID Updated", color=discord.Color.blue())
+            embed.add_field(name="User", value=f"<@{interaction.user.id}>", inline=False)
+            embed.add_field(name="Game Name", value=self.game_name.value, inline=False)
+            embed.add_field(name="Tag Line", value=self.tag_line.value, inline=False)
+            embed.set_footer(text=interaction.user.id, icon_url=interaction.user.avatar_url)
+            embed.set_thumbnail(url=interaction.user.avatar_url)
+            
+            await riot_id_log_channel.send(embed=embed)
         else:
             await interaction.response.send_message("Riot ID not updated.", ephemeral=True)
 
