@@ -8,19 +8,25 @@ class ReplaysCog(commands.Cog):
         # Add logging
 
     @commands.slash_command(description="Upload replay file")
+    @commands.has_any_role("Bot Guy", "Owner", "League Ops")
     async def replay_submission(self, ctx, file: discord.Attachment):
         await ctx.defer()
+
+        temp_dir = './temp'
+        if not os.path.exists(temp_dir):
+            os.makedirs(temp_dir)
+
         file_path = f"./temp/{file.filename}"
         await file.save(file_path)
 
         json_object = extract_json_from_rofl(file_path)
         if json_object:
-            json_str = json.dumps(json_object, indent=4)
+            with open('temp_json_output.json', 'w') as json_file:
+                json.dump(json_object, json_file, indent=4)
 
-            if len(json_str) <= 2000:
-                await ctx.respond(f"```json\n{json_str}\n```", ephemeral=True)
-            else:
-                await ctx.respond("JSON over 2000 characters")
+            with open('temp_json_output.json', 'rb') as json_file:
+                await ctx.send(file=discord.File(json_file, 'output.json'))
+
         else:
             await ctx.respond("Error submitting replay!", ephemeral=True)
 
