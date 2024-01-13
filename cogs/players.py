@@ -48,43 +48,29 @@ class PlayerCog(commands.Cog):
         players = dbInfo.player_collection.find({"puuid": {"$exists": True}})
         for player in players:
             puuid = player['puuid']
-            summoner_info = await self.get_summoner_info(puuid)
-            if summoner_info:
-                summoner_id = summoner_info['id']
+            summoner_id = await self.get_summoner_id(puuid)
+            if summoner_id:
                 rank_info = await self.get_player_rank(summoner_id)
                 if rank_info:
-                    updated_rank_info = {}
-                    for rank in rank_info:
-                        queue_type = rank['queueType']
-                        updated_rank_info[queue_type] = {
-                            "tier": rank['tier'],
-                            "division": rank['rank']
-                        }
                     dbInfo.player_collection.update_one(
                         {"discord_id": player['discord_id']},
-                        {"$set": {"rank": updated_rank_info}}
+                        {"$set": {"rank_info": rank_info}}
                     )
-                else:
-                    print(f"Rank info not found for {player['name']}")
-            else:
-                print(f"Summoner info not found for {player['name']}")
 
-
-    async def get_summoner_info(self, puuid):
-        url = f"https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
+    async def get_summoner_id(self, puuid):
+        url = f"https://americas.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
         headers = {'X-Riot-Token': config.riot_api}
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
                 if response.status == 200:
                     summoner_info = await response.json()
-                    return summoner_info
+                    return summoner_info['id']
                 else:
-                    response_text = await response.text()
-                    print(f"Failed to get summoner info for PUUID {puuid}. HTTP status: {response.status}, Response: {response_text}")
+                    # Handle errors
                     return None
 
     async def get_player_rank(self, summoner_id):
-        url = f"https://na1.api.riotgames.com/lol/league/v4/entries/by-summoner/{summoner_id}"
+        url = f"https://americas.api.riotgames.com/lol/league/v4/entries/by-summoner/{summoner_id}"
         headers = {'X-Riot-Token': config.riot_api}
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
@@ -92,8 +78,7 @@ class PlayerCog(commands.Cog):
                     rank_info = await response.json()
                     return rank_info
                 else:
-                    response_text = await response.text()
-                    print(f"Failed to get rank info for Summoner ID {summoner_id}. HTTP status: {response.status}, Response: {response_text}")
+                    # Handle errors
                     return None
 
 def setup(bot):
