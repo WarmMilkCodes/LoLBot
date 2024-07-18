@@ -7,9 +7,7 @@ player_collection = "lol_players"
 replay_collection = "replays"
 team_collection = "teams"
 
-riot_api = "RGAPI-ad7a2254-efb3-4a98-936f-0a7957dfc5c7"
-
-riot_dev_api = "RGAPI-74e45a51-fed1-4157-81e5-b38882b1a3cb"
+riot_dev_api = "RGAPI-ad7a2254-efb3-4a98-936f-0a7957dfc5c7"
 
 bot_admin_channel = 1171263860716601366
 
