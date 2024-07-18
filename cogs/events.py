@@ -8,7 +8,6 @@ logger = logging.getLogger('lol_log')
 class EventsCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        logger.info("EventsCog loaded.")
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -66,7 +65,6 @@ class EventsCog(commands.Cog):
 
 
 def setup(bot):
-    logger.info("Setting up EventsCog...")
     bot.add_cog(EventsCog(bot))
     logger.info("EventsCog setup completed.")
 

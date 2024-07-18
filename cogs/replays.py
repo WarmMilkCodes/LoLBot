@@ -7,7 +7,6 @@ logger = logging.getLogger('lol_log')
 class ReplaysCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        logger.info("ReplaysCog loaded.")
 
     @commands.slash_command(description="Upload replay file")
     @commands.has_any_role("Bot Guy", "Owner", "League Ops")
@@ -68,3 +67,4 @@ def extract_json_from_rofl(file_name):
 
 def setup(bot):
     bot.add_cog(ReplaysCog(bot))
+    logger.info("ReplayCog setup completed.")

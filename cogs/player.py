@@ -125,6 +125,5 @@ class PlayerCog(commands.Cog):
 
 
 def setup(bot):
-    logging.info("Setting up PlayerCog...")
     bot.add_cog(PlayerCog(bot))
     logging.info("PlayerCog setup completed.")

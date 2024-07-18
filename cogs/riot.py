@@ -8,7 +8,6 @@ logger = logging.getLogger('lol_log')
 class RiotCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        logger.info("RiotsCog loaded.")
 
     @commands.slash_command(description="Submit Riot ID")
     @commands.has_permissions(administrator=True)
@@ -55,3 +54,4 @@ class RiotIDModal(discord.ui.Modal):
 
 def setup(bot):
     bot.add_cog(RiotCog(bot))
+    logger.info("RiotCog setup completed.")
