@@ -66,10 +66,14 @@ class PlayerCog(commands.Cog):
                                 {"discord_id": player['discord_id']},
                                 {"$set": {"rank_info": rank_info, "last_updated":datetime.now(timezone.utc)}}
                             )
-                            logger.info(f"Updated rank information for player {player['name']}")
+                            logger.info(f"Updated rank information for player {player['name']} and set last updated.")
 
                         else:
-                            logger.warning(f"No rank information found for {player['name']}")
+                            dbInfo.player_collection.update_one(
+                                {"discord_id": player['discord_id']},
+                                {"$set": {"last_updated":datetime.now(timezone.utc)}}
+                            )
+                            logger.warning(f"No rank information found for {player['name']}, but updated last_updated")
                             
                     else:
                         logger.warning(f"Failed to retrieve summoner information for {player['name']}")
