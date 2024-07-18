@@ -41,7 +41,7 @@ class PlayerCog(commands.Cog):
                         {"discord_id": player['discord_id']},
                         {"$set": {"puuid": puuid}}
                     )
-                    print(f"Stored PUUID for {player['name']}")
+                    logger.info(f"Stored PUUID for {player['name']}")
 
                     summoner_id = await self.get_summoner_id(puuid)
                     if summoner_id:
