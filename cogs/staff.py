@@ -1,29 +1,32 @@
-import config, dbInfo, discord, logging
+import discord
+import logging
 from discord.ext import commands
 from discord.commands import Option
+import config
+import dbInfo
 
 logger = logging.getLogger('lol_log')
 
-class StaffCommands(commands.Cog):
+class RankInfoCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.slash_command(description="Get player rank info")
+    @commands.slash_command(description="Get user's rank information")
     @commands.has_permissions(administrator=True)
-    async def get_rank(self, ctx, user: Option(discord.Member)):
-        user_data = dbInfo.player_collection.find_one({"discord_id":user.id})
+    async def get_rank(self, ctx: discord.ApplicationContext, user: Option(discord.Member, "Select a user")):
+        user_data = dbInfo.player_collection.find_one({"discord_id": user.id})
 
         if not user_data:
-            await ctx.respond(f"No data found for {user.display_name}.")
-            logger.warning(f"No data found for {user.display_name}.")
+            await ctx.respond(f"No data found for user {user.display_name}", ephemeral=True)
+            logger.warning(f"No data found for user {user.display_name}")
             return
-        
-        rank_info = user_data('rank_info', [])
+
+        rank_info = user_data.get('rank_info', [])  # Correct way to access the dictionary key
         if not rank_info:
-            await ctx.respond(f"No rank information available for {user.display_name}")
-            logger.info(f"No rank information available for {user.display_name}")
+            await ctx.respond(f"No rank information available for user {user.display_name}", ephemeral=True)
+            logger.info(f"No rank information available for user {user.display_name}")
             return
-        
+
         embed = discord.Embed(title=f"Rank Information for {user.display_name}", color=discord.Color.blue())
 
         for rank in rank_info:
@@ -36,5 +39,5 @@ class StaffCommands(commands.Cog):
         logger.info(f"Rank information for {user.display_name} sent to {ctx.author.display_name}")
 
 def setup(bot):
-    bot.add_cog(StaffCommands(bot))
-    logger.info("StaffCog setup completed.")
+    bot.add_cog(RankInfoCog(bot))
+    logger.info("RankInfoCog setup completed.")
