@@ -32,11 +32,11 @@ class RankInfoCog(commands.Cog):
         for rank in rank_info:
             queue_type = rank.get('queue_type', 'Unknown Queue').replace('_', ' ').title()
             tier = rank.get('tier', 'Unknown Tier').capitalize()
-            division = rank.get('division', 'Unknown Division').capitalize()
+            division = rank.get('division', 'Unknown Division').upper()
             embed.add_field(name=queue_type, value=f"{tier} {division}", inline=False)
 
         await ctx.respond(embed=embed)
-        logger.info(f"Rank information for {user.display_name} sent to {ctx.author.display_name}")
+        logger.info(f"Rank information for {user.display_name} sent, requested by {ctx.author.display_name}")
 
 def setup(bot):
     bot.add_cog(RankInfoCog(bot))
