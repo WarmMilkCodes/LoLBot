@@ -1,12 +1,15 @@
-import aiohttp, json
+import aiohttp, json, logging
 import config, dbInfo
 from discord.ext import commands, tasks
 from discord.commands import Option
+
+logger = logging.getLogger('lol_log')
 
 class PlayerCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.rank_update_task.start() # Start background task
+        logger.info("PlayerCog loaded.")
 
     def cog_unload(self):
         self.rank_update_task.cancel() # Cancel task when is unloaded
@@ -46,7 +49,7 @@ class PlayerCog(commands.Cog):
                             {"discord_id": player['discord_id']},
                             {"$set": {"summoner_id": summoner_id}}
                         )
-                        print(f"Stored Summoner ID for player {player['name']}")
+                        logger.info(f"Stored Summoner ID for player {player['name']}")
 
                         rank_info = await self.get_player_rank(summoner_id)
                         if rank_info:
@@ -54,13 +57,13 @@ class PlayerCog(commands.Cog):
                                 {"discord_id": player['discord_id']},
                                 {"$set": {"rank_info": rank_info}}
                             )
-                            print(f"Updated rank information for player {player['name']}")
+                            logger.info(f"Updated rank information for player {player['name']}")
 
                         else:
-                            print(f"No rank information found for {player['name']}")
+                            logger.info(f"No rank information found for {player['name']}")
                             
                     else:
-                        print(f"Failed to retrieve summoner information for {player['name']}")
+                        logger.info(f"Failed to retrieve summoner information for {player['name']}")
 
     ## Function to get PUUID
     async def get_puuid(self, game_name, tag_line):
@@ -72,7 +75,7 @@ class PlayerCog(commands.Cog):
                     account_info = await response.json()
                     return account_info.get('puuid')
                 else:
-                    print(f"Error fetching PUUID for {game_name}#{tag_line}: {await response.text()}")
+                    logger.warning(f"Error fetching PUUID for {game_name}#{tag_line}: {await response.text()}")
                     return None                    
 
     ## Function to get Summoner ID
@@ -85,7 +88,7 @@ class PlayerCog(commands.Cog):
                     summoner_info = await response.json()
                     return summoner_info.get('id')
                 else:
-                    print(f"Error fetching Summoner ID for PUUID {puuid}: {await response.text()}")
+                    logger.warning(f"Error fetching Summoner ID for PUUID {puuid}: {await response.text()}")
                     return None
 
     ## Function to get player rank
@@ -109,7 +112,7 @@ class PlayerCog(commands.Cog):
                         })
                     return tier_division_info
                 else:
-                    print(f"Error fetching rank info for Summoner ID {summoner_id}: {await response.text()}")
+                    logger.warning(f"Error fetching rank info for Summoner ID {summoner_id}: {await response.text()}")
                     return None
 
 

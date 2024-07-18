@@ -1,11 +1,13 @@
-import config, dbInfo, discord, os
+import config, dbInfo, discord, os, logging
 from discord.ext import commands
 from discord.commands import Option
+
+logger = logging.getLogger('lol_log')
 
 class ReplaysCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        # Add logging
+        logger.info("ReplaysCog loaded.")
 
     @commands.slash_command(description="Upload replay file")
     @commands.has_any_role("Bot Guy", "Owner", "League Ops")
@@ -61,7 +63,7 @@ def extract_json_from_rofl(file_name):
                 json_object = json.loads(json_str)
                 return json_object
             except json.JSONDecodeError as e:
-                print(f"Error decoding JSON: {e}")
+                logger.warning(f"Error decoding JSON: {e}")
         return None  # If no JSON structure was found
 
 def setup(bot):

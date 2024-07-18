@@ -1,11 +1,14 @@
-import requests, config, dbInfo
+import requests, config, dbInfo, logging
 import discord
 from discord.ext import commands
 from discord.commands import Option
 
+logger = logging.getLogger('lol_log')
+
 class RiotCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        logger.info("RiotsCog loaded.")
 
     @commands.slash_command(description="Submit Riot ID")
     @commands.has_permissions(administrator=True)

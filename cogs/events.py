@@ -3,13 +3,12 @@ from discord.ext import commands
 from discord.commands import Option
 from datetime import datetime
 
-# Setup logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('lol_log')
 
 class EventsCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.logger = logger
+        logger.info("EventsCog loaded.")
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -17,7 +16,7 @@ class EventsCog(commands.Cog):
         for member in self.bot.get_all_members():
             if not member.bot:
                 self.add_member_to_db(member)
-        self.logger.info("Bot is ready and members have been checked and added to database.")
+        logger.info("Bot is ready and members have been checked and added to database.")
 
     def add_member_to_db(self, member):
         # Check if member is in database
@@ -31,7 +30,7 @@ class EventsCog(commands.Cog):
                 "rank": None,
                 "joined_at": datetime.utcnow()
             })
-            self.logger.info(f"Added {member.name} to database.")
+            logger.info(f"Added {member.name} to database.")
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
