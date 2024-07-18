@@ -42,7 +42,7 @@ class PlayerCog(commands.Cog):
         for player in players:
             logging.info(f"Processing player: {player['name']}")
             if 'game_name' in player and 'tag_line' in player:
-                logging.info(f"Fetching PUUID for {player['game_name']}")
+                #logging.info(f"Fetching PUUID for {player['game_name']}")
                 puuid = await self.get_puuid(player['game_name'], player['tag_line'])
                 if puuid:
                     dbInfo.player_collection.update_one(
@@ -59,7 +59,7 @@ class PlayerCog(commands.Cog):
                         )
                         logger.info(f"Stored Summoner ID for player {player['name']}")
 
-                        logging.info(f"Fetching rank information for {player['name']}")
+                        #logging.info(f"Fetching rank information for {player['name']}")
                         rank_info = await self.get_player_rank(summoner_id)
                         if rank_info:
                             dbInfo.player_collection.update_one(
