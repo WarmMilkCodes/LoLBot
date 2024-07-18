@@ -1,4 +1,4 @@
-import aiohttp, json, logging
+import aiohttp, json, logging, datetime
 import config, dbInfo
 from discord.ext import commands, tasks
 from discord.commands import Option
@@ -63,7 +63,7 @@ class PlayerCog(commands.Cog):
                         if rank_info:
                             dbInfo.player_collection.update_one(
                                 {"discord_id": player['discord_id']},
-                                {"$set": {"rank_info": rank_info}}
+                                {"$set": {"rank_info": rank_info, "last_updated":datetime.utcnow()}}
                             )
                             logger.info(f"Updated rank information for player {player['name']}")
 
@@ -72,11 +72,16 @@ class PlayerCog(commands.Cog):
                             
                     else:
                         logger.warning(f"Failed to retrieve summoner information for {player['name']}")
+                else:
+                    logger.warning(f"Failed to retrieve PUUID for {player['game_name']}#{player['tag_line']}")
+            else:
+                logger.warning(f"Player {player['name']} does not have game_name and tag_line set.")
+            logger.info("Completed updating ranks for all players.")
 
     ## Function to get PUUID
     async def get_puuid(self, game_name, tag_line):
         url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
-        headers = {'X-Riot-Token': config.riot_api}
+        headers = {'X-Riot-Token': config.riot_dev_api}
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
                 if response.status == 200:
@@ -89,7 +94,7 @@ class PlayerCog(commands.Cog):
     ## Function to get Summoner ID
     async def get_summoner_id(self, puuid):
         url = f"https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
-        headers = {'X-Riot-Token': config.riot_api}
+        headers = {'X-Riot-Token': config.riot_dev_api}
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
                 if response.status == 200:
@@ -102,7 +107,7 @@ class PlayerCog(commands.Cog):
     ## Function to get player rank
     async def get_player_rank(self, summoner_id):
         url = f"https://na1.api.riotgames.com/lol/league/v4/entries/by-summoner/{summoner_id}"
-        headers = {'X-Riot-Token': config.riot_api}
+        headers = {'X-Riot-Token': config.riot_dev_api}
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
                 if response.status == 200:
