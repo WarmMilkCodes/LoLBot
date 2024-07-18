@@ -34,7 +34,9 @@ class PlayerCog(commands.Cog):
     async def update_all_ranks(self):
         players = dbInfo.player_collection.find({})
         for player in players:
+            logging.info(f"Processing player: {player['name']}")
             if 'game_name' in player and 'tag_line' in player:
+                logging.info(f"Fetching PUUID for {player['game_name']}")
                 puuid = await self.get_puuid(player['game_name'], player['tag_line'])
                 if puuid:
                     dbInfo.player_collection.update_one(
@@ -51,6 +53,7 @@ class PlayerCog(commands.Cog):
                         )
                         logger.info(f"Stored Summoner ID for player {player['name']}")
 
+                        logging.info(f"Fetching rank information for {player['name']}")
                         rank_info = await self.get_player_rank(summoner_id)
                         if rank_info:
                             dbInfo.player_collection.update_one(
@@ -60,10 +63,10 @@ class PlayerCog(commands.Cog):
                             logger.info(f"Updated rank information for player {player['name']}")
 
                         else:
-                            logger.info(f"No rank information found for {player['name']}")
+                            logger.warning(f"No rank information found for {player['name']}")
                             
                     else:
-                        logger.info(f"Failed to retrieve summoner information for {player['name']}")
+                        logger.warning(f"Failed to retrieve summoner information for {player['name']}")
 
     ## Function to get PUUID
     async def get_puuid(self, game_name, tag_line):
@@ -117,4 +120,6 @@ class PlayerCog(commands.Cog):
 
 
 def setup(bot):
+    logging.info("Setting up PlayerCog...")
     bot.add_cog(PlayerCog(bot))
+    logging.info("PlayerCog setup completed.")
