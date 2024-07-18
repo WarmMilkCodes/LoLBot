@@ -14,7 +14,7 @@ class PlayerCog(commands.Cog):
     def cog_unload(self):
         self.rank_update_task.cancel() # Cancel task when is unloaded
 
-    @tasks.loop(hours=12)
+    @tasks.loop(hours=24)
     async def rank_update_task(self):
         await self.update_all_ranks()
 
@@ -28,7 +28,7 @@ class PlayerCog(commands.Cog):
     async def update_ranks(self, ctx):
         await ctx.defer()
         await self.update_all_ranks()
-        await ctx.respond("Update ranked for all players", ephemeral=True)
+        await ctx.respond("Update ranks for all players", ephemeral=True)
 
     ## Function to update ranks for all players
     async def update_all_ranks(self):
