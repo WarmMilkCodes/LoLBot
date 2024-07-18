@@ -9,6 +9,8 @@ team_collection = "teams"
 
 riot_api = "RGAPI-d75b2abf-f361-4047-8374-f0f9fa955d00"
 
+riot_dev_api = "RGAPI-74e45a51-fed1-4157-81e5-b38882b1a3cb"
+
 bot_admin_channel = 1171263860716601366
 
 riot_id_log_channel = 1194430443362205767
