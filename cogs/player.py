@@ -9,29 +9,34 @@ class PlayerCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.rank_update_task.start() # Start background task
-        logger.info("PlayerCog loaded.")
+        logger.info("PlayerCog loaded and rank update task started.")
 
     def cog_unload(self):
         self.rank_update_task.cancel() # Cancel task when is unloaded
 
     @tasks.loop(hours=24)
     async def rank_update_task(self):
+        logging.info("Rank update task triggered.")
         await self.update_all_ranks()
 
     @rank_update_task.before_loop
     async def before_rank_update_task(self):
-        await self.bot.wait_until_ready() # Wait until the bot is ready
+        await self.bot.wait_until_ready()
+        logging.info("Waiting for bot to be ready for starting rank update task.")
 
     ## Command to update player ranks
     @commands.slash_command(description="Update player ranks")
     @commands.has_permissions(administrator=True)
     async def update_ranks(self, ctx):
         await ctx.defer()
+        logger.info("Manual rank update command received. Starting rank update.")
         await self.update_all_ranks()
-        await ctx.respond("Update ranks for all players", ephemeral=True)
+        await ctx.respond("Updated ranks for all players", ephemeral=True)
+        logger.info("Manual rank update completed.")
 
     ## Function to update ranks for all players
     async def update_all_ranks(self):
+        logger.info("Starting to update ranks for all players.")
         players = dbInfo.player_collection.find({})
         for player in players:
             logging.info(f"Processing player: {player['name']}")
