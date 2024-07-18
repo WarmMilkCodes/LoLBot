@@ -1,4 +1,5 @@
-import aiohttp, json, logging, datetime
+import aiohttp, json, logging
+from datetime import datetime, timezone
 import config, dbInfo
 from discord.ext import commands, tasks
 from discord.commands import Option
@@ -63,7 +64,7 @@ class PlayerCog(commands.Cog):
                         if rank_info:
                             dbInfo.player_collection.update_one(
                                 {"discord_id": player['discord_id']},
-                                {"$set": {"rank_info": rank_info, "last_updated":datetime.utcnow()}}
+                                {"$set": {"rank_info": rank_info, "last_updated":datetime.now(timezone.utc)}}
                             )
                             logger.info(f"Updated rank information for player {player['name']}")
 
