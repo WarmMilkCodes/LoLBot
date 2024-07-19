@@ -2,6 +2,7 @@ import discord
 import logging
 from discord.ext import commands
 from discord.commands import Option
+from discord import File
 import config
 import dbInfo
 import pandas as pd
