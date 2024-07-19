@@ -73,8 +73,8 @@ class StaffCog(commands.Cog):
             rank_info = player.get("rank_info", [])
             ranks = ", ".join(
                 [f"{rank.get('queue_type', 'Unknown Queue').replace('_', ' ').title()} - "
-                 f"{rank.get('tier', 'Unknown Tier').capitalize()} "
-                 f"{rank.get('division', 'Unknown Division').upper()}" 
+                 f"{rank.get('tier', 'Unknown Tier').capitalize() if rank.get('tier') else 'Unknown Tier'} "
+                 f"{rank.get('division', 'Unknown Division').upper() if rank.get('division') else 'UNKNOWN DIVISION'}" 
                  for rank in rank_info]
             )
             data.append({"Player Name": player_name, "Ranks":ranks})
