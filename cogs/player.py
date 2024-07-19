@@ -30,26 +30,26 @@ class PlayerCog(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def update_ranks(self, ctx):
         await ctx.defer()
-        logger.info("Manual rank update command received. Starting rank update.")
+        #logger.info("Manual rank update command received. Starting rank update.")
         await self.update_all_ranks()
         await ctx.respond("Updated ranks for all players", ephemeral=True)
-        logger.info("Manual rank update completed.")
+        #logger.info("Manual rank update completed.")
 
     ## Function to update ranks for all players
     async def update_all_ranks(self):
         logger.info("Starting to update ranks for all players.")
         players = dbInfo.player_collection.find({})
         for player in players:
-            logging.info(f"Processing player: {player['name']}")
+            #logger.info(f"Processing player: {player['name']}")
             if 'game_name' in player and 'tag_line' in player:
-                #logging.info(f"Fetching PUUID for {player['game_name']}")
+                #logger.info(f"Fetching PUUID for {player['game_name']}")
                 puuid = await self.get_puuid(player['game_name'], player['tag_line'])
                 if puuid:
                     dbInfo.player_collection.update_one(
                         {"discord_id": player['discord_id']},
                         {"$set": {"puuid": puuid}}
                     )
-                    logger.info(f"Stored PUUID for {player['name']}")
+                    #logger.info(f"Stored PUUID for {player['name']}")
 
                     summoner_id = await self.get_summoner_id(puuid)
                     if summoner_id:
@@ -57,7 +57,7 @@ class PlayerCog(commands.Cog):
                             {"discord_id": player['discord_id']},
                             {"$set": {"summoner_id": summoner_id}}
                         )
-                        logger.info(f"Stored Summoner ID for player {player['name']}")
+                        #logger.info(f"Stored Summoner ID for player {player['name']}")
 
                         #logging.info(f"Fetching rank information for {player['name']}")
                         rank_info = await self.get_player_rank(summoner_id)
@@ -73,7 +73,7 @@ class PlayerCog(commands.Cog):
                                 {"discord_id": player['discord_id']},
                                 {"$set": {"last_updated":datetime.now(timezone.utc)}}
                             )
-                            logger.warning(f"No rank information found for {player['name']}, but updated last_updated")
+                            #logger.warning(f"No rank information found for {player['name']}, but updated last_updated")
                             
                     else:
                         logger.warning(f"Failed to retrieve summoner information for {player['name']}")
@@ -130,7 +130,7 @@ class PlayerCog(commands.Cog):
                         })
                     return tier_division_info
                 else:
-                    logger.warning(f"Error fetching rank info for Summoner ID {summoner_id}: {await response.text()}")
+                    logger.error(f"Error fetching rank info for Summoner ID {summoner_id}: {await response.text()}")
                     return None
 
 
