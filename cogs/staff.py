@@ -7,7 +7,7 @@ import dbInfo
 
 logger = logging.getLogger('lol_log')
 
-class RankInfoCog(commands.Cog):
+class StaffCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -38,6 +38,26 @@ class RankInfoCog(commands.Cog):
         await ctx.respond(embed=embed)
         logger.info(f"Rank information for {user.display_name} sent, requested by {ctx.author.display_name}")
 
+        @commands.slash_command(description="Adds 'Missing Intent Form' role to all users")
+        @commands.has_any_role("Bot Guy", "United Rogue Owner", "Commissioner")
+        async def add_missing_intent_role(self, ctx):
+            role_name = "Missing Intent Form"
+            role = discord.utils.get(ctx.guild.roles, name=role_name)
+
+            if not role:
+                await ctx.respond(f"Role '{role_name}' not found.", ephemeral=True)
+                logger.error(f"Role '{role_name}' not found.")
+                return
+            
+            count = 0
+            for member in ctx.guild.members:
+                if not member.bot and role not in member.roles:
+                    await member.add_roles(role)
+                    count += 1
+
+            await ctx.respond(f"Role '{role_name}' has been assigned to {count} members.", ephemeral=True)
+            logger.info(f"Role '{role_name}' added to {count} members by {ctx.author.display_name}")
+
 def setup(bot):
-    bot.add_cog(RankInfoCog(bot))
-    logger.info("RankInfoCog setup completed.")
+    bot.add_cog(StaffCog(bot))
+    logger.info("StaffCog setup completed.")
