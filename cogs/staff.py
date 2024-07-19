@@ -63,7 +63,7 @@ class StaffCog(commands.Cog):
         logger.info(f"Role '{role_name}' added to {count} members by {ctx.author.display_name}")
 
     @commands.slash_command(guild_ids=GUILD_IDS, description="Export all player names and their ranks")
-    @commands.has_permissions(administrator=True)
+    @commands.has_any_role("Bot Guy", "United Rogue Owner", "Commissioner")
     async def export_player_ranks(self, ctx):
         data = []
         for player in dbInfo.player_collection.find():
