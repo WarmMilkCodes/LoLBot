@@ -11,7 +11,7 @@ class EventsCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        logger.info("Bot is ready. Checking and adding members to the database.")
+        #logger.info("Bot is ready. Checking and adding members to the database.")
         for member in self.bot.get_all_members():
             if not member.bot:
                 self.add_member_to_db(member)
@@ -42,7 +42,7 @@ class EventsCog(commands.Cog):
         # Add member to database
         self.add_member_to_db(member)
 
-        logger.info(f"Notifying admin channel about new member: {member.name} ({member.id}).")
+        #logger.info(f"Notifying admin channel about new member: {member.name} ({member.id}).")
         # Notify in admin channel
         await self.notify_admin_channel(member)
 
@@ -59,7 +59,7 @@ class EventsCog(commands.Cog):
 
         if channel:
             await channel.send(embed=embed)
-            logger.info(f"Admin channel notified about new member: {member.name} ({member.id}).")
+            #logger.info(f"Admin channel notified about new member: {member.name} ({member.id}).")
         else:
             logger.error(f"Admin channel with ID {admin_channel} not found.")
 
