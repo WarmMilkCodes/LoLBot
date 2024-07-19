@@ -42,7 +42,7 @@ class StaffCog(commands.Cog):
         await ctx.respond(embed=embed)
         logger.info(f"Rank information for {user.display_name} sent, requested by {ctx.author.display_name}")
 
-    @commands.slash_command(GUILD_IDS, description="Adds 'Missing Intent Form' role to all users")
+    @commands.slash_command(guild_ids=GUILD_IDS, description="Adds 'Missing Intent Form' role to all users")
     @commands.has_any_role("Bot Guy", "United Rogue Owner", "Commissioner")
     async def add_missing_intent_role(self, ctx: discord.ApplicationContext):
         role_name = "Missing Intent Form"
@@ -62,7 +62,7 @@ class StaffCog(commands.Cog):
         await ctx.respond(f"Role '{role_name}' has been assigned to {count} members.", ephemeral=True)
         logger.info(f"Role '{role_name}' added to {count} members by {ctx.author.display_name}")
 
-    @commands.slash_command(GUILD_IDS, description="Export all player names and their ranks")
+    @commands.slash_command(guild_ids=GUILD_IDS, description="Export all player names and their ranks")
     @commands.has_permissions(administrator=True)
     async def export_player_ranks(self, ctx):
         data = []
