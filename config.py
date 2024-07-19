@@ -12,3 +12,5 @@ riot_dev_api = "RGAPI-ad7a2254-efb3-4a98-936f-0a7957dfc5c7"
 bot_admin_channel = 1171263860716601366
 
 riot_id_log_channel = 1194430443362205767
+
+GUILD_IDS = [1171263858971770901] #for use in slash commands
