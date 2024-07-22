@@ -1,9 +1,10 @@
-import app.config as config, app.dbInfo as dbInfo, discord, logging
+import app.config as config
+import app.dbInfo as dbInfo
+import discord, logging
 from discord.ext import commands
-from discord.commands import Option
-from datetime import datetime
+from datetime import datetime, timezone
 
-logger = logging.getLogger('lol_log')
+logger = logging.getLogger(__name__)
 
 class EventsCog(commands.Cog):
     def __init__(self, bot):
@@ -11,23 +12,21 @@ class EventsCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        #logger.info("Bot is ready. Checking and adding members to the database.")
         for member in self.bot.get_all_members():
             if not member.bot:
                 self.add_member_to_db(member)
         logger.info("Bot is ready and members have been checked and added to database.")
 
     def add_member_to_db(self, member):
-        # Check if member is in database
         existing_member = dbInfo.player_collection.find_one({"discord_id": member.id})
         if existing_member is None:
-            # Add new member to database
+            # Add new member(s) to database
             dbInfo.player_collection.insert_one({
                 "discord_id": member.id,
                 "name": member.name,
                 "team": None,
                 "rank": None,
-                "joined_at": datetime.utcnow()
+                "joined_at": datetime.now(timezone.utc)
             })
             logger.info(f"Added {member.name} ({member.id}) to database.")
         else:
@@ -42,9 +41,21 @@ class EventsCog(commands.Cog):
         # Add member to database
         self.add_member_to_db(member)
 
-        #logger.info(f"Notifying admin channel about new member: {member.name} ({member.id}).")
+        # Assign "Missing Intent Form" role to new member
+        await self.assign_role(member, "Missing Intent Form")
+
         # Notify in admin channel
         await self.notify_admin_channel(member)
+
+    async def assign_role(self, member, role_name):
+        guild = member.guild
+        role = discord.utils.get(guild.roles, name=role.name)
+
+        if role:
+            await member.add_roles(role)
+            logger.info(f"Assigned role '{role_name}' to {member.name}")
+        else:
+            logger.error(f"Role '{role_name}' not found in guild '{guild.name}'.")
 
     async def notify_admin_channel(self, member):
         member_pfp = member.avatar.url if member.avatar else member.default_avatar.url
@@ -59,12 +70,9 @@ class EventsCog(commands.Cog):
 
         if channel:
             await channel.send(embed=embed)
-            #logger.info(f"Admin channel notified about new member: {member.name} ({member.id}).")
         else:
             logger.error(f"Admin channel with ID {admin_channel} not found.")
 
 
 def setup(bot):
     bot.add_cog(EventsCog(bot))
-    logger.info("EventsCog setup completed.")
-
