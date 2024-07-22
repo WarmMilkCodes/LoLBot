@@ -1,5 +1,5 @@
 import aiohttp, logging, pytz
-from datetime import datetime, timezone
+from datetime import datetime
 import app.config as config
 import app.dbInfo as dbInfo
 from discord.ext import commands, tasks

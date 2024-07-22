@@ -1,9 +1,12 @@
-requests
-py-cord
 aiohttp
 asyncio
-pymongo
 certifi
 pandas
-xlsxwriter
+pymongo
+py-cord
 python-dotenv
+requests
+xlsxwriter
+
+
+

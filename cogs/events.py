@@ -2,7 +2,7 @@ import app.config as config
 import app.dbInfo as dbInfo
 import discord, logging
 from discord.ext import commands
-from datetime import datetime, timezone
+from datetime import datetime
 import pytz
 
 logger = logging.getLogger(__name__)
