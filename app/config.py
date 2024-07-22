@@ -14,3 +14,5 @@ RIOT_API = os.getenv("RIOT_API")
 # Commonly used server channels
 bot_admin_channel = 1171263860716601366
 riot_id_log_channel = 1194430443362205767
+transaction_bot_channel = 1264833838916567090
+posted_transactions_channel = 1171263861987475482
