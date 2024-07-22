@@ -122,7 +122,7 @@ class Transactions(commands.Cog):
         
         except Exception as e:
             await ctx.respond(f"There was an error while signing {user.name} to {team_code.upper()}.")
-            logger.error(f"Error signing {user.name} to {team_code.upper(): {e}}")
+            logger.error(f"Error signing {user.name} to {team_code.upper()}: {e}")
 
 def setup(bot):
     bot.add_cog(Transactions(bot))
