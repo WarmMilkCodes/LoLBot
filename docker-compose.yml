@@ -14,3 +14,6 @@ services:
       - PLAYER_COLLECTION=${PLAYER_COLLECTION}
       - TEAM_COLLECTION=${TEAM_COLLECTION}
       - RIOT_API=${RIOT_API}
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
