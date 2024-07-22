@@ -1,6 +1,7 @@
 requests
 py-cord
 aiohttp
+asyncio
 pymongo
 certifi
 pandas
