@@ -66,34 +66,5 @@ class StaffCog(commands.Cog):
         await ctx.respond(f"Role '{role_name}' has been assigned to {count} members.", ephemeral=True)
         logger.info(f"Role '{role_name}' added to {count} members by {ctx.author.display_name}")
 
-    @commands.slash_command(description="Export all player names and their ranks")
-    @commands.has_any_role("Bot Guy", "United Rogue Owner", "Commissioner")
-    async def export_player_ranks(self, ctx):
-        data = []
-        for player in dbInfo.player_collection.find():
-            discord_id = player.get("discord_id")
-            player_name = player.get("name", "Unknown")
-            rank_info = player.get("rank_info", [])
-            last_updated = player.get("last_updated", datetime.now(pytz.utc)).strftime('%m-%d-%Y')
-            ranks = ", ".join(
-                [f"{rank.get('queue_type', 'Unknown Queue').replace('_', ' ').title()} - "
-                 f"{rank.get('tier', 'Unknown Tier').capitalize() if rank.get('tier') else 'Unknown Tier'} "
-                 f"{rank.get('division', 'Unknown Division').upper() if rank.get('division') else 'UNKNOWN DIVISION'}" 
-                 for rank in rank_info]
-            )
-            data.append({"Player Name": player_name, "Ranks":ranks, "Last Updated": last_updated})
-
-        df = pd.DataFrame(data)
-        with io.BytesIO() as output:
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                df.to_excel(writer, index=False, sheet_name='Player Ranks')
-                writer.save()
-            output.seek(0)
-            file = discord.File(output, filename="player_ranks.xlsx")
-            await ctx.respond("Here is the spreadsheet with player ranks:", file=file)
-
-        logger.info(f"Exported player ranks spreadsheet requested by {ctx.author.display_name}")
-
-
 def setup(bot):
     bot.add_cog(StaffCog(bot))
