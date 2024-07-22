@@ -1,4 +1,4 @@
-import aiohttp, logging
+import aiohttp, logging, pytz
 from datetime import datetime, timezone
 import app.config as config
 import app.dbInfo as dbInfo
@@ -61,7 +61,7 @@ class PlayerCog(commands.Cog):
                         rank_info = await self.get_player_rank(summoner_id)
                         if rank_info:
                             # Store rank information with date
-                            date_str = datetime.now(timezone.utc).isoformat()
+                            date_str = datetime.now(pytz.utc).strftime('%m-%d-%Y')
                             historical_rank_info = player.get('historical_rank_info', {})
                             
                             # Check if rank info for today already exists and is the same
@@ -75,7 +75,7 @@ class PlayerCog(commands.Cog):
                                 {"discord_id": player['discord_id']},
                                 {"$set": {
                                     "rank_info": rank_info, 
-                                    "last_updated": datetime.now(timezone.utc),
+                                    "last_updated": datetime.now(pytz.utc).strftime('%m-%d-%Y'),
                                     "historical_rank_info": historical_rank_info
                                     }}
                             )
@@ -84,7 +84,7 @@ class PlayerCog(commands.Cog):
                         else:
                             dbInfo.player_collection.update_one(
                                 {"discord_id": player['discord_id']},
-                                {"$set": {"last_updated":datetime.now(timezone.utc)}}
+                                {"$set": {"last_updated":datetime.now(pytz.utc).strftime('%m-%d-%Y')}}
                             )
                             logger.warning(f"No rank information found for {player['name']}, but updated last_updated")
                             
