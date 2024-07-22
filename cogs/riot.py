@@ -1,9 +1,10 @@
-import requests, app.config as config, app.dbInfo as dbInfo, logging
-import discord
+import app.config as config
+import app.dbInfo as dbInfo
+import discord, logging
 from discord.ext import commands
-from discord.commands import Option
 
-logger = logging.getLogger('lol_log')
+
+logger = logging.getLogger(__name__)
 
 class RiotCog(commands.Cog):
     def __init__(self, bot):

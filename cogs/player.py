@@ -1,10 +1,10 @@
-import aiohttp, json, logging
+import aiohttp, logging
 from datetime import datetime, timezone
-import app.config as config, app.dbInfo as dbInfo
+import app.config as config
+import app.dbInfo as dbInfo
 from discord.ext import commands, tasks
-from discord.commands import Option
 
-logger = logging.getLogger('lol_log')
+logger = logging.getLogger(__name__)
 
 class PlayerCog(commands.Cog):
     def __init__(self, bot):
@@ -37,19 +37,18 @@ class PlayerCog(commands.Cog):
 
     ## Function to update ranks for all players
     async def update_all_ranks(self):
-        logger.info("Starting to update ranks for all players.")
+        logger.info("Updating ranks for all players.")
         players = dbInfo.player_collection.find({})
         for player in players:
-            #logger.info(f"Processing player: {player['name']}")
+            logger.info(f"Processing player: {player['name']}")
             if 'game_name' in player and 'tag_line' in player:
-                #logger.info(f"Fetching PUUID for {player['game_name']}")
                 puuid = await self.get_puuid(player['game_name'], player['tag_line'])
                 if puuid:
                     dbInfo.player_collection.update_one(
                         {"discord_id": player['discord_id']},
                         {"$set": {"puuid": puuid}}
                     )
-                    #logger.info(f"Stored PUUID for {player['name']}")
+                    logger.info(f"Stored PUUID for {player['name']}")
 
                     summoner_id = await self.get_summoner_id(puuid)
                     if summoner_id:
@@ -57,14 +56,28 @@ class PlayerCog(commands.Cog):
                             {"discord_id": player['discord_id']},
                             {"$set": {"summoner_id": summoner_id}}
                         )
-                        #logger.info(f"Stored Summoner ID for player {player['name']}")
+                        logger.info(f"Stored Summoner ID for player {player['name']}")
 
-                        #logging.info(f"Fetching rank information for {player['name']}")
                         rank_info = await self.get_player_rank(summoner_id)
                         if rank_info:
+                            # Store rank information with date
+                            date_str = datetime.now(timezone.utc).isoformat()
+                            historical_rank_info = player.get('historical_rank_info', {})
+                            
+                            # Check if rank info for today already exists and is the same
+                            if date_str in historical_rank_info and historical_rank_info[date_str] == rank_info:
+                                logger.info(f"Rank information for player {player['name']} is unchanged for today.")
+                                continue
+
+                            historical_rank_info[date_str] = rank_info
+
                             dbInfo.player_collection.update_one(
                                 {"discord_id": player['discord_id']},
-                                {"$set": {"rank_info": rank_info, "last_updated":datetime.now(timezone.utc)}}
+                                {"$set": {
+                                    "rank_info": rank_info, 
+                                    "last_updated": datetime.now(timezone.utc),
+                                    "historical_rank_info": historical_rank_info
+                                    }}
                             )
                             logger.info(f"Updated rank information for player {player['name']} and set last updated.")
 
@@ -73,14 +86,14 @@ class PlayerCog(commands.Cog):
                                 {"discord_id": player['discord_id']},
                                 {"$set": {"last_updated":datetime.now(timezone.utc)}}
                             )
-                            #logger.warning(f"No rank information found for {player['name']}, but updated last_updated")
+                            logger.warning(f"No rank information found for {player['name']}, but updated last_updated")
                             
                     else:
                         logger.warning(f"Failed to retrieve summoner information for {player['name']}")
                 else:
                     logger.warning(f"Failed to retrieve PUUID for {player['game_name']}#{player['tag_line']}")
             else:
-                logger.warning(f"Player {player['name']} does not have game_name and tag_line set.")
+                logger.error(f"Player {player['name']} does not have game_name and tag_line set.")
         logger.info("Completed updating ranks for all players.")
 
     ## Function to get PUUID
@@ -93,7 +106,7 @@ class PlayerCog(commands.Cog):
                     account_info = await response.json()
                     return account_info.get('puuid')
                 else:
-                    logger.warning(f"Error fetching PUUID for {game_name}#{tag_line}: {await response.text()}")
+                    logger.error(f"Error fetching PUUID for {game_name}#{tag_line}: {await response.text()}")
                     return None                    
 
     ## Function to get Summoner ID
@@ -106,7 +119,7 @@ class PlayerCog(commands.Cog):
                     summoner_info = await response.json()
                     return summoner_info.get('id')
                 else:
-                    logger.warning(f"Error fetching Summoner ID for PUUID {puuid}: {await response.text()}")
+                    logger.error(f"Error fetching Summoner ID for PUUID {puuid}: {await response.text()}")
                     return None
 
     ## Function to get player rank

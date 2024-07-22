@@ -2,12 +2,11 @@ import discord
 import logging
 from discord.ext import commands
 from discord.commands import Option
-from discord import File
 import app.dbInfo as dbInfo
 import pandas as pd
 import io
 
-logger = logging.getLogger('lol_log')
+logger = logging.getLogger(__name__)
 
 
 class StaffCog(commands.Cog):
