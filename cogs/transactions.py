@@ -59,11 +59,12 @@ class Transactions(commands.Cog):
 
             # Ensure command invoked in correct channel
             transaction_bot_channel_id = config.transaction_bot_channel
+            transaction_bot_channel = guild.get_channel(transaction_bot_channel_id)
             posted_transaction_channel = config.posted_transactions_channel
 
             if ctx.channel.id != transaction_bot_channel_id:
                 logger.info("Sign player command invoked in wrong channel.")
-                return await ctx.respond(f"This comand can only be used in {transaction_bot_channel_id.mention}", ephemeral=True)
+                return await ctx.respond(f"This comand can only be used in {transaction_bot_channel.mention}", ephemeral=True)
             
             # Determine player's current team status (signed or free agent)
             logger.info(f"Checking database to see if {user.name} is already on a team.")
@@ -107,7 +108,7 @@ class Transactions(commands.Cog):
 
             # Send message to transaction channel
             message = f"{general_manager_role.mention} signs {user.mention} to roster."
-            channel = self.bot.get_channel(config.posted_transactions_channel)
+            channel = self.bot.get_channel(posted_transaction_channel)
             logger.info("Sending transaction notification to transactions channel.")
             await channel.send(message)
 
