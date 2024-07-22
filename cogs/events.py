@@ -3,6 +3,7 @@ import app.dbInfo as dbInfo
 import discord, logging
 from discord.ext import commands
 from datetime import datetime, timezone
+import pytz
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ class EventsCog(commands.Cog):
                 "name": member.name,
                 "team": None,
                 "rank": None,
-                "joined_at": datetime.now(timezone.utc)
+                "joined_at": datetime.now(pytz.utc).strftime('%m-%d-%Y')
             })
             logger.info(f"Added {member.name} ({member.id}) to database.")
         else:
