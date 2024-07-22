@@ -1,4 +1,4 @@
-import requests, config, dbInfo, logging
+import requests, app.config as config, app.dbInfo as dbInfo, logging
 import discord
 from discord.ext import commands
 from discord.commands import Option

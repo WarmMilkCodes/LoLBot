@@ -1,4 +1,4 @@
-import config, dbInfo, discord, logging
+import app.config as config, app.dbInfo as dbInfo, discord, logging
 from discord.ext import commands
 from discord.commands import Option
 from datetime import datetime

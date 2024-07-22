@@ -3,14 +3,12 @@ import logging
 from discord.ext import commands
 from discord.commands import Option
 from discord import File
-import config
-import dbInfo
+import app.dbInfo as dbInfo
 import pandas as pd
 import io
 
 logger = logging.getLogger('lol_log')
 
-GUILD_IDS = config.GUILD_IDS
 
 class StaffCog(commands.Cog):
     def __init__(self, bot):
@@ -43,11 +41,12 @@ class StaffCog(commands.Cog):
         await ctx.respond(embed=embed)
         logger.info(f"Rank information for {user.display_name} sent, requested by {ctx.author.display_name}")
 
-    @commands.slash_command(guild_ids=GUILD_IDS, description="Adds 'Missing Intent Form' role to all users")
+    @commands.slash_command(description="Adds 'Missing Intent Form' role to all users")
     @commands.has_any_role("Bot Guy", "United Rogue Owner", "Commissioner")
     async def add_missing_intent_role(self, ctx: discord.ApplicationContext):
         role_name = "Missing Intent Form"
         role = discord.utils.get(ctx.guild.roles, name=role_name)
+        guild = ctx.guild
 
         if not role:
             await ctx.respond(f"Role '{role_name}' not found.", ephemeral=True)
@@ -55,15 +54,18 @@ class StaffCog(commands.Cog):
             return
             
         count = 0
-        for member in ctx.guild.members:
+        for member in guild.members:
             if not member.bot and role not in member.roles:
-                await member.add_roles(role)
-                count += 1
+                try:
+                    await member.add_roles(role)
+                    count += 1
+                except Exception as e:
+                    logger.error(f"Error adding role: {e}")
 
         await ctx.respond(f"Role '{role_name}' has been assigned to {count} members.", ephemeral=True)
         logger.info(f"Role '{role_name}' added to {count} members by {ctx.author.display_name}")
 
-    @commands.slash_command(guild_ids=GUILD_IDS, description="Export all player names and their ranks")
+    @commands.slash_command(description="Export all player names and their ranks")
     @commands.has_any_role("Bot Guy", "United Rogue Owner", "Commissioner")
     async def export_player_ranks(self, ctx):
         data = []
@@ -93,4 +95,3 @@ class StaffCog(commands.Cog):
 
 def setup(bot):
     bot.add_cog(StaffCog(bot))
-    logger.info("StaffCog setup completed.")

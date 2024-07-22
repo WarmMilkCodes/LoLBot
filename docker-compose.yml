@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    ports:
+      - "80:80"
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - MONGO_URL=${MONGO_URL}
+      - DB_NAME=${DB_NAME}
+      - INTENT_COLLECTION=${INTENT_COLLECTION}
+      - PLAYER_COLLECTION=${PLAYER_COLLECTION}
+      - TEAM_COLLECTION=${TEAM_COLLECTION}
+      - RIOT_API=${RIOT_API}

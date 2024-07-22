@@ -1,6 +1,6 @@
 import aiohttp, json, logging
 from datetime import datetime, timezone
-import config, dbInfo
+import app.config as config, app.dbInfo as dbInfo
 from discord.ext import commands, tasks
 from discord.commands import Option
 
@@ -81,12 +81,12 @@ class PlayerCog(commands.Cog):
                     logger.warning(f"Failed to retrieve PUUID for {player['game_name']}#{player['tag_line']}")
             else:
                 logger.warning(f"Player {player['name']} does not have game_name and tag_line set.")
-            logger.info("Completed updating ranks for all players.")
+        logger.info("Completed updating ranks for all players.")
 
     ## Function to get PUUID
     async def get_puuid(self, game_name, tag_line):
         url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
-        headers = {'X-Riot-Token': config.riot_dev_api}
+        headers = {'X-Riot-Token': config.RIOT_API}
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
                 if response.status == 200:
@@ -99,7 +99,7 @@ class PlayerCog(commands.Cog):
     ## Function to get Summoner ID
     async def get_summoner_id(self, puuid):
         url = f"https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
-        headers = {'X-Riot-Token': config.riot_dev_api}
+        headers = {'X-Riot-Token': config.RIOT_API}
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
                 if response.status == 200:
@@ -112,7 +112,7 @@ class PlayerCog(commands.Cog):
     ## Function to get player rank
     async def get_player_rank(self, summoner_id):
         url = f"https://na1.api.riotgames.com/lol/league/v4/entries/by-summoner/{summoner_id}"
-        headers = {'X-Riot-Token': config.riot_dev_api}
+        headers = {'X-Riot-Token': config.RIOT_API}
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
                 if response.status == 200:
@@ -136,4 +136,3 @@ class PlayerCog(commands.Cog):
 
 def setup(bot):
     bot.add_cog(PlayerCog(bot))
-    logging.info("PlayerCog setup completed.")
