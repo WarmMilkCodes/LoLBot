@@ -96,8 +96,12 @@ class Transactions(commands.Cog):
 
             # Update user's display name with team prefix
             new_nickname = f"{team_code.upper()} | {user.display_name}"
-            await user.edit(nick=new_nickname)
-            logger.info(f"Updated nickname for {user.name} to {new_nickname}")
+            try:
+                await user.edit(nick=new_nickname)
+                logger.info(f"Updated nickname for {user.name} to {new_nickname}")
+            except discord.Forbidden:
+                logger.error(f"Failed to update nickname for {user.name} due to missing permissions.")
+                await ctx.respond(f"Failed to update nicknaem for {user.display_name} due to missing permissions")
 
             # Get GMs role
             gm_role_id = await self.get_gm_role(team_code.upper())
