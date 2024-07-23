@@ -47,7 +47,7 @@ class Transactions(commands.Cog):
 
     @commands.slash_command(description="Sign player to team")
     @commands.has_any_role("United Rogue Owner", "League Ops", "Bot Guy")
-    async def sign_player(self, ctx, user: Option(discord.Member), team_code: Option(str, "Enter 3-letter team abbreviation")):
+    async def sign_player(self, ctx, player: Option(discord.Member), team_code: Option(str, "Enter 3-letter team abbreviation")):
         logger.info("Sign player command initiated.")
         await ctx.defer()  # Defer the response to extend the interaction time
         try:
@@ -62,9 +62,9 @@ class Transactions(commands.Cog):
                 return await ctx.respond(f"This command can only be used in {transaction_bot_channel_id.mention}", ephemeral=True)
             
             # Determine player's current team status (signed or free agent)
-            logger.info(f"Checking database to see if {user.name} ({user.id}) is already on a team.")
+            logger.info(f"Checking database to see if {player.name} ({user.id}) is already on a team.")
             player_entry = dbInfo.player_collection.find_one({
-                "discord_id": user.id, 
+                "discord_id": player.id, 
                 "$or": [
                     {"team": "FA"},
                     {"team": None}
@@ -77,10 +77,10 @@ class Transactions(commands.Cog):
                 logger.warning(f"No player entry found for {user.name} ({user.id})")
 
             if player_entry and player_entry.get("team") not in ["FA", None]:
-                logger.warning(f"{user.name} is already on a team or was not found in the database.")
-                return await ctx.respond(f"{user.name} is already on a team or was not found in the database.", ephemeral=True)
+                logger.warning(f"{player.name} is already on a team or was not found in the database.")
+                return await ctx.respond(f"{player.name} is already on a team or was not found in the database.", ephemeral=True)
 
-            logger.info(f"{user.name} is a free agent, proceeding with signing.")
+            logger.info(f"{player.name} is a free agent, proceeding with signing.")
 
             team_role_id = await self.get_team_role(team_code.upper())
 
@@ -93,16 +93,16 @@ class Transactions(commands.Cog):
             free_agent_role = discord.utils.get(ctx.guild.roles, name="Free Agents")
             if free_agent_role:
                 logger.info(f"Removing free agent role from {user.name}")
-                await user.remove_roles(free_agent_role)
+                await player.remove_roles(free_agent_role)
             
             logger.info(f"Assigning {team_code.upper()} role to {user.name}")
-            await user.add_roles(guild.get_role(team_role_id))
+            await player.add_roles(guild.get_role(team_role_id))
 
             # Update user's nickname with team prefix
-            new_nickname = f"{team_code.upper()} | {user.display_name}"
+            new_nickname = f"{team_code.upper()} | {player.display_name}"
             try:
-                await user.edit(nick=new_nickname)
-                logger.info(f"Updated nickname for {user.name} to {new_nickname}")
+                await player.edit(nick=new_nickname)
+                logger.info(f"Updated nickname for {player.name} to {new_nickname}")
             except discord.Forbidden:
                 logger.error(f"Failed to update nickname for {user.name} due to missing permissions.")
                 return await ctx.respond(f"Failed to update nickname for {user.name} due to missing permissions.", ephemeral=True)
@@ -122,16 +122,64 @@ class Transactions(commands.Cog):
 
             # Add player's team to their document in DB
             dbInfo.player_collection.find_one_and_update(
-                {"discord_id": user.id},
+                {"discord_id": player.id},
                 {"$set": {"team": team_code.upper()}}
             )
-            logger.info(f"Successfully updated {user.name}'s team in player's DB document.")
+            logger.info(f"Successfully updated {player.name}'s team in player's DB document.")
 
-            await ctx.respond(f"{user.name} has been signed to {team_code.upper()}", ephemeral=True)
+            await ctx.respond(f"{player.name} has been signed to {team_code.upper()}", ephemeral=True)
         
         except Exception as e:
-            logger.error(f"Error signing {user.name} to {team_code.upper()}: {e}")
+            logger.error(f"Error signing {player.name} to {team_code.upper()}: {e}")
             await ctx.respond(f"There was an error while signing {user.name} to {team_code.upper()}.", ephemeral=True)
+
+
+    @commands.slash_command(description="Release player to free agency")
+    @commands.has_any_role("United Rogue Owner", "League Ops", "Bot Guy")
+    async def release_player(self, ctx, player: Option(discord.member), team_code: Option(str, "Enter 3-letter team abbreviation")):
+        guild=ctx.guild
+        await ctx.defer()
+        try:
+            # Ensure command invoked in correct channel
+            transaction_bot_channel_id = config.transaction_bot_channel
+            posted_transaction_channel = config.posted_transactions_channel
+
+            if ctx.channel.id != transaction_bot_channel_id:
+                logger.info("Release player command invoked in wrong channel.")
+                return await ctx.respond(f"This command can only be used in {transaction_bot_channel_id.mention}", ephemeral=True)
+            
+            # Check if player is already a free agent
+            player_entry = dbInfo.player_collection.find_one({"discord_id": player.id, "team": "FA"})
+
+            if player_entry["team"] == "FA":
+                return await ctx.respond(f"{player.display_name} is already a free agent.")
+            
+            # Get player's team role
+            team_role_id = await self.get_team_role(team_code.upper())
+            if not team_role_id:
+                return await ctx.respond(f"Invalid team code: {team_code.upper()}.")
+            
+            # Check if player is on the specified team
+            if not player.roles.__contains__(guild.get_role(team_role_id)):
+                return await ctx.respond(f"{player.display_name} is not signed to {team_code.upper()}.")
+            
+            free_agent_role = discord.utils.get(ctx.guild.roles, name="Free Agents")
+            await player.add_roles(free_agent_role)
+            await player.remove_roles(guild.get_role(team_role_id))
+
+            # Get GM's role
+            general_manager_role = await self.get_gm_role(team_code.upper())
+            if not general_manager_role:
+                return await ctx.respond(f"No GM role found for team {team_code.upper()}.")
+            GM = guild.get_role(general_manager_role)
+
+            # Send message to transactions channel
+            message = f"{GM.mention} releases {player.mention} to free agency."
+            channel = self.bot.get_channel(config.posted_transactions_channel)
+            await channel.send(message)
+
+            logger.info(f"{player.name} has been released from {team_code.upper()}.")
+
 
 def setup(bot):
     bot.add_cog(Transactions(bot))
