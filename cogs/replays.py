@@ -57,7 +57,7 @@ class ReplaysCog(commands.Cog):
                 new_player.set_position(p.get('TEAM_POSITION'))
                 players.append(new_player)
 
-            # print some basic info for testing
+            # log some basic info for testing
             for p in players:
                 logger.info(f"UUID: {p.uuid}")
                 logger.info(f"Win/Loss: {p.win}")
