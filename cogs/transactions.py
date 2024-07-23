@@ -178,7 +178,11 @@ class Transactions(commands.Cog):
             channel = self.bot.get_channel(config.posted_transactions_channel)
             await channel.send(message)
 
+
             logger.info(f"{player.name} has been released from {team_code.upper()}.")
+
+        except Exception as e:
+            logger.error(f"There was an error releasing {player.name} from {team_code.upper()}: {e}")
 
 def setup(bot):
     bot.add_cog(Transactions(bot))
