@@ -180,6 +180,5 @@ class Transactions(commands.Cog):
 
             logger.info(f"{player.name} has been released from {team_code.upper()}.")
 
-
 def setup(bot):
     bot.add_cog(Transactions(bot))
