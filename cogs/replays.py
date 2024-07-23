@@ -12,7 +12,7 @@ class ReplaysCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @discord.command(description="parses a league of legends replay")
+    @commands.slash_command(description="parses a league of legends replay")
     async def upload(self, ctx, replay: discord.Attachment):
         await self.parse_replay(ctx, replay)
 
@@ -29,7 +29,6 @@ class ReplaysCog(commands.Cog):
             # validate magic bytes
             magic = buffer.read(4)
             if not magic == b'RIOT':
-                logger.warning(ctx.respond)
                 await ctx.respond("An error occurred. Please ensure the provided file is a valid .rofl file")
                 return
 
@@ -60,18 +59,18 @@ class ReplaysCog(commands.Cog):
 
             # print some basic info for testing
             for p in players:
-                print('UUID: ' + p.uuid)
-                print('Win/Loss: ' + p.win)
-                print('Kills: ' + p.kills)
-                print('Deaths: ' + p.deaths)
-                print('Assists: ' + p.assists)
-                print('Position: ' + p.position)
+                logger.info(f"UUID: {p.uuid}")
+                logger.info(f"Win/Loss: {p.win}")
+                logger.info(f"Kills: {p.kills}")
+                logger.info(f"Deaths: {p.deaths}")
+                logger.info(f"Assists: {p.assists}")
+                logger.info(f"Position: {p.position}")
                 print('- ' * 20)
 
             await ctx.respond("Replay parsed successfully.")
         except Exception as e:
             logger.error(e)
-            ctx.respond("An unknown error occurred and has been logged. Please try again.")
+            await ctx.respond("An unknown error occurred and has been logged. Please try again.")
 
 
 class PlayerStats:
