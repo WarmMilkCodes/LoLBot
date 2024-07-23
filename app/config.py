@@ -9,6 +9,7 @@ DB_NAME = os.getenv("DB_NAME")
 INTENT_COLLECTION = os.getenv("INTENT_COLLECTION")
 PLAYER_COLLECTION = os.getenv("PLAYER_COLLECTION")
 TEAM_COLLECTION = os.getenv("TEAM_COLLECTION")
+REPLAYS_COLLECTION = os.getenv("REPLAYS_COLLECTION")
 RIOT_API = os.getenv("RIOT_API")
 
 # Commonly used server channels

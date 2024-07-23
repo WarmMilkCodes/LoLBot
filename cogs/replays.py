@@ -1,9 +1,11 @@
 import io
 import logging
 import json
-
+from datetime import datetime, timezone
 import discord
 from discord.ext import commands
+import app.config as config
+import app.dbInfo as dbInfo
 
 logger = logging.getLogger(__name__)
 
@@ -47,15 +49,25 @@ class ReplaysCog(commands.Cog):
 
             players = []
 
-            # extract exact info from each player
+            # Extract exact info from each player
             for p in replay_inner_data:
-                new_player = PlayerStats(p.get('PUUID'))
-                new_player.set_win(p.get('WIN'))
-                new_player.set_kills(p.get('CHAMPIONS_KILLED'))
-                new_player.set_deaths(p.get('NUM_DEATHS'))
-                new_player.set_assists(p.get('ASSISTS'))
-                new_player.set_position(p.get('TEAM_POSITION'))
+                new_player = PlayerStats(
+                    uuid=p.get('PUUID'),
+                    win=p.get('WIN'),
+                    kills=p.get('CHAMPIONS_KILLED'),
+                    deaths=p.get('NUM_DEATHS'),
+                    assists=p.get('ASSISTS'),
+                    position=p.get('TEAM_POSITION')
+                )
                 players.append(new_player)
+
+            # Store replay data in database
+            replay_data = {
+                "replay_id": replay.id,
+                "filename": [player.to_dict() for player in players],
+                "uploaded_at": datetime.now(timezone.utc)
+            }
+            dbInfo.replays_collection.insert_one(replay_data)
 
             # log some basic info for testing
             for p in players:
@@ -67,36 +79,35 @@ class ReplaysCog(commands.Cog):
                 logger.info(f"Position: {p.position}")
                 print('- ' * 20)
 
-            await ctx.respond("Replay parsed successfully.")
+            # Create embed message
+            embed = discord.Embed(title="Replay Summary", color=discord.Color.blue())
+            for player in players:
+                embed.add_field(
+                    name=f"Player {player.uuid}",
+                    value=(
+                        f"Win/Loss: {player.win}\n"
+                        f"Kills: {player.kills}\n"
+                        f"Deaths: {player.deaths}\n"
+                        f"Assists: {player.assists}\n"
+                        f"Position: {player.position}"
+                    ),
+                    inline=False
+                )
+
+            await ctx.respond(embed=embed)
         except Exception as e:
             logger.error(e)
             await ctx.respond("An unknown error occurred and has been logged. Please try again.")
 
 
 class PlayerStats:
-    def __init__(self, uuid):
+    def __init__(self, uuid, win=None, kills=None, deaths=None, assists=None, position=None):
         self.uuid = uuid
-        self.kills = None
-        self.deaths = None
-        self.assists = None
-        self.position = None
-        self.win = None
-
-    def set_kills(self, kills):
         self.kills = kills
-
-    def set_deaths(self, deaths):
         self.deaths = deaths
-
-    def set_assists(self, assists):
         self.assists = assists
-
-    def set_position(self, position):
         self.position = position
-
-    def set_win(self, win):
         self.win = win
-
 
 def setup(bot):
     bot.add_cog(ReplaysCog(bot))
