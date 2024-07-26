@@ -1,5 +1,6 @@
 import requests
 import discord
+import logging
 from discord.ext import commands
 import app.config as config
 import app.dbInfo as dbInfo
@@ -7,6 +8,8 @@ import app.dbInfo as dbInfo
 API_KEY = config.RIOT_API
 REGION = 'na1'  
 PROVIDER_URL = 'https://www.unitedrogue.com'
+
+logger = logging.getLogger(__name__)
 
 class TournamentCog(commands.Cog):
     def __init__(self, bot):
@@ -19,14 +22,20 @@ class TournamentCog(commands.Cog):
             "region": REGION,
             "url": PROVIDER_URL
         }
-        response = requests.post(
-            f"https://{REGION}.api.riotgames.com/lol/tournament-stub/v4/providers",
-            json=provider_payload,
-            headers={"X-Riot-Token": API_KEY}
-        )
-        provider_id = response.json()
-        dbInfo.save_provider_id(provider_id)  # Save provider ID in your database
-        await ctx.respond(f"Provider registered with ID: {provider_id}")
+        try:
+            response = requests.post(
+                f"https://{REGION}.api.riotgames.com/lol/tournament-stub/v4/providers",
+                json=provider_payload,
+                headers={"X-Riot-Token": API_KEY}
+            )
+            response.raise_for_status()
+            provider_id = response.json()
+            dbInfo.save_provider_id(provider_id)  # Save provider ID in your database
+            await ctx.respond(f"Provider registered with ID: {provider_id}")
+            logger.info(f"Provider registered with ID: {provider_id}")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to register provider: {e}")
+            await ctx.respond("Failed to register provider. Please check the logs for details.")
 
     @commands.slash_command(description="Create a new tournament")
     @commands.has_any_role("Staff", "Admin")
@@ -36,14 +45,20 @@ class TournamentCog(commands.Cog):
             "name": tournament_name,
             "providerId": provider_id
         }
-        response = requests.post(
-            f"https://{REGION}.api.riotgames.com/lol/tournament-stub/v4/tournaments",
-            json=tournament_payload,
-            headers={"X-Riot-Token": API_KEY}
-        )
-        tournament_id = response.json()
-        dbInfo.save_tournament_id(tournament_id)  # Save this in your database
-        await ctx.respond(f"Tournament created with ID: {tournament_id}")
+        try:
+            response = requests.post(
+                f"https://{REGION}.api.riotgames.com/lol/tournament-stub/v4/tournaments",
+                json=tournament_payload,
+                headers={"X-Riot-Token": API_KEY}
+            )
+            response.raise_for_status()
+            tournament_id = response.json()
+            dbInfo.save_tournament_id(tournament_id)  # Save this in your database
+            await ctx.respond(f"Tournament created with ID: {tournament_id}")
+            logger.info(f"Tournament created with ID: {tournament_id}")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to create tournament: {e}")
+            await ctx.respond("Failed to create tournament. Please check the logs for details.")
 
     @commands.slash_command(description="Generate tournament codes")
     @commands.has_any_role("Staff", "Admin")
@@ -57,25 +72,36 @@ class TournamentCog(commands.Cog):
             "tournamentId": tournament_id,
             "metadata": "UR LoL Match"
         }
-        response = requests.post(
-            f"https://{REGION}.api.riotgames.com/lol/tournament-stub/v4/codes?count={count}",
-            json=code_payload,
-            headers={"X-Riot-Token": API_KEY}
-        )
-        tournament_codes = response.json()
-        dbInfo.save_tournament_codes(tournament_codes)  # Save these codes in your database
-        await ctx.respond(f"Tournament codes generated: {tournament_codes}")
+        try:
+            response = requests.post(
+                f"https://{REGION}.api.riotgames.com/lol/tournament-stub/v4/codes?count={count}",
+                json=code_payload,
+                headers={"X-Riot-Token": API_KEY}
+            )
+            response.raise_for_status()
+            tournament_codes = response.json()
+            dbInfo.save_tournament_codes(tournament_codes)  # Save these codes in your database
+            await ctx.respond(f"Tournament codes generated: {tournament_codes}")
+            logger.info(f"Tournament codes generated: {tournament_codes}")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to generate tournament codes: {e}")
+            await ctx.respond("Failed to generate tournament codes. Please check the logs for details.")
 
     @commands.slash_command(description="Fetch match results")
     @commands.has_any_role("Staff", "Admin")
     async def fetch_match_results(self, ctx, tournament_code: str):
-        match_ids = self.get_match_ids_by_tournament_code(tournament_code)
-        match_results = []
-        for match_id in match_ids:
-            match_details = self.get_match_details(match_id, tournament_code)
-            match_results.append(match_details)
-            dbInfo.save_match_details(match_details)  # Save match details in your database
-        await ctx.respond(f"Match results fetched: {match_results}")
+        try:
+            match_ids = self.get_match_ids_by_tournament_code(tournament_code)
+            match_results = []
+            for match_id in match_ids:
+                match_details = self.get_match_details(match_id, tournament_code)
+                match_results.append(match_details)
+                dbInfo.save_match_details(match_details)  # Save match details in your database
+            await ctx.respond(f"Match results fetched: {match_results}")
+            logger.info(f"Match results fetched for tournament code {tournament_code}")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to fetch match results: {e}")
+            await ctx.respond("Failed to fetch match results. Please check the logs for details.")
 
     @staticmethod
     def get_match_ids_by_tournament_code(tournament_code):
@@ -83,6 +109,7 @@ class TournamentCog(commands.Cog):
             f"https://{REGION}.api.riotgames.com/lol/match/v4/matches/by-tournament-code/{tournament_code}/ids",
             headers={"X-Riot-Token": API_KEY}
         )
+        response.raise_for_status()
         return response.json()
 
     @staticmethod
@@ -91,6 +118,7 @@ class TournamentCog(commands.Cog):
             f"https://{REGION}.api.riotgames.com/lol/match/v4/matches/{match_id}/by-tournament-code/{tournament_code}",
             headers={"X-Riot-Token": API_KEY}
         )
+        response.raise_for_status()
         return response.json()
 
 def setup(bot):
