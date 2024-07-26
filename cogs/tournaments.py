@@ -6,7 +6,7 @@ import app.config as config
 import app.dbInfo as dbInfo
 
 API_KEY = config.RIOT_API
-REGION = 'na1'  
+REGION = 'NA'  
 PROVIDER_URL = 'https://www.unitedrogue.com'
 
 GUILD_ID=1171263858971770901
