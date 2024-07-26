@@ -66,6 +66,7 @@ class TournamentCog(commands.Cog):
     @commands.has_any_role("Bot Guy", "League Ops", "Commissioner", "Owner")
     async def generate_tournament_codes(self, ctx, count: int):
         tournament_id = dbInfo.get_tournament_id()
+        logger.debug(f"Passing tournament ID: {tournament_id}")
         code_payload = {
             "count": count,
             "tournamentId": tournament_id,
