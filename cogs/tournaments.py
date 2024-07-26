@@ -6,7 +6,7 @@ import app.config as config
 import app.dbInfo as dbInfo
 
 API_KEY = config.RIOT_API
-REGION = 'NA'  
+REGION = 'americas'  
 PROVIDER_URL = 'https://www.unitedrogue.com'
 
 GUILD_ID=1171263858971770901
@@ -26,7 +26,7 @@ class TournamentCog(commands.Cog):
         }
         try:
             response = requests.post(
-                f"https://{REGION}.api.riotgames.com/lol/tournament-stub/v5/providers",
+                f"https://americas.api.riotgames.com/lol/tournament-stub/v5/providers",
                 json=provider_payload,
                 headers={"X-Riot-Token": API_KEY}
             )
