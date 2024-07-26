@@ -16,7 +16,7 @@ class TournamentCog(commands.Cog):
         self.bot = bot
 
     @commands.slash_command(description="Register a provider")
-    @commands.has_any_role("Staff", "Admin")
+    @commands.has_any_role("Bot Guy")
     async def register_provider(self, ctx):
         provider_payload = {
             "region": REGION,
@@ -38,7 +38,7 @@ class TournamentCog(commands.Cog):
             await ctx.respond("Failed to register provider. Please check the logs for details.")
 
     @commands.slash_command(description="Create a new tournament")
-    @commands.has_any_role("Staff", "Admin")
+    @commands.has_any_role("Bot Guy")
     async def create_tournament(self, ctx, tournament_name: str):
         provider_id = dbInfo.get_provider_id()  # Retrieve this from your database
         tournament_payload = {
@@ -61,7 +61,7 @@ class TournamentCog(commands.Cog):
             await ctx.respond("Failed to create tournament. Please check the logs for details.")
 
     @commands.slash_command(description="Generate tournament codes")
-    @commands.has_any_role("Staff", "Admin")
+    @commands.has_any_role("Bot Guy", "League Ops", "Commissioner", "Owner")
     async def generate_tournament_codes(self, ctx, count: int):
         tournament_id = dbInfo.get_tournament_id()  # Retrieve this from your database
         code_payload = {
@@ -88,7 +88,7 @@ class TournamentCog(commands.Cog):
             await ctx.respond("Failed to generate tournament codes. Please check the logs for details.")
 
     @commands.slash_command(description="Fetch match results")
-    @commands.has_any_role("Staff", "Admin")
+    @commands.has_any_role("Bot Guy", "League Ops", "Commissioner", "Owner")
     async def fetch_match_results(self, ctx, tournament_code: str):
         try:
             match_ids = self.get_match_ids_by_tournament_code(tournament_code)
