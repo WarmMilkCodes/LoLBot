@@ -65,14 +65,17 @@ class TournamentCog(commands.Cog):
     @commands.slash_command(guild_ids=[GUILD_ID],description="Generate tournament codes")
     @commands.has_any_role("Bot Guy", "League Ops", "Commissioner", "Owner")
     async def generate_tournament_codes(self, ctx, count: int):
-        tournament_id = dbInfo.get_tournament_id()  # Retrieve this from your database
+        tournament_id = dbInfo.get_tournament_id()
         code_payload = {
-            "mapType": "SUMMONERS_RIFT",
-            "pickType": "TOURNAMENT_DRAFT",
-            "spectatorType": "ALL",
-            "teamSize": 5,
+            "count": count,
             "tournamentId": tournament_id,
-            "metadata": "UR LoL Match"
+            "parameters": {
+                "mapType": "SUMMONERS_RIFT",
+                "pickType": "TOURNAMENT_DRAFT",
+                "spectatorType": "ALL",
+                "teamSize": 5,
+                "metadata": "UR LoL Match"
+            }
         }
         try:
             response = requests.post(
