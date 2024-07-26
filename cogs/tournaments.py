@@ -9,13 +9,15 @@ API_KEY = config.RIOT_API
 REGION = 'na1'  
 PROVIDER_URL = 'https://www.unitedrogue.com'
 
+GUILD_ID=1171263858971770901
+
 logger = logging.getLogger(__name__)
 
 class TournamentCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.slash_command(description="Register a provider")
+    @commands.slash_command(guild_ids=[GUILD_ID],description="Register a provider")
     @commands.has_any_role("Bot Guy")
     async def register_provider(self, ctx):
         provider_payload = {
@@ -37,7 +39,7 @@ class TournamentCog(commands.Cog):
             logger.error(f"Failed to register provider: {e}")
             await ctx.respond("Failed to register provider. Please check the logs for details.")
 
-    @commands.slash_command(description="Create a new tournament")
+    @commands.slash_command(guild_ids=[GUILD_ID],description="Create a new tournament")
     @commands.has_any_role("Bot Guy")
     async def create_tournament(self, ctx, tournament_name: str):
         provider_id = dbInfo.get_provider_id()  # Retrieve this from your database
@@ -60,7 +62,7 @@ class TournamentCog(commands.Cog):
             logger.error(f"Failed to create tournament: {e}")
             await ctx.respond("Failed to create tournament. Please check the logs for details.")
 
-    @commands.slash_command(description="Generate tournament codes")
+    @commands.slash_command(guild_ids=[GUILD_ID],description="Generate tournament codes")
     @commands.has_any_role("Bot Guy", "League Ops", "Commissioner", "Owner")
     async def generate_tournament_codes(self, ctx, count: int):
         tournament_id = dbInfo.get_tournament_id()  # Retrieve this from your database
@@ -87,7 +89,7 @@ class TournamentCog(commands.Cog):
             logger.error(f"Failed to generate tournament codes: {e}")
             await ctx.respond("Failed to generate tournament codes. Please check the logs for details.")
 
-    @commands.slash_command(description="Fetch match results")
+    @commands.slash_command(guild_ids=[GUILD_ID],description="Fetch match results")
     @commands.has_any_role("Bot Guy", "League Ops", "Commissioner", "Owner")
     async def fetch_match_results(self, ctx, tournament_code: str):
         try:
