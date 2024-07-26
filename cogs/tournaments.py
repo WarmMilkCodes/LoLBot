@@ -80,7 +80,7 @@ class TournamentCog(commands.Cog):
         }
         try:
             response = requests.post(
-                f"https://{REGION}.api.riotgames.com/lol/tournament-stub/v5/codes?count={count}",
+                f"https://{REGION}.api.riotgames.com/lol/tournament-stub/v5/codes?count={count}&tournamentId={tournament_id}",
                 json=code_payload,
                 headers={"X-Riot-Token": API_KEY}
             )
