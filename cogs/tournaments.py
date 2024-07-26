@@ -90,7 +90,7 @@ class TournamentCog(commands.Cog):
             logger.error(f"Failed to generate tournament codes: {err} - {error_message}")
             logger.debug(f"Paylod: {code_payload}")
             logger.debug(f"Response: {err.response.text}")
-            await ctx.respond("Failed to generate tournament codes: {err} - {error_message}", ephemeral=True)
+            await ctx.respond(f"Failed to generate tournament codes: {err} - {error_message}", ephemeral=True)
 
     @commands.slash_command(guild_ids=[GUILD_ID],description="Fetch match results")
     @commands.has_any_role("Bot Guy", "League Ops", "Commissioner", "Owner")
