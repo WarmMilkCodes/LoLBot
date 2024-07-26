@@ -118,7 +118,7 @@ class ReplaysCog(commands.Cog):
         embed = discord.Embed(title="Replay Summary", description=f"Replay ID: {replay_id}", color=discord.Color.blue())
         for player in players:
             embed.add_field(
-                name=f"Player {player.name}",
+                name=f"Player: {player.name}",
                 value=(
                     f"Win/Loss: {player.win}\n"
                     f"Kills: {player.kills}\n"
