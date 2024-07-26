@@ -6,6 +6,8 @@ services:
     container_name: lol_bot
     ports:
       - "80:80"
+    env_file: 
+      - .env
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - MONGO_URL=${MONGO_URL}

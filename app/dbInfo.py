@@ -1,4 +1,6 @@
-import pymongo, app.config as config, certifi
+import pymongo
+import app.config as config
+import certifi
 
 MongoURL = config.MONGO_URL
 ca = certifi.where()

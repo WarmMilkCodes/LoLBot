@@ -35,6 +35,7 @@ class ReplaysCog(commands.Cog):
         self.bot = bot
 
     @commands.slash_command(description="Parses a League of Legends replay")
+    @commands.has_role("Bot Guy")
     async def upload(self, ctx, replay: discord.Attachment):
         await ctx.defer()
         players, replay_id = await self.parse_replay(ctx, replay)
