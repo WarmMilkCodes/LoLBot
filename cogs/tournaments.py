@@ -89,7 +89,7 @@ class TournamentCog(commands.Cog):
             error_message = err.response.json().get('message', 'Unknown error')
             logger.error(f"Failed to generate tournament codes: {err} - {error_message}")
             logger.debug(f"Paylod: {code_payload}")
-            logger.debug(f"Response: {err.reponse.text}")
+            logger.debug(f"Response: {err.response.text}")
             await ctx.respond("Failed to generate tournament codes: {err} - {error_message}", ephemeral=True)
 
     @commands.slash_command(guild_ids=[GUILD_ID],description="Fetch match results")
