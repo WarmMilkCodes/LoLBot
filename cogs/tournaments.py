@@ -55,8 +55,8 @@ class TournamentCog(commands.Cog):
             )
             response.raise_for_status()
             tournament_id = response.json()
-            dbInfo.save_tournament_id(tournament_id)  # Save this in your database
-            await ctx.respond(f"Tournament created with ID: {tournament_id}")
+            dbInfo.save_tournament_id(tournament_id, tournament_name)
+            await ctx.respond(f"Tournament created with ID: {tournament_id, tournament_name}")
             logger.info(f"Tournament created with ID: {tournament_id}")
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to create tournament: {e}")
