@@ -82,12 +82,15 @@ class TournamentCog(commands.Cog):
             )
             response.raise_for_status()
             tournament_codes = response.json()
-            dbInfo.save_tournament_codes(tournament_codes)  # Save these codes in your database
-            await ctx.respond(f"Tournament codes generated: {tournament_codes}")
+            dbInfo.save_tournament_codes(tournament_id, tournament_codes)  # Save these codes in your database
+            await ctx.respond(f"Tournament codes generated: {', '.join(tournament_codes)}")
             logger.info(f"Tournament codes generated: {tournament_codes}")
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to generate tournament codes: {e}")
-            await ctx.respond("Failed to generate tournament codes. Please check the logs for details.")
+        except requests.exceptions.HTTPError as err:
+            error_message = err.response.json().get('message', 'Unknown error')
+            logger.error(f"Failed to generate tournament codes: {err} - {error_message}")
+            logger.debug(f"Paylod: {code_payload}")
+            logger.debug(f"Response: {err.reponse.text}")
+            await ctx.respond("Failed to generate tournament codes: {err} - {error_message}", ephemeral=True)
 
     @commands.slash_command(guild_ids=[GUILD_ID],description="Fetch match results")
     @commands.has_any_role("Bot Guy", "League Ops", "Commissioner", "Owner")
