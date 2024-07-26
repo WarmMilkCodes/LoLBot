@@ -126,7 +126,7 @@ class ReplaysCog(commands.Cog):
                     f"Assists: {player.assists}\n"
                     f"Position: {player.position}"
                 ),
-                inline=False
+                inline=True
             )
 
         await ctx.respond(embed=embed)
