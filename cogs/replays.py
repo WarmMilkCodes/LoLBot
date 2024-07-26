@@ -67,10 +67,9 @@ class ReplaysCog(commands.Cog):
             replay_outer_data = json.loads(json_str)
 
             # Extract replay ID from the JSON data
-            replay_id = replay_outer_data.get('ID')
+            replay_id = replay_outer_data.get('ID', 'Unknown')
             if not replay_id:
-                await ctx.respond("Replay ID not found in the provided file.", ephemeral=True)
-                return None, None
+                logger.warning("No replay ID found in JSON data.")
 
             # Check if replay already exists in the database
             if dbInfo.replays_collection.find_one({"replay_id": replay_id}):
