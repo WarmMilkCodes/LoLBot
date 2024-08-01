@@ -13,8 +13,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Set the PYTHONPATH environment variable
 ENV PYTHONPATH=/app
 
-# Make port 80 available to the world outside this container
-EXPOSE 80
-
 # Run bot.py when the container launches
 CMD ["python", "app/bot.py"]
