@@ -17,7 +17,7 @@ class TournamentCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.slash_command(guild_ids=[GUILD_ID],description="Register a provider")
+    @commands.slash_command(guild_ids=[GUILD_ID], description="Register a provider")
     @commands.has_any_role("Bot Guy")
     async def register_provider(self, ctx):
         provider_payload = {
@@ -26,12 +26,12 @@ class TournamentCog(commands.Cog):
         }
         try:
             response = requests.post(
-                f"https://americas.api.riotgames.com/lol/tournament-stub/v5/providers",
+                f"https://{REGION}.api.riotgames.com/lol/tournament/v5/providers",
                 json=provider_payload,
                 headers={"X-Riot-Token": API_KEY}
             )
             response.raise_for_status()
-            provider_id = response.json()
+            provider_id = response.json()['id']
             dbInfo.save_provider_id(provider_id)  # Save provider ID in your database
             await ctx.respond(f"Provider registered with ID: {provider_id}")
             logger.info(f"Provider registered with ID: {provider_id}")
@@ -39,7 +39,7 @@ class TournamentCog(commands.Cog):
             logger.error(f"Failed to register provider: {e}")
             await ctx.respond("Failed to register provider. Please check the logs for details.")
 
-    @commands.slash_command(guild_ids=[GUILD_ID],description="Create a new tournament")
+    @commands.slash_command(guild_ids=[GUILD_ID], description="Create a new tournament")
     @commands.has_any_role("Bot Guy")
     async def create_tournament(self, ctx, tournament_name: str):
         provider_id = dbInfo.get_provider_id()  # Retrieve this from your database
@@ -49,20 +49,20 @@ class TournamentCog(commands.Cog):
         }
         try:
             response = requests.post(
-                f"https://{REGION}.api.riotgames.com/lol/tournament-stub/v5/tournaments",
+                f"https://{REGION}.api.riotgames.com/lol/tournament/v5/tournaments",
                 json=tournament_payload,
                 headers={"X-Riot-Token": API_KEY}
             )
             response.raise_for_status()
-            tournament_id = response.json()
+            tournament_id = response.json()['id']
             dbInfo.save_tournament_id(tournament_id, tournament_name)
-            await ctx.respond(f"Tournament created with ID: {tournament_id, tournament_name}")
+            await ctx.respond(f"Tournament created with ID: {tournament_id}")
             logger.info(f"Tournament created with ID: {tournament_id}")
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to create tournament: {e}")
             await ctx.respond("Failed to create tournament. Please check the logs for details.")
 
-    @commands.slash_command(guild_ids=[GUILD_ID],description="Generate tournament codes")
+    @commands.slash_command(guild_ids=[GUILD_ID], description="Generate tournament codes")
     @commands.has_any_role("Bot Guy", "League Ops", "Commissioner", "Owner")
     async def generate_tournament_codes(self, ctx, count: int):
         tournament_id = dbInfo.get_tournament_id()
@@ -80,23 +80,23 @@ class TournamentCog(commands.Cog):
         }
         try:
             response = requests.post(
-                f"https://{REGION}.api.riotgames.com/lol/tournament-stub/v5/codes?count={count}&tournamentId={tournament_id}",
+                f"https://{REGION}.api.riotgames.com/lol/tournament/v5/codes?count={count}&tournamentId={tournament_id}",
                 json=code_payload,
                 headers={"X-Riot-Token": API_KEY}
             )
             response.raise_for_status()
-            tournament_codes = response.json()
+            tournament_codes = response.json()['codes']
             dbInfo.save_tournament_codes(tournament_id, tournament_codes)  # Save these codes in your database
             await ctx.respond(f"Tournament codes generated: {', '.join(tournament_codes)}")
             logger.info(f"Tournament codes generated: {tournament_codes}")
         except requests.exceptions.HTTPError as err:
             error_message = err.response.json().get('message', 'Unknown error')
             logger.error(f"Failed to generate tournament codes: {err} - {error_message}")
-            logger.debug(f"Paylod: {code_payload}")
+            logger.debug(f"Payload: {code_payload}")
             logger.debug(f"Response: {err.response.text}")
             await ctx.respond(f"Failed to generate tournament codes: {err} - {error_message}", ephemeral=True)
 
-    @commands.slash_command(guild_ids=[GUILD_ID],description="Fetch match results")
+    @commands.slash_command(guild_ids=[GUILD_ID], description="Fetch match results")
     @commands.has_any_role("Bot Guy", "League Ops", "Commissioner", "Owner")
     async def fetch_match_results(self, ctx, tournament_code: str):
         try:
