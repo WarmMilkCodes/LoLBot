@@ -1,4 +1,6 @@
-import config, dbInfo, discord, logging, re
+from app import config as config
+from app import dbInfo as dbInfo
+import discord, logging, re
 from discord.ext import commands
 from discord.commands import Option
 from discord.ext.commands import MissingAnyRole, CommandInvokeError, CommandError
