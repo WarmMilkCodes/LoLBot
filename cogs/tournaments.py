@@ -52,7 +52,7 @@ class TournamentCog(commands.Cog):
         }
         try:
             response = requests.post(
-                f"https://{REGION}.api.riotgames.com/lol/tournament/v5/tournaments",
+                f"https://americas.api.riotgames.com/lol/tournament/v5/tournaments",
                 json=tournament_payload,
                 headers={"X-Riot-Token": API_KEY}
             )
@@ -85,7 +85,7 @@ class TournamentCog(commands.Cog):
         }
         try:
             response = requests.post(
-                f"https://{REGION}.api.riotgames.com/lol/tournament/v5/codes?count={count}&tournamentId={tournament_id}",
+                f"https://americas.api.riotgames.com/lol/tournament/v5/codes?count={count}&tournamentId={tournament_id}",
                 json=code_payload,
                 headers={"X-Riot-Token": API_KEY}
             )
@@ -120,7 +120,7 @@ class TournamentCog(commands.Cog):
     @staticmethod
     def get_match_ids_by_tournament_code(tournament_code):
         response = requests.get(
-            f"https://{REGION}.api.riotgames.com/lol/match/v5/matches/by-tournament-code/{tournament_code}/ids",
+            f"https://americas.api.riotgames.com/lol/match/v5/matches/by-tournament-code/{tournament_code}/ids",
             headers={"X-Riot-Token": API_KEY}
         )
         response.raise_for_status()
@@ -129,7 +129,7 @@ class TournamentCog(commands.Cog):
     @staticmethod
     def get_match_details(match_id, tournament_code):
         response = requests.get(
-            f"https://{REGION}.api.riotgames.com/lol/match/v5/matches/{match_id}/by-tournament-code/{tournament_code}",
+            f"https://americas.api.riotgames.com/lol/match/v5/matches/{match_id}/by-tournament-code/{tournament_code}",
             headers={"X-Riot-Token": API_KEY}
         )
         response.raise_for_status()
