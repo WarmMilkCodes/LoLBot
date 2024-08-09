@@ -85,13 +85,16 @@ class TournamentCog(commands.Cog):
         }
         try:
             response = requests.post(
-                f"https://americas.api.riotgames.com/lol/tournament/v5/codes?count={count}&tournamentId={tournament_id}",
+                f"https://americas.api.riotgames.com/lol/tournament/v5/codes?tournamentId={tournament_id}&count={count}",
                 json=code_payload,
                 headers={"X-Riot-Token": API_KEY}
             )
             response.raise_for_status()
-            tournament_codes = response.json()['codes']
+
+            tournament_codes = response.json()
+
             dbInfo.save_tournament_codes(tournament_id, tournament_codes)  # Save these codes in your database
+            
             await ctx.respond(f"Tournament codes generated: {', '.join(tournament_codes)}")
             logger.info(f"Tournament codes generated: {tournament_codes}")
         except requests.exceptions.HTTPError as err:
