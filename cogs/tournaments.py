@@ -68,21 +68,19 @@ class TournamentCog(commands.Cog):
             await ctx.respond("Failed to create tournament. Please check the logs for details.")
 
     @commands.slash_command(guild_ids=[GUILD_ID], description="Generate tournament codes")
-    @commands.has_any_role("Bot Guy", "League Ops", "Commissioner", "Owner")
+    @commands.has_any_role("Bot Guy", "Commissioner", "Owner")
     async def generate_tournament_codes(self, ctx, count: int):
         tournament_id = dbInfo.get_tournament_id()
         logger.debug(f"Passing tournament ID: {tournament_id}")
+
         code_payload = {
-            "count": count,
-            "tournamentId": tournament_id,
-            "parameters": {
-                "mapType": "SUMMONERS_RIFT",
-                "pickType": "TOURNAMENT_DRAFT",
-                "spectatorType": "ALL",
-                "teamSize": 5,
-                "metadata": "UR LoL Match"
-            }
+            "mapType": "SUMMONERS_RIFT",
+            "pickType": "TOURNAMENT_DRAFT",
+            "spectatorType": "ALL",
+            "teamSize": 5,
+            "metadata": "UR LoL Match"
         }
+        
         try:
             response = requests.post(
                 f"https://americas.api.riotgames.com/lol/tournament/v5/codes?tournamentId={tournament_id}&count={count}",
