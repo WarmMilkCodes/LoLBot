@@ -32,8 +32,10 @@ class TournamentCog(commands.Cog):
                 headers={"X-Riot-Token": API_KEY}
             )
             response.raise_for_status()
-            provider_id = response.json()['id']
-            dbInfo.save_provider_id(provider_id)  # Save provider ID in your database
+
+            provider_id = int(response.text)
+
+            dbInfo.save_provider_id(provider_id)  # Save provider ID database
             await ctx.respond(f"Provider registered with ID: {provider_id}")
             logger.info(f"Provider registered with ID: {provider_id}")
         except requests.exceptions.RequestException as e:
