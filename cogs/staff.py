@@ -34,19 +34,12 @@ class StaffCog(commands.Cog):
         # Debugging: Check what data is returned
         logger.debug(f"Player Intent Data: {player_intent}")
 
-        # Breaking the long IDs into multiple lines for better readability
-        puuid = player_info.get('puuid', 'N/A')
-        puuid_display = '\n'.join([puuid[i:i + 20] for i in range(0, len(puuid), 20)]) if puuid != 'N/A' else 'N/A'
-
-        summoner_id = player_info.get('summoner_id', 'N/A')
-        summoner_id_display = '\n'.join([summoner_id[i:i + 20] for i in range(0, len(summoner_id), 20)]) if summoner_id != 'N/A' else 'N/A'
-
-        # Handling the rank_info array with proper capitalization
+        # Handling the rank_info array with proper formatting
         rank_info_array = player_info.get('rank_info', [])
         rank_info_display = ""
         if rank_info_array:
             for rank in rank_info_array:
-                queue_type = rank.get('queue_type', 'N/A').capitalize()
+                queue_type = rank.get('queue_type', 'N/A').replace('_', ' ').title()
                 tier = rank.get('tier', 'N/A').capitalize()
                 division = rank.get('division', 'N/A').upper()
                 rank_info_display += (f"**Queue Type**: {queue_type}\n"
@@ -60,8 +53,6 @@ class StaffCog(commands.Cog):
             f"**Username**: {user.name}",
             f"**Server Name**: {user.display_name}",
             f"**RiotID**: {player_info.get('game_name', 'N/A')}#{player_info.get('tag_line', 'N/A')}",
-            f"**PUUID**: {puuid_display}",
-            f"**Summoner ID**: {summoner_id_display}",
             f"**Rank Info**:\n{rank_info_display}"
         ]
 
