@@ -51,7 +51,7 @@ class ApplicationButton(discord.ui.View):
 
         # Asking for Riot Game Name
         await interaction.user.send(embed=discord.Embed(
-            title="Please provide your Riot Game Name",
+            title="Please provide your Riot Game Name (do not include tag line)",
             description="Enter your Riot Game Name below:",
             color=discord.Color.blue()
         ).set_image(url=game_name_image))
@@ -72,8 +72,8 @@ class ApplicationButton(discord.ui.View):
 
         # Asking for Riot Tag Line
         await interaction.user.send(embed=discord.Embed(
-            title="Please provide your Riot Tag Line",
-            description="Enter your Riot Tag Line below. **Do not include #**",
+            title="Please provide your Riot Tag Line (do not include game name or #)",
+            description="Enter your Riot Tag Line below.",
             color=discord.Color.blue()
         ).set_image(url=tagline_image))
 
