@@ -163,8 +163,8 @@ class Application(commands.Cog, name="Applications"):
         self.client = client
         self.persistent_views_added = False
 
-    @commands.slash_command(description="Intent Form Button")
-    @commands.has_any_role("Commissioner", "Bot Guy", "Owner", "Developer", "League Director")
+    @commands.slash_command(guild_ids=[config.lol_server], description="Intent Form Button")
+    @commands.has_any_role("Commissioner", "Bot Guy")
     async def intent_button(self, ctx):
         view = ApplicationButton()  # Create the ApplicationButton view
         await ctx.send(view=view)
