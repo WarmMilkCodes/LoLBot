@@ -10,7 +10,8 @@ logger = logging.getLogger('lol_log')
 
 lol_server_id = config.lol_server
 submission_log_channel_id = config.submission_log_channel  # Ensure this is in your config
-example_image_url = "https://cdn.discordapp.com/attachments/1171263861240889405/1271710010979651585/summoner-name-updated.png?ex=66b853bd&is=66b7023d&hm=da0cf651ae0b794719d5c7c25af4f402c1aa09b3a5023de2411516317b9b28eb&"
+game_name_image = "https://media.discordapp.net/attachments/1171263861240889405/1271892784315498556/gamename.png?ex=66b8fdf6&is=66b7ac76&hm=74fdbff2be50b7e43ad8e6aad38a29a0dad698badb361572e8ce54758c83abf4&=&format=webp&quality=lossless&width=960&height=540"
+tagline_image = "https://media.discordapp.net/attachments/1171263861240889405/1271892783892008971/tagline.png?ex=66b8fdf6&is=66b7ac76&hm=d019a8ae1a58ab3344c9776465e5c74f4e5d37324cd147cff4ca26e180fb9f68&=&format=webp&quality=lossless&width=960&height=540"
 
 class ApplicationButton(discord.ui.View):
     def __init__(self, bot):
@@ -53,7 +54,7 @@ class ApplicationButton(discord.ui.View):
             title="Please provide your Riot Game Name",
             description="Enter your Riot Game Name below:",
             color=discord.Color.blue()
-        ).set_image(url=example_image_url))
+        ).set_image(url=game_name_image))
 
         # Waiting for user's response
         try:
@@ -74,7 +75,7 @@ class ApplicationButton(discord.ui.View):
             title="Please provide your Riot Tag Line",
             description="Enter your Riot Tag Line below:",
             color=discord.Color.blue()
-        ).set_image(url=example_image_url))
+        ).set_image(url=tagline_image))
 
         # Waiting for user's response
         try:
