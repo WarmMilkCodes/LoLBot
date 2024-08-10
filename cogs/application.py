@@ -73,7 +73,7 @@ class ApplicationButton(discord.ui.View):
         # Asking for Riot Tag Line
         await interaction.user.send(embed=discord.Embed(
             title="Please provide your Riot Tag Line",
-            description="Enter your Riot Tag Line below:",
+            description="Enter your Riot Tag Line below. **Do not include #**",
             color=discord.Color.blue()
         ).set_image(url=tagline_image))
 
