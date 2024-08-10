@@ -2,8 +2,10 @@ import discord
 from discord.ext import commands
 from datetime import datetime
 import pytz
-from app import config, dbInfo
+import dbInfo
+import config
 import logging
+import asyncio
 
 logger = logging.getLogger('lol_log')
 
@@ -14,8 +16,8 @@ example_image_url = "https://cdn.discordapp.com/attachments/1171263861240889405/
 class ApplicationButton(discord.ui.View):
     def __init__(self, bot):
         super().__init__(timeout=None)
-        self.bot = bot
-    
+        self.bot = bot  # Store the bot instance
+
     @discord.ui.button(label="Click here to fill out the intent form", style=discord.ButtonStyle.red, custom_id="Intent Form")
     async def report_button_press(self, button: discord.ui.Button, interaction: discord.Interaction):
         await interaction.response.send_message("The form has been sent to your inbox", ephemeral=True)
@@ -55,10 +57,19 @@ class ApplicationButton(discord.ui.View):
             color=discord.Color.blue()
         ).set_image(url=example_image_url))
 
-        riot_game_name_msg = await interaction.bot.wait_for(
-            "message", check=lambda m: m.author == interaction.user and m.channel == interaction.channel
-        )
-        riot_game_name = riot_game_name_msg.content
+        # Waiting for user's response
+        try:
+            riot_game_name_msg = await self.bot.wait_for(
+                "message",
+                check=lambda m: m.author == interaction.user and m.channel == interaction.channel,
+                timeout=60  # Wait for up to 60 seconds
+            )
+            riot_game_name = riot_game_name_msg.content
+            logger.info(f"Received Riot Game Name: {riot_game_name}")
+        except asyncio.TimeoutError:
+            await interaction.user.send("You took too long to respond. Please try again.")
+            logger.warning("Timeout occurred while waiting for the Riot Game Name.")
+            return
 
         # Asking for Riot Tag Line
         await interaction.user.send(embed=discord.Embed(
@@ -67,10 +78,19 @@ class ApplicationButton(discord.ui.View):
             color=discord.Color.blue()
         ).set_image(url=example_image_url))
 
-        riot_tag_line_msg = await interaction.bot.wait_for(
-            "message", check=lambda m: m.author == interaction.user and m.channel == interaction.channel
-        )
-        riot_tag_line = riot_tag_line_msg.content
+        # Waiting for user's response
+        try:
+            riot_tag_line_msg = await self.bot.wait_for(
+                "message",
+                check=lambda m: m.author == interaction.user and m.channel == interaction.channel,
+                timeout=60  # Wait for up to 60 seconds
+            )
+            riot_tag_line = riot_tag_line_msg.content
+            logger.info(f"Received Riot Tag Line: {riot_tag_line}")
+        except asyncio.TimeoutError:
+            await interaction.user.send("You took too long to respond. Please try again.")
+            logger.warning("Timeout occurred while waiting for the Riot Tag Line.")
+            return
 
         # Final message after form submission
         if guild.id == lol_server_id:
@@ -88,11 +108,11 @@ class ApplicationButton(discord.ui.View):
         logger.info(f"Database Info: {dbInfo}")
 
         # Debug: Print the collection name
-        logger.info(f"Using collection: {dbInfo.intent_collection.name}")
+        logger.info(f"Using collection: {dbInfo.lol_intent_collection.name}")
 
         # Checks if user is in the database, if they are updates, if not adds them
         if guild.id == lol_server_id:
-            result = dbInfo.intent_collection.find_one_and_update(
+            result = dbInfo.lol_intent_collection.find_one_and_update(
                 {"ID": interaction.user.id},
                 {"$set":
                     {
@@ -175,14 +195,14 @@ class Application(commands.Cog):
     @commands.slash_command(guild_ids=[config.lol_server], description="Intent Form Button")
     @commands.has_any_role("Commissioner", "Bot Guy")
     async def intent_button(self, ctx):
-        view = ApplicationButton()  # Create the ApplicationButton view
+        view = ApplicationButton(self.bot)  # Pass the bot instance to ApplicationButton
         await ctx.send(view=view)
         await view.wait()
 
     @commands.Cog.listener()
     async def on_ready(self):
         if not self.persistent_views_added:
-            self.bot.add_view(ApplicationButton())  # Make sure the button is persistent
+            self.bot.add_view(ApplicationButton(self.bot))  # Make sure the button is persistent
             self.persistent_views_added = True
             logger.info("Persistent view added")
 
