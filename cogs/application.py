@@ -11,7 +11,7 @@ logger = logging.getLogger('lol_log')
 
 lol_server_id = config.lol_server
 submission_log_channel_id = config.submission_log_channel  # Ensure this is in your config
-example_image_url = "https://cdn.discordapp.com/attachments/1171263861240889405/1271710010979651585/summoner-name-updated.png?ex=66b853bd&is=66b7023d&hm=da0cf651ae0b794719d5c7c25af4f402c1aa09b3a5023de2411516317b9b28eb&"
+example_image_url = "https://example.com/.png"  # Replace with your image URL"
 
 class ApplicationButton(discord.ui.View):
     def __init__(self, bot):
@@ -21,7 +21,6 @@ class ApplicationButton(discord.ui.View):
     @discord.ui.button(label="Click here to fill out the intent form", style=discord.ButtonStyle.red, custom_id="Intent Form")
     async def report_button_press(self, button: discord.ui.Button, interaction: discord.Interaction):
         await interaction.response.send_message("The form has been sent to your inbox", ephemeral=True)
-        guild = interaction.guild
         questions = [
             "Do you intend on playing this season?",
             "Are you interested in joining the Development team?",
@@ -61,7 +60,7 @@ class ApplicationButton(discord.ui.View):
         try:
             riot_game_name_msg = await self.bot.wait_for(
                 "message",
-                check=lambda m: m.author == interaction.user and m.channel == interaction.channel,
+                check=lambda m: m.author == interaction.user and isinstance(m.channel, discord.DMChannel),
                 timeout=60  # Wait for up to 60 seconds
             )
             riot_game_name = riot_game_name_msg.content
@@ -82,7 +81,7 @@ class ApplicationButton(discord.ui.View):
         try:
             riot_tag_line_msg = await self.bot.wait_for(
                 "message",
-                check=lambda m: m.author == interaction.user and m.channel == interaction.channel,
+                check=lambda m: m.author == interaction.user and isinstance(m.channel, discord.DMChannel),
                 timeout=60  # Wait for up to 60 seconds
             )
             riot_tag_line = riot_tag_line_msg.content
@@ -93,9 +92,7 @@ class ApplicationButton(discord.ui.View):
             return
 
         # Final message after form submission
-        if guild.id == lol_server_id:
-            embed = discord.Embed(title="Intent Form Complete", description=lol_description, color=discord.Color.blue())
-        
+        embed = discord.Embed(title="Intent Form Complete", description=lol_description, color=discord.Color.blue())
         await interaction.user.send(embed=embed)
         logger.info(f"These are the responses: {responses}")
 
@@ -111,41 +108,24 @@ class ApplicationButton(discord.ui.View):
         logger.info(f"Using collection: {dbInfo.lol_intent_collection.name}")
 
         # Checks if user is in the database, if they are updates, if not adds them
-        if guild.id == lol_server_id:
-            result = dbInfo.lol_intent_collection.find_one_and_update(
-                {"ID": interaction.user.id},
-                {"$set":
-                    {
-                        "User": str(interaction.user),
-                        "Playing": responses[0],
-                        "Development Team": responses[1],
-                        "Production Team": responses[2],
-                        "Riot Game Name": riot_game_name,
-                        "Riot Tag Line": riot_tag_line,
-                        "Completed On": dateStr
-                    }
-                },
-                upsert=True,
-                return_document=True
-            )
+        result = dbInfo.lol_intent_collection.find_one_and_update(
+            {"ID": interaction.user.id},
+            {"$set":
+                {
+                    "User": str(interaction.user),
+                    "Playing": responses[0],
+                    "Development Team": responses[1],
+                    "Production Team": responses[2],
+                    "Riot Game Name": riot_game_name,
+                    "Riot Tag Line": riot_tag_line,
+                    "Completed On": dateStr
+                }
+            },
+            upsert=True,
+            return_document=True
+        )
 
-            logger.info(f"Database update result: {result}")
-
-            lol_missing_intent = discord.utils.get(guild.roles, name="Missing Intent Form")
-            lol_free_agent = discord.utils.get(guild.roles, name="Free Agents")
-            lol_spectator = discord.utils.get(guild.roles, name="Spectator")
-            lol_member = discord.utils.get(guild.roles, name="Member")
-
-            if responses[0] == "Yes":
-                await interaction.user.add_roles(lol_free_agent, lol_member)
-                await interaction.user.remove_roles(lol_missing_intent)
-            if responses[0] == "No":
-                await interaction.user.remove_roles(lol_missing_intent, lol_free_agent)
-                await interaction.user.add_roles(lol_spectator, lol_member)
-
-            logger.info(f"{interaction.user.name}'s LoL intent form has been entered into the database.")
-        else:
-            logger.error("Unable to submit intent form to database")
+        logger.info(f"Database update result: {result}")
 
         # Send submission to log channel
         submission_log_channel = self.bot.get_channel(submission_log_channel_id)
