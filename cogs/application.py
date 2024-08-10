@@ -12,8 +12,9 @@ submission_log_channel_id = config.submission_log_channel  # Ensure this is in y
 example_image_url = "https://cdn.discordapp.com/attachments/1171263861240889405/1271710010979651585/summoner-name-updated.png?ex=66b853bd&is=66b7023d&hm=da0cf651ae0b794719d5c7c25af4f402c1aa09b3a5023de2411516317b9b28eb&"
 
 class ApplicationButton(discord.ui.View):
-    def __init__(self):
+    def __init__(self, bot):
         super().__init__(timeout=None)
+        self.bot = bot
     
     @discord.ui.button(label="Click here to fill out the intent form", style=discord.ButtonStyle.red, custom_id="Intent Form")
     async def report_button_press(self, button: discord.ui.Button, interaction: discord.Interaction):
@@ -54,7 +55,7 @@ class ApplicationButton(discord.ui.View):
             color=discord.Color.blue()
         ).set_image(url=example_image_url))
 
-        riot_game_name_msg = await interaction.client.wait_for(
+        riot_game_name_msg = await interaction.bot.wait_for(
             "message", check=lambda m: m.author == interaction.user and m.channel == interaction.channel
         )
         riot_game_name = riot_game_name_msg.content
@@ -66,7 +67,7 @@ class ApplicationButton(discord.ui.View):
             color=discord.Color.blue()
         ).set_image(url=example_image_url))
 
-        riot_tag_line_msg = await interaction.client.wait_for(
+        riot_tag_line_msg = await interaction.bot.wait_for(
             "message", check=lambda m: m.author == interaction.user and m.channel == interaction.channel
         )
         riot_tag_line = riot_tag_line_msg.content
