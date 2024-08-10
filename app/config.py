@@ -23,5 +23,7 @@ posted_transactions_channel = 1171263861987475482
 submission_log_channel = 1271698169721393193
 failure_log_channel = 1171263860716601368
 
+admin_channels = bot_admin_channel, transaction_bot_channel, submission_log_channel, failure_log_channel
+
 # Server ID
 lol_server = 1171263858971770901
