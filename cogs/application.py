@@ -2,14 +2,14 @@ import discord
 from discord.ext import commands
 from datetime import datetime
 import pytz
-import dbInfo
-import config
+from app import config, dbInfo
 import logging
 
 logger = logging.getLogger('lol_log')
 
 lol_server_id = config.lol_server
-submission_log_channel_id = config.submission_log_channel  # Ensure this is in your config
+submission_log_channel_id = config.submission_log_channel
+example_image_url = "https://cdn.discordapp.com/attachments/1171263861240889405/1271710010979651585/summoner-name-updated.png?ex=66b853bd&is=66b7023d&hm=da0cf651ae0b794719d5c7c25af4f402c1aa09b3a5023de2411516317b9b28eb&"
 
 class ApplicationButton(discord.ui.View):
     def __init__(self):
@@ -19,8 +19,20 @@ class ApplicationButton(discord.ui.View):
     async def report_button_press(self, button: discord.ui.Button, interaction: discord.Interaction):
         await interaction.response.send_message("The form has been sent to your inbox", ephemeral=True)
         guild = interaction.guild
-        questions = ["Do you intend on playing this season?", "Are you interested in joining the Development team?", "Are you interested in joining the Production team?"]
-        notes = ["If you click No, you will be a spectator.", "This includes helping in website development, discord bots, and the use of APIs.", "This includes being a caster, commentator, broadcasting games on stream nights, and/or creating graphics."]
+        questions = [
+            "Do you intend on playing this season?",
+            "Are you interested in joining the Development team?",
+            "Are you interested in joining the Production team?",
+            "Please provide your Riot Game Name:",
+            "Please provide your Riot Tag Line:"
+        ]
+        notes = [
+            "If you click No, you will be a spectator.",
+            "This includes helping in website development, discord bots, and the use of APIs.",
+            "This includes being a caster, commentator, broadcasting games on stream nights, and/or creating graphics.",
+            None,
+            None
+        ]
         responses = []
         
         lol_description = "**Thank you for submitting the intent form for UR League of Legends**\n\nIf you need to change any of your responses, please click on the intent form button again to resubmit"
@@ -28,22 +40,25 @@ class ApplicationButton(discord.ui.View):
         # Collecting responses for general questions
         for x in range(len(questions)):
             view = ButtonOptions()
-            embed = discord.Embed(title=f"Question {x + 1}/{len(questions)}", description=f"{questions[x]}\n\n{notes[x]}", color=discord.Color.blue())
+            embed_description = f"{questions[x]}"
+            if notes[x]:
+                embed_description += f"\n\n{notes[x]}"
+            embed = discord.Embed(title=f"Question {x + 1}/{len(questions)}", description=embed_description, color=discord.Color.blue())
+            
+            # If asking for Game Name or Tag Line, include an image to clarify
+            if x == 3 or x == 4:
+                embed.set_image(url=example_image_url)
+            
             message = await interaction.user.send(embed=embed, view=view)
             await view.wait()
             responses.append(view.value)
-            embed = discord.Embed(title=f"Question {x + 1}/{len(questions)}", description=f"{questions[x]}\n\n{notes[x]}", timestamp=datetime.now(pytz.timezone('America/New_York')), color=discord.Color.blue())
+            embed = discord.Embed(title=f"Question {x + 1}/{len(questions)}", description=embed_description, timestamp=datetime.now(pytz.timezone('America/New_York')), color=discord.Color.blue())
             embed.set_footer(text=f"Answered: {view.value}")
             await message.edit(embed=embed, view=None)
 
-        # Riot ID Submission
-        embed = discord.Embed(title="Riot ID Submission", description="Please provide your Riot ID details below:", color=discord.Color.blue())
-        riot_id_form = RiotIDForm()
-        await interaction.user.send(embed=embed, view=riot_id_form)
-
-        await riot_id_form.wait()  # Wait until the form is submitted
-        riot_game_name = riot_id_form.game_name.value
-        riot_tag_line = riot_id_form.tag_line.value
+        # Extract game name and tag from responses
+        riot_game_name = responses[3]
+        riot_tag_line = responses[4]
 
         # Final message after form submission
         if guild.id == lol_server_id:
@@ -125,7 +140,6 @@ class ApplicationButton(discord.ui.View):
         if riot_id_log_channel:
             await riot_id_log_channel.send(f"{interaction.user.mention} updated their Riot ID: {riot_game_name}#{riot_tag_line}")
 
-
 class ButtonOptions(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -140,23 +154,6 @@ class ButtonOptions(discord.ui.View):
     async def no_button_press(self, button: discord.ui.Button, interaction: discord.Interaction):
         self.stop()
         self.value = "No"
-
-
-class RiotIDForm(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-        self.game_name = discord.ui.InputText(label="Game Name", placeholder="Enter your game name", min_length=3, max_length=16)
-        self.tag_line = discord.ui.InputText(label="Tag Line", placeholder="Enter your tag line", min_length=3, max_length=6)
-
-        self.add_item(self.game_name)
-        self.add_item(self.tag_line)
-
-    @discord.ui.button(label="Submit", style=discord.ButtonStyle.blurple, custom_id="SubmitRiotID")
-    async def submit_button_press(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await interaction.response.send_message("Riot ID successfully submitted.", ephemeral=True)
-        self.stop()
-
 
 class Application(commands.Cog):
     def __init__(self, bot):
@@ -176,7 +173,6 @@ class Application(commands.Cog):
             self.bot.add_view(ApplicationButton())  # Make sure the button is persistent
             self.persistent_views_added = True
             logger.info("Persistent view added")
-
 
 def setup(bot):
     bot.add_cog(Application(bot))
