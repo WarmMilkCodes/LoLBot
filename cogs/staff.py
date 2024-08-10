@@ -32,12 +32,13 @@ class StaffCog(commands.Cog):
         player_info = dbInfo.player_collection.find_one({"discord_id": user.id}, {"_id": 0})
 
         player_status = player_intent.get('Playing')
-        if player_status == 'Yes':
-            player_status_embed = 'Playing' 
-        elif player_status == 'No':
-            player_status_embed = 'Spectator'
-        else:
-            player_status_embed = 'N/A'
+        if player_intent:
+            if player_status == 'Yes':
+                player_status_embed = 'Playing' 
+            elif player_status == 'No':
+                player_status_embed = 'Spectator'
+            else:
+                player_status_embed = 'N/A'
 
         # Handling the rank_info array with proper formatting
         rank_info_array = player_info.get('rank_info', [])
