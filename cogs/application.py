@@ -2,8 +2,7 @@ import discord
 from discord.ext import commands
 from datetime import datetime
 import pytz
-import dbInfo
-import config
+from app import config, dbInfo
 import logging
 import asyncio
 
@@ -11,7 +10,7 @@ logger = logging.getLogger('lol_log')
 
 lol_server_id = config.lol_server
 submission_log_channel_id = config.submission_log_channel  # Ensure this is in your config
-example_image_url = "https://example.com/.png"  # Replace with your image URL"
+example_image_url = "https://cdn.discordapp.com/attachments/1171263861240889405/1271710010979651585/summoner-name-updated.png?ex=66b853bd&is=66b7023d&hm=da0cf651ae0b794719d5c7c25af4f402c1aa09b3a5023de2411516317b9b28eb&"
 
 class ApplicationButton(discord.ui.View):
     def __init__(self, bot):
@@ -105,10 +104,10 @@ class ApplicationButton(discord.ui.View):
         logger.info(f"Database Info: {dbInfo}")
 
         # Debug: Print the collection name
-        logger.info(f"Using collection: {dbInfo.lol_intent_collection.name}")
+        logger.info(f"Using collection: {dbInfo.intent_collection.name}")
 
         # Checks if user is in the database, if they are updates, if not adds them
-        result = dbInfo.lol_intent_collection.find_one_and_update(
+        result = dbInfo.intent_collection.find_one_and_update(
             {"ID": interaction.user.id},
             {"$set":
                 {
