@@ -37,7 +37,7 @@ class PlayerCog(commands.Cog):
     ## Function to update ranks for all players
     async def update_all_ranks(self):
         logger.info("Updating ranks for all players.")
-        failure_channel = self.bot.get_channel(config.failure_log_channel)
+        #failure_channel = self.bot.get_channel(config.failure_log_channel)
         players = dbInfo.player_collection.find({})
         for player in players:
             logger.info(f"Processing player: {player['name']}")
@@ -86,17 +86,17 @@ class PlayerCog(commands.Cog):
                                 {"discord_id": player['discord_id']},
                                 {"$set": {"last_updated":datetime.now(pytz.utc).strftime('%m-%d-%Y')}}
                             )
-                            await self.report_failure(failure_channel, player['name'], "Failed to retrieve rank information")
+                            #await self.report_failure(failure_channel, player['name'], "Failed to retrieve rank information")
                             logger.warning(f"No rank information found for {player['name']}, but updated last_updated")
                             
                     else:
-                        await self.report_failure(failure_channel, player['name'], "Failed to retrieve summoner information")
+                        #await self.report_failure(failure_channel, player['name'], "Failed to retrieve summoner information")
                         logger.warning(f"Failed to retrieve summoner information for {player['name']}")
                 else:
-                    await self.report_failure(failure_channel, player['name'], f"Failed to retrieve PUUID for {player['game_name']}#{player['tag_line']}")
+                    #await self.report_failure(failure_channel, player['name'], f"Failed to retrieve PUUID for {player['game_name']}#{player['tag_line']}")
                     logger.warning(f"Failed to retrieve PUUID for {player['game_name']}#{player['tag_line']}")
             else:
-                await self.report_failure(failure_channel, player['name'], "Player does not have game_name and tag_line set")
+                #await self.report_failure(failure_channel, player['name'], "Player does not have game_name and tag_line set")
                 logger.error(f"Player {player['name']} does not have game_name and tag_line set.")
         logger.info("Completed updating ranks for all players.")
 

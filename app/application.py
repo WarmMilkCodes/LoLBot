@@ -175,6 +175,7 @@ class Application(commands.Cog, name="Applications"):
         if not self.persistent_views_added:
             self.client.add_view(ApplicationButton())  # Make sure the button is persistent
             self.persistent_views_added = True
+            logger.info("Persistent view added")
 
 
 def setup(client):
