@@ -158,9 +158,9 @@ class RiotIDForm(discord.ui.View):
         self.stop()
 
 
-class Application(commands.Cog, name="Applications"):
-    def __init__(self, client: commands.Bot):
-        self.client = client
+class Application(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
         self.persistent_views_added = False
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Intent Form Button")
@@ -173,10 +173,10 @@ class Application(commands.Cog, name="Applications"):
     @commands.Cog.listener()
     async def on_ready(self):
         if not self.persistent_views_added:
-            self.client.add_view(ApplicationButton())  # Make sure the button is persistent
+            self.bot.add_view(ApplicationButton())  # Make sure the button is persistent
             self.persistent_views_added = True
             logger.info("Persistent view added")
 
 
-def setup(client):
-    client.add_cog(Application(client))
+def setup(bot):
+    bot.add_cog(Application(bot))
