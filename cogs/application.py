@@ -76,11 +76,11 @@ class ApplicationButton(discord.ui.View):
         logger.info(f"Database Info: {dbInfo}")
 
         # Debug: Print the collection name
-        logger.info(f"Using collection: {dbInfo.lol_intent_collection.name}")
+        logger.info(f"Using collection: {dbInfo.intent_collection.name}")
 
         # Checks if user is in the database, if they are updates, if not adds them
         if guild.id == lol_server_id:
-            result = dbInfo.lol_intent_collection.find_one_and_update(
+            result = dbInfo.intent_collection.find_one_and_update(
                 {"ID": interaction.user.id},
                 {"$set":
                     {
