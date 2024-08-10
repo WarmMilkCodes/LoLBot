@@ -10,21 +10,25 @@ logger = logging.getLogger('lol_log')
 class PlayerCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.rank_update_task.start() # Start background task
-        logger.info("PlayerCog loaded and rank update task started.")
+        self.rank_update_task_started = False
+        logger.info("PlayerCog loaded. Waiting for bot to be ready to run task.")
 
     def cog_unload(self):
-        self.rank_update_task.cancel() # Cancel task when is unloaded
+        if self.rank_update_task_started:
+            self.rank_update_task.cancel()
+            logger.info("PlayerCog unloaded and rank task cancelled.")
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        if not self.rank_update_task_started:
+            logger.info("Bot is ready. Starting rank update task.")
+            self.rank_update_task.start()
+            self.rank_update_task_started = True
 
     @tasks.loop(hours=24)
     async def rank_update_task(self):
         logging.info("Rank update task triggered.")
         await self.update_all_ranks()
-
-    @rank_update_task.before_loop
-    async def before_rank_update_task(self):
-        await self.bot.wait_until_ready()
-        logging.info("Waiting for bot to be ready for starting rank update task.")
 
     ## Command to update player ranks
     @commands.slash_command(description="Update player ranks")
