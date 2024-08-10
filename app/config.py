@@ -21,6 +21,7 @@ riot_id_log_channel = 1194430443362205767
 transaction_bot_channel = 1264833838916567090
 posted_transactions_channel = 1171263861987475482
 submission_log_channel = 1271698169721393193
+failure_log_channel = 1171263860716601368
 
 # Server ID
 lol_server = 1171263858971770901

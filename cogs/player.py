@@ -3,8 +3,9 @@ from datetime import datetime
 import app.config as config
 import app.dbInfo as dbInfo
 from discord.ext import commands, tasks
+import discord
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('lol_log')
 
 class PlayerCog(commands.Cog):
     def __init__(self, bot):
@@ -30,14 +31,13 @@ class PlayerCog(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def update_ranks(self, ctx):
         await ctx.defer()
-        #logger.info("Manual rank update command received. Starting rank update.")
         await self.update_all_ranks()
         await ctx.respond("Updated ranks for all players", ephemeral=True)
-        #logger.info("Manual rank update completed.")
 
     ## Function to update ranks for all players
     async def update_all_ranks(self):
         logger.info("Updating ranks for all players.")
+        failure_channel = self.bot.get_channel(config.failure_log_channel)
         players = dbInfo.player_collection.find({})
         for player in players:
             logger.info(f"Processing player: {player['name']}")
@@ -86,13 +86,17 @@ class PlayerCog(commands.Cog):
                                 {"discord_id": player['discord_id']},
                                 {"$set": {"last_updated":datetime.now(pytz.utc).strftime('%m-%d-%Y')}}
                             )
+                            await self.report_failure(failure_channel, player['name'], "Failed to retrieve rank information")
                             logger.warning(f"No rank information found for {player['name']}, but updated last_updated")
                             
                     else:
+                        await self.report_failure(failure_channel, player['name'], "Failed to retrieve summoner information")
                         logger.warning(f"Failed to retrieve summoner information for {player['name']}")
                 else:
+                    await self.report_failure(failure_channel, player['name'], f"Failed to retrieve PUUID for {player['game_name']}#{player['tag_line']}")
                     logger.warning(f"Failed to retrieve PUUID for {player['game_name']}#{player['tag_line']}")
             else:
+                await self.report_failure(failure_channel, player['name'], "Player does not have game_name and tag_line set")
                 logger.error(f"Player {player['name']} does not have game_name and tag_line set.")
         logger.info("Completed updating ranks for all players.")
 
@@ -146,6 +150,16 @@ class PlayerCog(commands.Cog):
                     logger.error(f"Error fetching rank info for Summoner ID {summoner_id}: {await response.text()}")
                     return None
 
+    ## Function to report failures to a specific channel
+    async def report_failure(self, channel, player_name, reason):
+        if channel:
+            embed = discord.Embed(
+                title="Player Rank Update Failure",
+                description=f"**Player:** {player_name}\n**Reason:** {reason}",
+                color=discord.Color.red(),
+                timestamp=datetime.now(pytz.utc)
+            )
+            await channel.send(embed=embed)
 
 def setup(bot):
     bot.add_cog(PlayerCog(bot))
