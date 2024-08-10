@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger('lol_log')
 
 lol_server_id = config.lol_server
-submission_log_channel_id = config.submission_log_channel
+submission_log_channel_id = config.submission_log_channel  # Ensure this is in your config
 example_image_url = "https://cdn.discordapp.com/attachments/1171263861240889405/1271710010979651585/summoner-name-updated.png?ex=66b853bd&is=66b7023d&hm=da0cf651ae0b794719d5c7c25af4f402c1aa09b3a5023de2411516317b9b28eb&"
 
 class ApplicationButton(discord.ui.View):
@@ -22,16 +22,12 @@ class ApplicationButton(discord.ui.View):
         questions = [
             "Do you intend on playing this season?",
             "Are you interested in joining the Development team?",
-            "Are you interested in joining the Production team?",
-            "Please provide your Riot Game Name:",
-            "Please provide your Riot Tag Line:"
+            "Are you interested in joining the Production team?"
         ]
         notes = [
             "If you click No, you will be a spectator.",
             "This includes helping in website development, discord bots, and the use of APIs.",
-            "This includes being a caster, commentator, broadcasting games on stream nights, and/or creating graphics.",
-            None,
-            None
+            "This includes being a caster, commentator, broadcasting games on stream nights, and/or creating graphics."
         ]
         responses = []
         
@@ -44,11 +40,6 @@ class ApplicationButton(discord.ui.View):
             if notes[x]:
                 embed_description += f"\n\n{notes[x]}"
             embed = discord.Embed(title=f"Question {x + 1}/{len(questions)}", description=embed_description, color=discord.Color.blue())
-            
-            # If asking for Game Name or Tag Line, include an image to clarify
-            if x == 3 or x == 4:
-                embed.set_image(url=example_image_url)
-            
             message = await interaction.user.send(embed=embed, view=view)
             await view.wait()
             responses.append(view.value)
@@ -56,9 +47,29 @@ class ApplicationButton(discord.ui.View):
             embed.set_footer(text=f"Answered: {view.value}")
             await message.edit(embed=embed, view=None)
 
-        # Extract game name and tag from responses
-        riot_game_name = responses[3]
-        riot_tag_line = responses[4]
+        # Asking for Riot Game Name
+        await interaction.user.send(embed=discord.Embed(
+            title="Please provide your Riot Game Name",
+            description="Enter your Riot Game Name below:",
+            color=discord.Color.blue()
+        ).set_image(url=example_image_url))
+
+        riot_game_name_msg = await interaction.client.wait_for(
+            "message", check=lambda m: m.author == interaction.user and m.channel == interaction.channel
+        )
+        riot_game_name = riot_game_name_msg.content
+
+        # Asking for Riot Tag Line
+        await interaction.user.send(embed=discord.Embed(
+            title="Please provide your Riot Tag Line",
+            description="Enter your Riot Tag Line below:",
+            color=discord.Color.blue()
+        ).set_image(url=example_image_url))
+
+        riot_tag_line_msg = await interaction.client.wait_for(
+            "message", check=lambda m: m.author == interaction.user and m.channel == interaction.channel
+        )
+        riot_tag_line = riot_tag_line_msg.content
 
         # Final message after form submission
         if guild.id == lol_server_id:
