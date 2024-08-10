@@ -57,7 +57,7 @@ class StaffCog(commands.Cog):
         player_info_list = [
             f"**Username**: {user.name}",
             f"**Riot ID**: {player_info.get('game_name', 'N/A')}#{player_info.get('tag_line', 'N/A')}",
-            f"**Status**: {player_status_embed}" 
+            f"**Status**: {player_status_embed}",
             f"**Rank Info**:\n{rank_info_display}"
         ]
 
