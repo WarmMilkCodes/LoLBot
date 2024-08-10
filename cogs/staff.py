@@ -58,7 +58,7 @@ class StaffCog(commands.Cog):
             f"**Username**: {user.name}",
             f"**Riot ID**: {player_info.get('game_name', 'N/A')}#{player_info.get('tag_line', 'N/A')}",
             f"**Status**: {player_status_embed}" 
-            f"\n**Rank Info**:{rank_info_display}"
+            f"**Rank Info**:\n{rank_info_display}"
         ]
 
         embed = discord.Embed(title=f"Player Info for {user.display_name}", color=discord.Color.blue())
