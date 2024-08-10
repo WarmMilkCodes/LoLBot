@@ -44,7 +44,7 @@ class StaffCog(commands.Cog):
                 tier = rank.get('tier', 'N/A').capitalize()
                 division = rank.get('division', 'N/A').upper()
                 rank_info_list.append(f"**Queue Type**: {queue_type}\n**Tier**: {tier}\n**Division**: {division}")
-            rank_info_display = '\n\n'.join(rank_info_list)
+            rank_info_display = '\n'.join(rank_info_list)
         else:
             rank_info_display = "N/A"
 
@@ -53,7 +53,7 @@ class StaffCog(commands.Cog):
             f"**Username**: {user.name}",
             f"**Server Name**: {user.display_name}",
             f"**RiotID**: {player_info.get('game_name', 'N/A')}#{player_info.get('tag_line', 'N/A')}",
-            f"**Rank Info**:\n{rank_info_display}"
+            f"\n**Rank Info**:\n{rank_info_display}"
         ]
 
         embed = discord.Embed(title=f"Player Info for {user.display_name}", color=discord.Color.blue())
