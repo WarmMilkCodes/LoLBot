@@ -38,13 +38,13 @@ class StaffCog(commands.Cog):
         rank_info_array = player_info.get('rank_info', [])
         rank_info_display = ""
         if rank_info_array:
+            rank_info_list = []
             for rank in rank_info_array:
                 queue_type = rank.get('queue_type', 'N/A').replace('_', ' ').title()
                 tier = rank.get('tier', 'N/A').capitalize()
                 division = rank.get('division', 'N/A').upper()
-                rank_info_display += (f"**Queue Type**: {queue_type}\n"
-                                      f"**Tier**: {tier}\n"
-                                      f"**Division**: {division}\n\n")
+                rank_info_list.append(f"**Queue Type**: {queue_type}\n**Tier**: {tier}\n**Division**: {division}")
+            rank_info_display = '\n\n'.join(rank_info_list)
         else:
             rank_info_display = "N/A"
 
