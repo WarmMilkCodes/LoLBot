@@ -13,7 +13,7 @@ class StaffCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.slash_command(description="Return player info embed")
+    @commands.slash_command(guild_ids=[config.lol_server], description="Return player info embed")
     @commands.has_any_role("Bot Guy", "League Ops")
     async def player_info(self, ctx, user:Option(discord.Member)):
         guild = ctx.guild
