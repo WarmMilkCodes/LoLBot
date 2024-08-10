@@ -31,8 +31,13 @@ class StaffCog(commands.Cog):
         player_intent = dbInfo.intent_collection.find_one({"ID": user.id})
         player_info = dbInfo.player_collection.find_one({"discord_id": user.id}, {"_id": 0})
 
-        # Debugging: Check what data is returned
-        logger.debug(f"Player Intent Data: {player_intent}")
+        player_status = player_intent.get('Playing')
+        if player_status == 'Yes':
+            player_status_embed = 'Playing' 
+        elif player_status == 'No':
+            player_status_embed = 'Spectator'
+        else:
+            player_status_embed = 'N/A'
 
         # Handling the rank_info array with proper formatting
         rank_info_array = player_info.get('rank_info', [])
@@ -49,11 +54,10 @@ class StaffCog(commands.Cog):
             rank_info_display = "N/A"
 
         player_info_list = [
-            f"**Discord ID**: {user.id}",
             f"**Username**: {user.name}",
-            f"**Server Name**: {user.display_name}",
-            f"**RiotID**: {player_info.get('game_name', 'N/A')}#{player_info.get('tag_line', 'N/A')}",
-            f"\n**Rank Info**:\n{rank_info_display}"
+            f"**Riot ID**: {player_info.get('game_name', 'N/A')}#{player_info.get('tag_line', 'N/A')}",
+            f"**Status**: {player_status_embed}" 
+            f"\n**Rank Info**:{rank_info_display}"
         ]
 
         embed = discord.Embed(title=f"Player Info for {user.display_name}", color=discord.Color.blue())
@@ -68,9 +72,7 @@ class StaffCog(commands.Cog):
         if player_intent:
             intent_info = '\n'.join([
                 f"**Playing**: {player_intent.get('Playing', 'N/A')}",
-                f"**Development Team**: {player_intent.get('Development Team', 'N/A')}",
-                f"**Production Team**: {player_intent.get('Production Team', 'N/A')}",
-                f"**Completed On**: {player_intent.get('Completed On', 'N/A')}"
+                f"**Date Submitted**: {player_intent.get('Completed On', 'N/A')}"
             ])
             embed.add_field(name="Intent Info", value=intent_info)
         else:
