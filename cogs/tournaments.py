@@ -106,6 +106,7 @@ class TournamentCog(commands.Cog):
     @commands.slash_command(guild_ids=[GUILD_ID], description="Fetch match details and lobby events")
     @commands.has_any_role("Bot Guy", "League Ops", "Commissioner", "Owner")
     async def fetch_tournament_info(self, ctx, tournament_code: str):
+        await ctx.defer()
         try:
             # Fetch match details
             logger.info(f"Fetching match details for tournament code: {tournament_code}")
