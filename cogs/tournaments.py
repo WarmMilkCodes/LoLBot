@@ -101,40 +101,56 @@ class TournamentCog(commands.Cog):
             logger.debug(f"Payload: {code_payload}")
             logger.debug(f"Response: {err.response.text}")
             await ctx.respond(f"Failed to generate tournament codes: {err} - {error_message}", ephemeral=True)
-
-    @commands.slash_command(guild_ids=[GUILD_ID], description="Fetch match results")
+    
+    
+    @commands.slash_command(guild_ids=[GUILD_ID], description="Fetch match details and lobby events")
     @commands.has_any_role("Bot Guy", "League Ops", "Commissioner", "Owner")
-    async def fetch_match_results(self, ctx, tournament_code: str):
+    async def fetch_tournament_info(self, ctx, tournament_code: str):
         try:
-            match_ids = self.get_match_ids_by_tournament_code(tournament_code)
-            match_results = []
-            for match_id in match_ids:
-                match_details = self.get_match_details(match_id, tournament_code)
-                match_results.append(match_details)
-                dbInfo.save_match_details(match_details)  # Save match details in your database
-            await ctx.respond(f"Match results fetched: {match_results}")
-            logger.info(f"Match results fetched for tournament code {tournament_code}")
+            # Fetch match details
+            logger.info(f"Fetching match details for tournament code: {tournament_code}")
+            match_details = self.get_match_details(tournament_code)
+            logger.info(f"Match details: {match_details}")
+
+            # Fetch lobby events
+            logger.info(f"Fetching lobby events for tournament code: {tournament_code}")
+            lobby_events = self.get_lobby_events_by_tournament_code(tournament_code)
+            logger.info(f"Lobby events: {lobby_events}")
+
+            # Respond with both match details and lobby events
+            response_message = (
+                f"Match details: {match_details}\n"
+                f"Lobby events: {lobby_events}"
+            )
+            await ctx.respond(response_message)
+            logger.info(f"Match details and lobby events fetched for tournament code {tournament_code}")
         except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to fetch match results: {e}")
-            await ctx.respond("Failed to fetch match results. Please check the logs for details.")
+            logger.error(f"Failed to fetch tournament info: {e}")
+            await ctx.respond("Failed to fetch tournament info. Please check the logs for details.")
 
     @staticmethod
-    def get_match_ids_by_tournament_code(tournament_code):
+    def get_match_details(tournament_code):
         response = requests.get(
-            f"https://americas.api.riotgames.com/lol/match/v5/matches/by-tournament-code/{tournament_code}/ids",
+            f"https://americas.api.riotgames.com/lol/tournament/v5/games/by-code/{tournament_code}",
             headers={"X-Riot-Token": API_KEY}
         )
+        logger.debug(f"Match details response status code: {response.status_code}")
         response.raise_for_status()
-        return response.json()
+        match_details = response.json()
+        logger.debug(f"Match details response: {match_details}")
+        return match_details
 
     @staticmethod
-    def get_match_details(match_id, tournament_code):
+    def get_lobby_events_by_tournament_code(tournament_code):
         response = requests.get(
-            f"https://americas.api.riotgames.com/lol/match/v5/matches/{match_id}/by-tournament-code/{tournament_code}",
+            f"https://americas.api.riotgames.com/lol/tournament/v5/lobby-events/by-code/{tournament_code}",
             headers={"X-Riot-Token": API_KEY}
         )
+        logger.debug(f"Lobby events response status code: {response.status_code}")
         response.raise_for_status()
-        return response.json()
+        lobby_events = response.json()
+        logger.debug(f"Lobby events response: {lobby_events}")
+        return lobby_events
 
 def setup(bot):
     bot.add_cog(TournamentCog(bot))
