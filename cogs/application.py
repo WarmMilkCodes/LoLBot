@@ -96,6 +96,36 @@ class ApplicationButton(discord.ui.View):
         await interaction.user.send(embed=embed)
         logger.info(f"These are the responses: {responses}")
 
+        # Assign roles based on responses
+        # Get roles
+        member_role = discord.utils.get(interaction.guild.roles, name="Member")
+        free_agent_role = discord.utils.get(interaction.guild.roles, name="Free Agents")
+        spectator_role = discord.utils.get(interaction.guild.roles, name="Spectator")
+        missing_intent_role = discord.utils.get(interaction.guild.roles, name="Missing Intent Form")
+
+        # Ensure roles exist
+        if not all([member_role, free_agent_role, spectator_role, missing_intent_role]):
+            await interaction.user.send("Error: One or more roles are missing in the server.")
+            return
+
+        # Remove "Missing Intent Form" role
+        if missing_intent_role in interaction.user.roles:
+            await interaction.user.remove_roles(missing_intent_role)
+
+        # Assign roles based on the intent to play
+        if responses[0] == "Yes":
+            # User intends to play this season
+            await interaction.user.add_roles(free_agent_role, member_role)
+            if spectator_role in interaction.user.roles:
+                await interaction.user.remove_roles(spectator_role)
+        else:
+            # User does not intend to play this season
+            await interaction.user.add_roles(spectator_role, member_role)
+            if free_agent_role in interaction.user.roles:
+                await interaction.user.remove_roles(free_agent_role)
+
+        logger.info(f"Roles updated for {interaction.user.name}: Playing - {responses[0]}")
+
         # Set time for database entry                        
         dateTimeObj = datetime.now()
         dateObj = dateTimeObj.date()
