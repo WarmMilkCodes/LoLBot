@@ -8,7 +8,7 @@ import json
 import io
 
 API_KEY = config.RIOT_API
-REGION = 'NA'  
+REGION = 'americas'  
 PROVIDER_URL = 'https://www.unitedrogue.com'
 
 GUILD_ID=1171263858971770901
@@ -140,7 +140,7 @@ class TournamentCog(commands.Cog):
     @staticmethod
     def get_match_details(tournament_code):
         response = requests.get(
-            f"https://{REGION}.api.riotgames.com/lol/tournament/v5/games/by-code/{tournament_code}",
+            f"https://americas.api.riotgames.com/lol/tournament/v5/games/by-code/{tournament_code}",
             headers={"X-Riot-Token": API_KEY}
         )
         logger.debug(f"Match details response status code: {response.status_code}")
@@ -152,7 +152,7 @@ class TournamentCog(commands.Cog):
     @staticmethod
     def get_lobby_events_by_tournament_code(tournament_code):
         response = requests.get(
-            f"https://{REGION}.api.riotgames.com/lol/tournament/v5/lobby-events/by-code/{tournament_code}",
+            f"https://americas.api.riotgames.com/lol/tournament/v5/lobby-events/by-code/{tournament_code}",
             headers={"X-Riot-Token": API_KEY}
         )
         logger.debug(f"Lobby events response status code: {response.status_code}")
