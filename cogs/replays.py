@@ -9,6 +9,29 @@ import app.dbInfo as dbInfo
 
 logger = logging.getLogger('lol_log')
 
+class PlayerStats:
+    def __init__(self, name, uuid, win, kills, deaths, assists, position, team_id):
+        self.name = name if name else 'Unknown'
+        self.uuid = uuid
+        self.win = win
+        self.kills = kills
+        self.deaths = deaths
+        self.assists = assists
+        self.position = position
+        self.team_id = team_id
+
+    def to_dict(self):
+        return {
+            'name': self.name,
+            'uuid': self.uuid,
+            'win': self.win,
+            'kills': self.kills,
+            'deaths': self.deaths,
+            'assists': self.assists,
+            'position': self.position,
+            'team_id': self.team_id
+        }
+
 class ReplaysCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
