@@ -4,6 +4,8 @@ import logging
 from discord.ext import commands
 import app.config as config
 import app.dbInfo as dbInfo
+import json
+import io
 
 API_KEY = config.RIOT_API
 REGION = 'NA'  
@@ -111,19 +113,25 @@ class TournamentCog(commands.Cog):
             # Fetch match details
             logger.info(f"Fetching match details for tournament code: {tournament_code}")
             match_details = self.get_match_details(tournament_code)
-            logger.info(f"Match details: {match_details}")
 
             # Fetch lobby events
             logger.info(f"Fetching lobby events for tournament code: {tournament_code}")
             lobby_events = self.get_lobby_events_by_tournament_code(tournament_code)
-            logger.info(f"Lobby events: {lobby_events}")
 
-            # Respond with both match details and lobby events
-            response_message = (
-                f"Match details: {match_details}\n"
-                f"Lobby events: {lobby_events}"
-            )
-            await ctx.respond(response_message)
+            # Prepare the data to write to a file
+            data = {
+                "match_details": match_details,
+                "lobby_events": lobby_events
+            }
+
+            # Convert data to JSON and write to a file-like object
+            with io.StringIO() as file:
+                json.dump(data, file, indent=4)
+                file.seek(0)
+                discord_file = discord.File(file, filename=f"tournament_info_{tournament_code}.json")
+
+                # Send the file as an attachment
+                await ctx.respond("Here are the match details and lobby events:", file=discord_file)
             logger.info(f"Match details and lobby events fetched for tournament code {tournament_code}")
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to fetch tournament info: {e}")
@@ -132,7 +140,7 @@ class TournamentCog(commands.Cog):
     @staticmethod
     def get_match_details(tournament_code):
         response = requests.get(
-            f"https://americas.api.riotgames.com/lol/tournament/v5/games/by-code/{tournament_code}",
+            f"https://{REGION}.api.riotgames.com/lol/tournament/v5/games/by-code/{tournament_code}",
             headers={"X-Riot-Token": API_KEY}
         )
         logger.debug(f"Match details response status code: {response.status_code}")
@@ -144,7 +152,7 @@ class TournamentCog(commands.Cog):
     @staticmethod
     def get_lobby_events_by_tournament_code(tournament_code):
         response = requests.get(
-            f"https://americas.api.riotgames.com/lol/tournament/v5/lobby-events/by-code/{tournament_code}",
+            f"https://{REGION}.api.riotgames.com/lol/tournament/v5/lobby-events/by-code/{tournament_code}",
             headers={"X-Riot-Token": API_KEY}
         )
         logger.debug(f"Lobby events response status code: {response.status_code}")
@@ -152,6 +160,5 @@ class TournamentCog(commands.Cog):
         lobby_events = response.json()
         logger.debug(f"Lobby events response: {lobby_events}")
         return lobby_events
-
 def setup(bot):
     bot.add_cog(TournamentCog(bot))
