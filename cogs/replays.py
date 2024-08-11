@@ -7,14 +7,14 @@ from discord.ext import commands
 import app.config as config
 import app.dbInfo as dbInfo
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('lol_log')
 
 class ReplaysCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.slash_command(description="Parses a League of Legends replay")
-    async def upload(self, ctx, replay: discord.Attachment):
+    @commands.slash_command(guild_ids=[config.lol_server],description="Parses a League of Legends replay")
+    async def submit_replay(self, ctx, replay: discord.Attachment):
         await ctx.defer()
         match_metadata, players, match_id = await self.parse_replay(ctx, replay)
         if players:
