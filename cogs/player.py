@@ -47,8 +47,8 @@ class PlayerCog(commands.Cog):
         for player in players:
             logger.info(f"Processing player: {player['name']}")
             if 'game_name' in player and 'tag_line' in player:
+                
                 puuid = await self.get_puuid(player['game_name'], player['tag_line'])
-
                 if puuid and (not player.get('puuid') or player.get('puuid') != puuid):
                     dbInfo.player_collection.update_one(
                         {"discord_id": player['discord_id']},
@@ -56,13 +56,16 @@ class PlayerCog(commands.Cog):
                     )
                     logger.info(f"Stored PUUID for {player['name']}")
 
-                    summoner_id = await self.get_summoner_id(puuid)
-                    if summoner_id and (not player.get('summoner_id') or player.get('summoner_id') != summoner_id):
-                        dbInfo.player_collection.update_one(
-                            {"discord_id": player['discord_id']},
-                            {"$set": {"summoner_id": summoner_id}}
-                        )
-                        logger.info(f"Stored Summoner ID for player {player['name']}")
+                summoner_id = await self.get_summoner_id(puuid)
+                if summoner_id and (not player.get('summoner_id') or player.get('summoner_id') != summoner_id):
+                    dbInfo.player_collection.update_one(
+                        {"discord_id": player['discord_id']},
+                        {"$set": {"summoner_id": summoner_id}}
+                    )
+                    logger.info(f"Stored Summoner ID for player {player['name']}")
+                
+                rank_info = None
+
                 if summoner_id:
                     rank_info = await self.get_player_rank(summoner_id)
                         
