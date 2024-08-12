@@ -159,7 +159,7 @@ class PlayerCog(commands.Cog):
     ## Function to report failures to a specific channel
     async def report_failure(self, channel, player_name, reason):
         if channel:
-            message = f"Player: {player_name} | Reason: {reason}"
+            message = f"Player: {player_name} | Error: {reason}"
             await channel.send(message)
 
 def setup(bot):
