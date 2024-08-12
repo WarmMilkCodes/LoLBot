@@ -63,8 +63,9 @@ class PlayerCog(commands.Cog):
                             {"$set": {"summoner_id": summoner_id}}
                         )
                         logger.info(f"Stored Summoner ID for player {player['name']}")
-
-                        rank_info = await self.get_player_rank(summoner_id)
+                if summoner_id:
+                    rank_info = await self.get_player_rank(summoner_id)
+                        
                 if rank_info:
                     # Store rank information with date
                     date_str = datetime.now(pytz.utc).strftime('%m-%d-%Y')
