@@ -49,47 +49,48 @@ class ApplicationButton(discord.ui.View):
             embed.set_footer(text=f"Answered: {view.value}")
             await message.edit(embed=embed, view=None)
 
-        # Asking for Riot Game Name
-        await interaction.user.send(embed=discord.Embed(
-            title="Please provide your Riot Game Name (do not include tag line)",
-            description="Enter your Riot Game Name below:",
-            color=discord.Color.blue()
-        ).set_image(url=game_name_image))
+        if responses[0] == 'Yes':
+            # Asking for Riot Game Name
+            await interaction.user.send(embed=discord.Embed(
+                title="Please provide your Riot Game Name (do not include tag line)",
+                description="Enter your Riot Game Name below:",
+                color=discord.Color.blue()
+            ).set_image(url=game_name_image))
 
-        # Waiting for user's response
-        try:
-            riot_game_name_msg = await self.bot.wait_for(
-                "message",
-                check=lambda m: m.author == interaction.user and isinstance(m.channel, discord.DMChannel),
-                timeout=60  # Wait for up to 60 seconds
-            )
-            riot_game_name = riot_game_name_msg.content
-            logger.info(f"Received Riot Game Name: {riot_game_name}")
-        except asyncio.TimeoutError:
-            await interaction.user.send("You took too long to respond. Please try again.")
-            logger.warning("Timeout occurred while waiting for the Riot Game Name.")
-            return
+            # Waiting for user's response
+            try:
+                riot_game_name_msg = await self.bot.wait_for(
+                    "message",
+                    check=lambda m: m.author == interaction.user and isinstance(m.channel, discord.DMChannel),
+                    timeout=60  # Wait for up to 60 seconds
+                )
+                riot_game_name = riot_game_name_msg.content
+                logger.info(f"Received Riot Game Name: {riot_game_name}")
+            except asyncio.TimeoutError:
+                await interaction.user.send("You took too long to respond. Please try again.")
+                logger.warning("Timeout occurred while waiting for the Riot Game Name.")
+                return
 
-        # Asking for Riot Tag Line
-        await interaction.user.send(embed=discord.Embed(
-            title="Please provide your Riot Tag Line (do not include game name or #)",
-            description="Enter your Riot Tag Line below.",
-            color=discord.Color.blue()
-        ).set_image(url=tagline_image))
+            # Asking for Riot Tag Line
+            await interaction.user.send(embed=discord.Embed(
+                title="Please provide your Riot Tag Line (do not include game name or #)",
+                description="Enter your Riot Tag Line below.",
+                color=discord.Color.blue()
+            ).set_image(url=tagline_image))
 
-        # Waiting for user's response
-        try:
-            riot_tag_line_msg = await self.bot.wait_for(
-                "message",
-                check=lambda m: m.author == interaction.user and isinstance(m.channel, discord.DMChannel),
-                timeout=60  # Wait for up to 60 seconds
-            )
-            riot_tag_line = riot_tag_line_msg.content
-            logger.info(f"Received Riot Tag Line: {riot_tag_line}")
-        except asyncio.TimeoutError:
-            await interaction.user.send("You took too long to respond. Please try again.")
-            logger.warning("Timeout occurred while waiting for the Riot Tag Line.")
-            return
+            # Waiting for user's response
+            try:
+                riot_tag_line_msg = await self.bot.wait_for(
+                    "message",
+                    check=lambda m: m.author == interaction.user and isinstance(m.channel, discord.DMChannel),
+                    timeout=60  # Wait for up to 60 seconds
+                )
+                riot_tag_line = riot_tag_line_msg.content
+                logger.info(f"Received Riot Tag Line: {riot_tag_line}")
+            except asyncio.TimeoutError:
+                await interaction.user.send("You took too long to respond. Please try again.")
+                logger.warning("Timeout occurred while waiting for the Riot Tag Line.")
+                return
 
         # Final message after form submission
         embed = discord.Embed(title="Intent Form Complete", description=lol_description, color=discord.Color.blue())
