@@ -14,7 +14,7 @@ providers_collection = db[config.PROVIDERS_COLLECTION]
 tournaments_collection = db[config.TOURNAMENTS_COLLECTION]
 tournament_codes_collection = db[config.TOURNAMENT_CODES_COLLECTION]
 match_details_collection = db[config.MATCH_DETAILS_COLLECTION]
-#replays_collection = db[config.REPLAYS_COLLECTION]
+replays_collection = db[config.REPLAYS_COLLECTION]
 
 # Providers Collection
 def get_provider_id():
