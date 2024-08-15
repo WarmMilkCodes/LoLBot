@@ -17,7 +17,7 @@ class IntentCommands(commands.Cog):
     async def calculate_intent_stats(self, ctx, guild):
         if guild.id == config.lol_server:
             missing_intent_role = "Missing Intent Form"
-            prefix = "*UR LoL Intent Stats*\n"
+            prefix = "**UR LoL Intent Stats**\n"
             intent_playing = dbInfo.intent_collection.count_documents({"Playing": "Yes"})
             intent_not_playing = dbInfo.intent_collection.count_documents({"Playing": "No"})
         
