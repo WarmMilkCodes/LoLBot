@@ -38,7 +38,7 @@ class ReplaysCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server],description="Submit UR League of Legends match replay")
     async def submit_replay(self, ctx, replay: discord.Attachment):
-        await ctx.defer()
+        await ctx.defer(ephemeral=True)
         match_metadata, players, match_id = await self.parse_replay(ctx, replay)
         if players:
             await self.send_replay_summary(ctx, match_metadata, players, match_id)
