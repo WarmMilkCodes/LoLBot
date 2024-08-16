@@ -138,32 +138,20 @@ class ReplaysCog(commands.Cog):
             return None, None, None
 
     async def send_replay_summary(self, ctx, match_metadata, players, match_id):
-        logger.info(f"Preparing to send replay summary for match ID: {match_id}")
-
         embed = discord.Embed(title="Replay Summary", description=f"Match ID: {match_id}", color=discord.Color.blue())
-
-        team_ids = list(match_metadata["teams"].keys())
-
-        for team_id in team_ids:
-            logger.info(f"Processing players for team {team_id}")
-
-            for player in players:
-                player_name = player.name if player.name != "Unknown" else "Unknown"
-                logger.info(f"Processing player {player_name} with team ID {player.team_id}")
-
-                if player.team_id == team_id:
-                    logger.info(f"Adding player {player_name} to embed")
-                    embed.add_field(
-                        name=f"Player {player_name}",
-                        value=(
-                            f"Win/Loss: {player.win}\n"
-                            f"Kills: {player.kills}\n"
-                            f"Deaths: {player.deaths}\n"
-                            f"Assists: {player.assists}\n"
-                            f"Position: {player.position}"
-                        ),
-                        inline=False
-                    )
+        
+        # Adding player data to the embed
+        for player in players:
+            player_name = player.name if player.name else "Unknown"
+            player_data = (
+                f"**Team ID:** {player.team_id}\n"
+                f"**Win/Loss:** {player.win}\n"
+                f"**Kills:** {player.kills}\n"
+                f"**Deaths:** {player.deaths}\n"
+                f"**Assists:** {player.assists}\n"
+                f"**Position:** {player.position}\n"
+            )
+            embed.add_field(name=f"Player: {player_name}", value=player_data, inline=False)
 
         logger.info("Sending embed with player data.")
         await ctx.send(embed=embed)
