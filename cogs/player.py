@@ -1,4 +1,6 @@
-import aiohttp, logging, pytz
+import aiohttp
+import logging
+import pytz
 from datetime import datetime
 import app.config as config
 import app.dbInfo as dbInfo
@@ -11,34 +13,36 @@ class PlayerCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.rank_update_task_started = False
-        logger.info("PlayerCog loaded. Waiting for bot to be ready to run task.")
+        logger.info("PlayerCog loaded. Waiting for rank update task to be started.")
 
     def cog_unload(self):
         if self.rank_update_task_started:
             self.rank_update_task.cancel()
             logger.info("PlayerCog unloaded and rank task cancelled.")
 
-    @commands.Cog.listener()
-    async def on_ready(self):
+    @commands.slash_command(guild_ids=[config.lol_server],description="Start the rank update task")
+    @commands.has_permissions(administrator=True)
+    async def start_rank_update_task(self, ctx):
         if not self.rank_update_task_started:
-            logger.info("Bot is ready. Starting rank update task.")
             self.rank_update_task.start()
             self.rank_update_task_started = True
+            await ctx.respond("Rank update task started and will run every 24 hours.", ephemeral=True)
+            logger.info("Rank update task started by admin command.")
+        else:
+            await ctx.respond("Rank update task is already running.", ephemeral=True)
 
     @tasks.loop(hours=24)
     async def rank_update_task(self):
-        logging.info("Rank update task triggered.")
+        logger.info("Rank update task triggered.")
         await self.update_all_ranks()
 
-    ## Command to update player ranks
-    @commands.slash_command(description="Update player ranks")
+    @commands.slash_command(guild_ids=[config.lol_server],description="Update player ranks manually")
     @commands.has_permissions(administrator=True)
     async def update_ranks(self, ctx):
         await ctx.defer()
         await self.update_all_ranks()
         await ctx.respond("Updated ranks for all players", ephemeral=True)
 
-    ## Function to update ranks for all players
     async def update_all_ranks(self):
         logger.info("Updating ranks for all players.")
         failure_channel = self.bot.get_channel(config.failure_log_channel)
@@ -105,8 +109,6 @@ class PlayerCog(commands.Cog):
                 await self.report_failure(failure_channel, player['name'], 'Riot ID is not set or is invalid.')
         logger.info("Completed updating ranks for all players.")
 
-
-    ## Function to get PUUID
     async def get_puuid(self, game_name, tag_line):
         url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
         headers = {'X-Riot-Token': config.RIOT_API}
@@ -119,7 +121,6 @@ class PlayerCog(commands.Cog):
                     logger.error(f"Error fetching PUUID for {game_name}#{tag_line}: {await response.text()}")
                     return None                    
 
-    ## Function to get Summoner ID
     async def get_summoner_id(self, puuid):
         url = f"https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
         headers = {'X-Riot-Token': config.RIOT_API}
@@ -132,7 +133,6 @@ class PlayerCog(commands.Cog):
                     logger.error(f"Error fetching Summoner ID for PUUID {puuid}: {await response.text()}")
                     return None
 
-    ## Function to get player rank
     async def get_player_rank(self, summoner_id):
         url = f"https://na1.api.riotgames.com/lol/league/v4/entries/by-summoner/{summoner_id}"
         headers = {'X-Riot-Token': config.RIOT_API}
@@ -140,7 +140,6 @@ class PlayerCog(commands.Cog):
             async with session.get(url, headers=headers) as response:
                 if response.status == 200:
                     rank_info = await response.json()
-                    # Extract tier and division for each queue type (e.g., Solo Queue, Flex Queue)
                     tier_division_info = []
                     for entry in rank_info:
                         tier = entry.get('tier')
@@ -156,7 +155,6 @@ class PlayerCog(commands.Cog):
                     logger.error(f"Error fetching rank info for Summoner ID {summoner_id}: {await response.text()}")
                     return None
 
-    ## Function to report failures to a specific channel
     async def report_failure(self, channel, player_name, reason):
         if channel:
             message = f"Player: {player_name} | Error: {reason}"
