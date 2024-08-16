@@ -137,8 +137,9 @@ class ReplaysCog(commands.Cog):
             return None, None, None
 
     async def send_replay_summary(self, ctx, match_metadata, players, match_id):
+        logger.info(f"Preparing to send replay summary for match ID: {match_id}")
+
         embed = discord.Embed(title="Replay Summary", description=f"Match ID: {match_id}", color=discord.Color.blue())
-        
         embed.add_field(name="Game Creation", value=str(match_metadata.get('game_creation')), inline=True)
         embed.add_field(name="Game Duration", value=str(match_metadata.get('game_duration')), inline=True)
         embed.add_field(name="Game Mode", value=match_metadata.get('game_mode'), inline=True)
@@ -149,15 +150,15 @@ class ReplaysCog(commands.Cog):
 
         for team_id in team_ids:
             team_data = match_metadata["teams"][team_id]
-            team_embed = discord.Embed(title=f"Team {team_id} - {'Win' if team_data['win'] else 'Loss'}", color=discord.Color.blue())
-            team_embed.add_field(name="First Blood", value=team_data['first_blood'], inline=True)
-            team_embed.add_field(name="First Tower", value=team_data['first_tower'], inline=True)
-            team_embed.add_field(name="Dragon Kills", value=team_data['dragon_kills'], inline=True)
-            team_embed.add_field(name="Baron Kills", value=team_data['baron_kills'], inline=True)
+            embed.add_field(name=f"Team {team_id} - {'Win' if team_data['win'] else 'Loss'}", value="\u200b", inline=False)
+            embed.add_field(name="First Blood", value=team_data['first_blood'], inline=True)
+            embed.add_field(name="First Tower", value=team_data['first_tower'], inline=True)
+            embed.add_field(name="Dragon Kills", value=team_data['dragon_kills'], inline=True)
+            embed.add_field(name="Baron Kills", value=team_data['baron_kills'], inline=True)
 
             for player in players:
                 if player.team_id == team_id:
-                    team_embed.add_field(
+                    embed.add_field(
                         name=f"Player {player.name}",
                         value=(
                             f"Win/Loss: {player.win}\n"
@@ -168,7 +169,10 @@ class ReplaysCog(commands.Cog):
                         ),
                         inline=True
                     )
-            await ctx.send(embed=team_embed)
+
+        logger.info("Sending combined embed for all teams.")
+        await ctx.send(embed=embed)
+
 
 def setup(bot):
     bot.add_cog(ReplaysCog(bot))
