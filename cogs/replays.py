@@ -36,7 +36,7 @@ class ReplaysCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.slash_command(guild_ids=[config.lol_server],description="Parses a League of Legends replay")
+    @commands.slash_command(guild_ids=[config.lol_server],description="Submit UR League of Legends match replay")
     async def submit_replay(self, ctx, replay: discord.Attachment):
         await ctx.defer()
         match_metadata, players, match_id = await self.parse_replay(ctx, replay)
@@ -143,8 +143,8 @@ class ReplaysCog(commands.Cog):
         embed = discord.Embed(title="Replay Summary", description=f"Match ID: {match_id}", color=discord.Color.blue())
         embed.add_field(name="Game Creation", value=str(match_metadata.get('game_creation')), inline=True)
         embed.add_field(name="Game Duration", value=str(match_metadata.get('game_duration')), inline=True)
-        embed.add_field(name="Game Mode", value=match_metadata.get('game_mode'), inline=True)
-        embed.add_field(name="Game Type", value=match_metadata.get('game_type'), inline=True)
+        embed.add_field(name="Game Mode", value=match_metadata.get('game_mode'), inline=True)  # Corrected here
+        embed.add_field(name="Game Type", value=match_metadata.get('game_type'), inline=True)  # Corrected here
         embed.add_field(name="Platform ID", value=match_metadata.get('platform_id'), inline=True)
 
         team_ids = list(match_metadata["teams"].keys())
@@ -157,7 +157,11 @@ class ReplaysCog(commands.Cog):
             embed.add_field(name="Dragon Kills", value=team_data['dragon_kills'], inline=True)
             embed.add_field(name="Baron Kills", value=team_data['baron_kills'], inline=True)
 
+            logger.info(f"Processing players for team {team_id}")
+
             for player in players:
+                logger.info(f"Processing player {player.name} with team ID {player.team_id}")
+
                 if player.team_id == team_id:
                     embed.add_field(
                         name=f"Player {player.name}",
@@ -170,9 +174,13 @@ class ReplaysCog(commands.Cog):
                         ),
                         inline=True
                     )
+                    logger.info(f"Added player {player.name} to team {team_id} section.")
+                else:
+                    logger.warning(f"Player {player.name} (Team ID: {player.team_id}) does not match Team ID {team_id}")
 
         logger.info("Sending combined embed for all teams.")
         await ctx.send(embed=embed)
+
 
 
 def setup(bot):
