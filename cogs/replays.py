@@ -149,6 +149,7 @@ class ReplaysCog(commands.Cog):
             embed.add_field(
                 name=f"Player {player_name}",
                 value=(
+                    f"**Team ID:** {player.team_id}\n"
                     f"**Win/Loss:** {player.win}\n"
                     f"**Kills:** {player.kills}\n"
                     f"**Deaths:** {player.deaths}\n"
