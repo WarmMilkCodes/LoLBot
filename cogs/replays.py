@@ -141,30 +141,20 @@ class ReplaysCog(commands.Cog):
         logger.info(f"Preparing to send replay summary for match ID: {match_id}")
 
         embed = discord.Embed(title="Replay Summary", description=f"Match ID: {match_id}", color=discord.Color.blue())
-        embed.add_field(name="Game Creation", value=str(match_metadata.get('game_creation')), inline=True)
-        embed.add_field(name="Game Duration", value=str(match_metadata.get('game_duration')), inline=True)
-        embed.add_field(name="Game Mode", value=match_metadata.get('game_mode'), inline=True)  # Corrected here
-        embed.add_field(name="Game Type", value=match_metadata.get('game_type'), inline=True)  # Corrected here
-        embed.add_field(name="Platform ID", value=match_metadata.get('platform_id'), inline=True)
 
         team_ids = list(match_metadata["teams"].keys())
 
         for team_id in team_ids:
-            team_data = match_metadata["teams"][team_id]
-            embed.add_field(name=f"Team {team_id} - {'Win' if team_data['win'] else 'Loss'}", value="\u200b", inline=False)
-            embed.add_field(name="First Blood", value=team_data['first_blood'], inline=True)
-            embed.add_field(name="First Tower", value=team_data['first_tower'], inline=True)
-            embed.add_field(name="Dragon Kills", value=team_data['dragon_kills'], inline=True)
-            embed.add_field(name="Baron Kills", value=team_data['baron_kills'], inline=True)
-
             logger.info(f"Processing players for team {team_id}")
 
             for player in players:
-                logger.info(f"Processing player {player.name} with team ID {player.team_id}")
+                player_name = player.name if player.name != "Unknown" else "Unknown"
+                logger.info(f"Processing player {player_name} with team ID {player.team_id}")
 
                 if player.team_id == team_id:
+                    logger.info(f"Adding player {player_name} to embed")
                     embed.add_field(
-                        name=f"Player {player.name}",
+                        name=f"Player {player_name}",
                         value=(
                             f"Win/Loss: {player.win}\n"
                             f"Kills: {player.kills}\n"
@@ -172,13 +162,10 @@ class ReplaysCog(commands.Cog):
                             f"Assists: {player.assists}\n"
                             f"Position: {player.position}"
                         ),
-                        inline=True
+                        inline=False
                     )
-                    logger.info(f"Added player {player.name} to team {team_id} section.")
-                else:
-                    logger.warning(f"Player {player.name} (Team ID: {player.team_id}) does not match Team ID {team_id}")
 
-        logger.info("Sending combined embed for all teams.")
+        logger.info("Sending embed with player data.")
         await ctx.send(embed=embed)
 
 
