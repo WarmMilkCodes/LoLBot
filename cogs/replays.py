@@ -38,7 +38,7 @@ class ReplaysCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server],description="Submit UR League of Legends match replay")
     async def submit_replay(self, ctx, replay: discord.Attachment):
-        await ctx.defer(ephemeral=True)
+        await ctx.defer()
         match_metadata, players, match_id = await self.parse_replay(ctx, replay)
         if players:
             await self.send_replay_summary(ctx, match_metadata, players, match_id)
@@ -139,21 +139,15 @@ class ReplaysCog(commands.Cog):
 
     async def send_replay_summary(self, ctx, match_metadata, players, match_id):
         embed = discord.Embed(
-            title="Replay Summary",
-            description=f"Match ID: {match_id}",
+            title="Replay Summary", 
+            description=f"Match ID: {match_id}", 
             color=discord.Color.blue()
         )
-
-        # Assuming team 100 and team 200 for separation
-        team_100_players = [player for player in players if player.team_id == 100]
-        team_200_players = [player for player in players if player.team_id == 200]
-
-        # Add team 100 players
-        embed.add_field(name="**Team 1**", value="\u200b", inline=False)  # \u200b is a zero-width space
-        for player in team_100_players:
+        
+        for player in players:
             player_name = player.name if player.name else "Unknown"
             embed.add_field(
-                name=f"{player_name}",
+                name=f"Player {player_name}",
                 value=(
                     f"**Win/Loss:** {player.win}\n"
                     f"**Kills:** {player.kills}\n"
@@ -161,26 +155,7 @@ class ReplaysCog(commands.Cog):
                     f"**Assists:** {player.assists}\n"
                     f"**Position:** {player.position}"
                 ),
-                inline=True
-            )
-
-        # Blank field for separation
-        embed.add_field(name="\u200b", value="\u200b", inline=False)
-
-        # Add team 200 players
-        embed.add_field(name="**Team 2**", value="\u200b", inline=False)
-        for player in team_200_players:
-            player_name = player.name if player.name else "Unknown"
-            embed.add_field(
-                name=f"{player_name}",
-                value=(
-                    f"**Win/Loss:** {player.win}\n"
-                    f"**Kills:** {player.kills}\n"
-                    f"**Deaths:** {player.deaths}\n"
-                    f"**Assists:** {player.assists}\n"
-                    f"**Position:** {player.position}"
-                ),
-                inline=True
+                inline=True  # This allows multiple fields to be on the same line
             )
 
         await ctx.respond(embed=embed, ephemeral=True)
