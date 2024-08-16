@@ -42,6 +42,7 @@ class ReplaysCog(commands.Cog):
         match_metadata, players, match_id = await self.parse_replay(ctx, replay)
         if players:
             await self.send_replay_summary(ctx, match_metadata, players, match_id)
+        await ctx.respond("Replay submitted successfully!", ephemeral=True)
 
     @staticmethod
     async def parse_replay(ctx, replay: discord.Attachment):
