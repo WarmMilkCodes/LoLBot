@@ -88,7 +88,12 @@ class Transactions(commands.Cog):
     @commands.slash_command(guild_ids=[config.lol_server], description="Designate GM to team")
     @commands.has_any_role("League Ops", "Bot Guy")
     async def sign_gm(self, ctx, user: Option(discord.Member), team_code: Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada)")):
-        return
+        ctx.defer()
+        # Command can only be invoked in transaction-bot channel
+        # Ensure GM is not signed to a DIFFERENT team
+        # Should add GM designation in DB
+        # Does not add to playing roster automatically - default non-playing, must sign with general command to sign to active roster
+        await ctx.respond(f"If this command was finished it would have signed {user} to {team_code} - however it is not. So it did not. Check back later.")
         
 def setup(bot):
     bot.add_cog(Transactions(bot))
