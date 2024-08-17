@@ -1,4 +1,4 @@
-import aiohttp
+import aiohttp, discord
 import logging
 import pytz
 from datetime import datetime
@@ -45,7 +45,13 @@ class PlayerCog(commands.Cog):
     async def update_all_ranks(self):
         logger.info("Updating ranks for all players.")
         failure_channel = self.bot.get_channel(config.failure_log_channel)
-        players = dbInfo.player_collection.find({})
+        
+        # Retrieve all players who are playing from the intent collection
+        intents = dbInfo.intent_collection.find({"Playing": "Yes"})
+        player_ids = [intent['ID'] for intent in intents]
+
+        # Fetch players in player collection whose Discord IDs match those who are playing
+        players = dbInfo.player_collection.find({"discord_id": {"$in": player_ids}})
 
         for player in players:
             logger.info(f"Processing player: {player['name']}")
@@ -96,6 +102,13 @@ class PlayerCog(commands.Cog):
                         )
                         logger.info(f"Updated rank information for player {player['name']} and set last updated.")
                 else:
+                    # Assign 'Not Eligible' role if rank update fails due to invalid Riot ID
+                    not_eligible_role = discord.utils.get(self.bot.get_guild(config.lol_server).roles, name="Not Eligible")
+                    member = self.bot.get_guild(config.lol_server).get_member(player['discord_id'])
+                    if not_eligible_role and member:
+                        await member.add_roles(not_eligible_role)
+                        logger.warning(f"Assign 'Not Eligible' role to {player['name']} due to invalid Riot ID.")
+                        
                     if not player.get('last_updated') or player['last_updated'] != datetime.now(pytz.utc).strftime('%m-%d-%Y'):
                         dbInfo.player_collection.update_one(
                             {"discord_id": player['discord_id']},
