@@ -23,6 +23,13 @@ class Transactions(commands.Cog):
             return team.get("gm_id")
         return None
     
+    async def get_gov_id(self, team_code: str) -> int:
+        """Retrieve governor ID from database"""
+        team = dbInfo.team_collection.find_one({"team_code": team_code})
+        if team:
+            return team.get['gov_id']
+        return None
+    
     async def get_team_role(self, team_code: str) -> int:
         """Retrieve team role ID from the database."""
         team = dbInfo.teams_collection.find_one({"team_code": team_code})
@@ -78,6 +85,10 @@ class Transactions(commands.Cog):
 
 
     # Commands
+    @commands.slash_command(guild_ids=[config.lol_server], description="Designate GM to team")
+    @commands.has_any_role("League Ops", "Bot Guy")
+    async def sign_gm(self, ctx, user: Option(discord.Member), team_code: Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada)")):
+        return
         
 def setup(bot):
     bot.add_cog(Transactions(bot))
