@@ -5,7 +5,6 @@ from datetime import datetime
 import app.config as config
 import app.dbInfo as dbInfo
 from discord.ext import commands, tasks
-import discord
 
 logger = logging.getLogger('lol_log')
 
