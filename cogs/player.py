@@ -45,70 +45,98 @@ class PlayerCog(commands.Cog):
     async def update_all_ranks(self):
         logger.info("Updating ranks for all players.")
         failure_channel = self.bot.get_channel(config.failure_log_channel)
-        guild = self.bot.get_guild(config.lol_server)
-        not_eligible_role = discord.utils.get(guild.roles, name="Not Eligible")
-
-        intents = dbInfo.intent_collection.find({"Playing": "Yes"})
-        player_ids = [intent['ID'] for intent in intents]
-
-        players = dbInfo.player_collection.find({"discord_id": {"$in": player_ids}})
+        players = dbInfo.intent_collection.find({"Playing": "Yes"})
 
         for player in players:
-            logger.info(f"Processing player: {player['name']}")
-            member = guild.get_member(player['discord_id'])
+            discord_id = player.get('ID')
+            player_record = dbInfo.player_collection.find_one({"discord_id": discord_id})
+            
+            if not player_record:
+                logger.error(f"Player record not found for discord_id {discord_id}")
+                continue
 
-            try:
-                if 'game_name' in player and 'tag_line' in player:
-                    puuid = await self.get_puuid(player['game_name'], player['tag_line'])
-                    if not puuid:
-                        raise ValueError("Failed to retrieve PUUID")
+            logger.info(f"Processing player: {player_record['name']}")
+            if 'game_name' in player_record and 'tag_line' in player_record:
+                puuid = await self.get_puuid(player_record['game_name'], player_record['tag_line'])
+                if puuid:
+                    if not player_record.get('puuid') or player_record.get('puuid') != puuid:
+                        dbInfo.player_collection.update_one(
+                            {"discord_id": player_record['discord_id']},
+                            {"$set": {"puuid": puuid}}
+                        )
+                        logger.info(f"Stored PUUID for {player_record['name']}")
+                else:
+                    # Fallback check for existing rank data
+                    if player_record.get('rank_info'):
+                        logger.warning(f"Failed to retrieve PUUID for {player_record['name']}. Using stored rank info.")
+                    else:
+                        await self.report_failure(failure_channel, player_record['name'], 'Failed to retrieve PUUID')
+                        await self.assign_not_eligible_role(player_record['discord_id'])
+                    continue
 
-                    dbInfo.player_collection.update_one(
-                        {"discord_id": player['discord_id']},
-                        {"$set": {"puuid": puuid}}
-                    )
-                    logger.info(f"Stored PUUID for {player['name']}")
+                summoner_id = await self.get_summoner_id(puuid)
+                if summoner_id:
+                    if not player_record.get('summoner_id') or player_record.get('summoner_id') != summoner_id:
+                        dbInfo.player_collection.update_one(
+                            {"discord_id": player_record['discord_id']},
+                            {"$set": {"summoner_id": summoner_id}}
+                        )
+                        logger.info(f"Stored Summoner ID for player {player_record['name']}")
+                else:
+                    # Fallback check for existing rank data
+                    if player_record.get('rank_info'):
+                        logger.warning(f"Failed to retrieve Summoner ID for {player_record['name']}. Using stored rank info.")
+                    else:
+                        await self.report_failure(failure_channel, player_record['name'], 'Failed to retrieve Summoner ID')
+                        await self.assign_not_eligible_role(player_record['discord_id'])
+                    continue
 
-                    summoner_id = await self.get_summoner_id(puuid)
-                    if not summoner_id:
-                        raise ValueError("Failed to retrieve Summoner ID")
-
-                    dbInfo.player_collection.update_one(
-                        {"discord_id": player['discord_id']},
-                        {"$set": {"summoner_id": summoner_id}}
-                    )
-                    logger.info(f"Stored Summoner ID for player {player['name']}")
-
-                    rank_info = await self.get_player_rank(summoner_id)
-                    if not rank_info:
-                        raise ValueError("Failed to retrieve rank information")
-
+                rank_info = await self.get_player_rank(summoner_id)
+                if rank_info:
                     date_str = datetime.now(pytz.utc).strftime('%m-%d-%Y')
-                    historical_rank_info = player.get('historical_rank_info', {})
+                    historical_rank_info = player_record.get('historical_rank_info', {})
 
                     if date_str in historical_rank_info and historical_rank_info[date_str] == rank_info:
-                        logger.info(f"Rank information for player {player['name']} is unchanged for today.")
+                        logger.info(f"Rank information for player {player_record['name']} is unchanged for today.")
                         continue
 
-                    dbInfo.player_collection.update_one(
-                        {"discord_id": player['discord_id']},
-                        {"$set": {
-                            "rank_info": rank_info,
-                            "last_updated": datetime.now(pytz.utc).strftime('%m-%d-%Y'),
-                            "historical_rank_info": historical_rank_info
-                        }}
-                    )
-                    logger.info(f"Updated rank information for player {player['name']} and set last updated.")
-
+                    if not player_record.get('rank_info') or player_record['rank_info'] != rank_info:
+                        historical_rank_info[date_str] = rank_info
+                        dbInfo.player_collection.update_one(
+                            {"discord_id": player_record['discord_id']},
+                            {"$set": {
+                                "rank_info": rank_info,
+                                "last_updated": datetime.now(pytz.utc).strftime('%m-%d-%Y'),
+                                "historical_rank_info": historical_rank_info
+                            }}
+                        )
+                        logger.info(f"Updated rank information for player {player_record['name']} and set last updated.")
                 else:
-                    raise ValueError("Player does not have game_name and tag_line set")
+                    # Fallback check for existing rank data
+                    if player_record.get('rank_info'):
+                        logger.warning(f"Unable to retrieve rank info for {player_record['name']} with API. Using stored rank info.")
+                    else:
+                        await self.report_failure(failure_channel, player_record['name'], 'Unable to retrieve rank info')
+                        await self.assign_not_eligible_role(player_record['discord_id'])
+            else:
+                logger.error(f"Player {player_record['name']} does not have game_name and tag_line set.")
+                await self.report_failure(failure_channel, player_record['name'], 'Riot ID is not set or is invalid.')
+                await self.assign_not_eligible_role(player_record['discord_id'])
 
-            except Exception as e:
-                logger.error(f"Error processing player {player['name']}: {e}")
-                if member and not_eligible_role:
-                    await member.add_roles(not_eligible_role)
-                    logger.warning(f"Assigned Not Eligible role to player {player['name']} due to an error.")
-                await self.report_failure(failure_channel, player['name'], str(e))
+        logger.info("Completed updating ranks for all players.")
+
+    async def assign_not_eligible_role(self, discord_id):
+        guild = self.bot.get_guild(config.lol_server)
+        member = guild.get_member(discord_id)
+        if member:
+            not_eligible_role = discord.utils.get(guild.roles, name="Not Eligible")
+            if not_eligible_role:
+                await member.add_roles(not_eligible_role)
+                logger.info(f"Assigned Not Eligible role to {member.name}")
+            else:
+                logger.error(f"Not Eligible role not found in the server.")
+        else:
+            logger.error(f"Member with discord_id {discord_id} not found.")
 
     async def get_puuid(self, game_name, tag_line):
         url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
