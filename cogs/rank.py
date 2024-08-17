@@ -10,7 +10,7 @@ class RankCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Fetch and display player ranks")
     async def fetch_ranks(self, ctx):
-        await ctx.defer()
+        await ctx.defer(ephemeral=True)
 
         players = dbInfo.player_collection.find({})
 
@@ -43,14 +43,24 @@ class RankCog(commands.Cog):
 
         # Populate the embed with rank information
         for queue_type, ranks in rank_dict.items():
-            rank_strings = []
             for rank, names in ranks.items():
-                # Join player names with commas for readability
                 names_str = ", ".join(names)
-                rank_strings.append(f"**{rank}:** {names_str}")
-            # Join all ranks for the queue type into a single string
-            queue_type_info = "\n".join(rank_strings)
-            embed.add_field(name=queue_type, value=queue_type_info, inline=False)
+                
+                # Split the names into multiple fields if the string is too long
+                while len(names_str) > 1024:
+                    # Find a place to split before the limit
+                    split_point = names_str[:1024].rfind(", ")
+                    if split_point == -1:  # If no comma is found, force split
+                        split_point = 1024
+                    
+                    # Add the part that fits into the embed
+                    embed.add_field(name=f"{queue_type} - {rank}", value=names_str[:split_point], inline=False)
+                    
+                    # Remove the part that was added to the embed
+                    names_str = names_str[split_point + 2:]  # +2 to remove the comma and space
+                
+                # Add any remaining names to the embed
+                embed.add_field(name=f"{queue_type} - {rank}", value=names_str, inline=False)
 
         await ctx.respond(embed=embed, ephemeral=True)
 
