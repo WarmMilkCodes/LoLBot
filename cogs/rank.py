@@ -26,9 +26,9 @@ class RankCog(commands.Cog):
                 continue
 
             for rank in rank_info:
-                queue_type = rank.get('queue_type', 'Unknown').replace('_', ' ').title()
-                tier = rank.get('tier', 'Unknown').title()
-                division = rank.get('division', 'Unknown').title()
+                queue_type = rank.get('queue_type', 'Unknown').replace('_', ' ').capitalize()
+                tier = rank.get('tier', 'Unknown').capitalize()
+                division = rank.get('division', 'Unknown').upper()
 
                 # Add the player to the appropriate queue type and rank list
                 rank_dict[queue_type][f"{tier} {division}"].append(name)
