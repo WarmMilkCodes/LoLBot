@@ -21,11 +21,25 @@ class RankCog(commands.Cog):
             name = player.get('name', 'Unknown')
             rank_info = player.get('rank_info', [])
 
+            # Skip players without rank_info
+            if not rank_info:
+                continue
+
             for rank in rank_info:
                 queue_type = rank.get('queue_type', 'Unknown').replace('_', ' ').title()
-                tier = rank.get('tier', 'Unknown').title()
-                division = rank.get('division', 'Unknown').title()
+                tier = rank.get('tier', 'Unknown')
+                division = rank.get('division', 'Unknown')
+
+                # Handle NoneType safely
+                tier = tier.title() if tier else 'Unknown'
+                division = division.title() if division else 'Unknown'
+
                 table_data.append([name, queue_type, f"{tier} {division}"])
+
+        # If no players have rank_info, return a message instead of an empty embed
+        if len(table_data) == 1:
+            await ctx.respond("No players with rank information found.", ephemeral=True)
+            return
 
         # Format the table using tabulate
         table = tabulate(table_data, headers="firstrow", tablefmt="pretty")
