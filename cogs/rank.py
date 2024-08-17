@@ -1,68 +1,58 @@
 import discord
 from discord.ext import commands
 import app.dbInfo as dbInfo
-import app.config as config
-from collections import defaultdict
 
 class RankCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.slash_command(guild_ids=[config.lol_server], description="Fetch and display player ranks")
+    @commands.slash_command(description="Fetch and display ranks of all players.")
     async def fetch_ranks(self, ctx):
-        await ctx.defer(ephemeral=True)
+        await ctx.defer()
+
+        # Dictionary to organize players by queue type and rank
+        rank_dict = {}
 
         players = dbInfo.player_collection.find({})
 
-        # Dictionary to hold players organized by queue type and rank
-        rank_dict = defaultdict(lambda: defaultdict(list))
-
         for player in players:
-            name = player.get('name', 'Unknown')
-            rank_info = player.get('rank_info', [])
-
-            # Skip players without rank_info
+            rank_info = player.get('rank_info')
             if not rank_info:
-                continue
+                continue  # Skip players with no rank_info
 
+            player_name = player.get('name', 'Unknown')
             for rank in rank_info:
-                queue_type = rank.get('queue_type', 'Unknown').replace('_', ' ').capitalize()
-                tier = rank.get('tier', 'Unknown').capitalize()
-                division = rank.get('division', 'Unknown').upper()
+                queue_type = rank.get('queue_type', 'Unknown').replace('_', ' ').title()
+                tier = rank.get('tier')
+                division = rank.get('division')
 
-                # Add the player to the appropriate queue type and rank list
-                rank_dict[queue_type][f"{tier} {division}"].append(name)
+                if tier and division:  # Only proceed if both tier and division are available
+                    rank_label = f"{tier.capitalize()} {division}"
 
-        # If no players have rank_info, return a message instead of an empty embed
-        if not rank_dict:
-            await ctx.respond("No players with rank information found.", ephemeral=True)
-            return
+                    if queue_type not in rank_dict:
+                        rank_dict[queue_type] = {}
 
-        # Build the embed
+                    if rank_label not in rank_dict[queue_type]:
+                        rank_dict[queue_type] = {rank_label: [player_name]}
+                    else:
+                        rank_dict[queue_type][rank_label].append(player_name)
+
+        # Create the embed message
         embed = discord.Embed(title="Player Ranks", color=discord.Color.blue())
 
-        # Populate the embed with rank information
         for queue_type, ranks in rank_dict.items():
-            for rank, names in ranks.items():
-                names_str = ", ".join(names)
-                
-                # Split the names into multiple fields if the string is too long
-                while len(names_str) > 1024:
-                    # Find a place to split before the limit
-                    split_point = names_str[:1024].rfind(", ")
-                    if split_point == -1:  # If no comma is found, force split
-                        split_point = 1024
-                    
-                    # Add the part that fits into the embed
-                    embed.add_field(name=f"{queue_type} - {rank}", value=names_str[:split_point], inline=False)
-                    
-                    # Remove the part that was added to the embed
-                    names_str = names_str[split_point + 2:]  # +2 to remove the comma and space
-                
-                # Add any remaining names to the embed
-                embed.add_field(name=f"{queue_type} - {rank}", value=names_str, inline=False)
+            description = ""
+            for rank_label, players_list in ranks.items():
+                players_str = ', '.join(players_list)
+                description += f"**{rank_label}**: {players_str}\n"
 
-        await ctx.respond(embed=embed, ephemeral=True)
+            if description:
+                embed.add_field(name=queue_type, value=description, inline=False)
+
+        if not embed.fields:
+            embed.description = "No players with rank information found."
+
+        await ctx.respond(embed=embed)
 
 def setup(bot):
     bot.add_cog(RankCog(bot))
