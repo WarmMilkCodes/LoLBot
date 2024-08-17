@@ -1,51 +1,42 @@
+import discord
 from discord.ext import commands
 from tabulate import tabulate
-import discord
 import app.dbInfo as dbInfo
-import pytz
-from datetime import datetime
+import app.config as config
 
 class RankCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.slash_command(description="Retrieve and sort all players' ranks")
-    @commands.has_permissions(administrator=True)
-    async def get_sorted_ranks(self, ctx):
-        await ctx.defer(ephemeral=True)
+    @commands.slash_command(guild_ids=[config.lol_server], description="Fetch and display player ranks")
+    async def fetch_ranks(self, ctx):
+        await ctx.defer()
 
-        # Fetch all players from the database
-        players = list(dbInfo.player_collection.find({}))
+        players = dbInfo.player_collection.find({})
 
-        if not players:
-            await ctx.respond("No players found in the database.", ephemeral=True)
-            return
+        # Prepare a table with headers for tabulate
+        table_data = [["Player", "Queue Type", "Rank"]]
 
-        # Prepare the data for sorting
-        player_data = []
         for player in players:
-            rank_info = player.get('rank_info')
-            if rank_info:
-                # Extract useful rank information
-                tier = rank_info[0].get('tier', 'Unranked')
-                division = rank_info[0].get('division', '')
-                player_data.append([player['name'], tier, division])
+            name = player.get('name', 'Unknown')
+            rank_info = player.get('rank_info', [])
 
-        # Sort players by tier and division
-        sorted_players = sorted(player_data, key=lambda x: (x[1], x[2]))
+            for rank in rank_info:
+                queue_type = rank.get('queue_type', 'Unknown').replace('_', ' ').title()
+                tier = rank.get('tier', 'Unknown').title()
+                division = rank.get('division', 'Unknown').title()
+                table_data.append([name, queue_type, f"{tier} {division}"])
 
-        if not sorted_players:
-            await ctx.respond("No rank data available.", ephemeral=True)
-            return
+        # Format the table using tabulate
+        table = tabulate(table_data, headers="firstrow", tablefmt="pretty")
 
-        # Create a table using tabulate
-        table_headers = ["Player", "Tier", "Division"]
-        table_value = "```" + tabulate(sorted_players, headers=table_headers, tablefmt="grid") + "```"
+        # Split the table into chunks to fit Discord's character limit
+        chunks = [table[i:i + 1024] for i in range(0, len(table), 1024)]
 
-        # Create an embed to display the ranks
-        embed = discord.Embed(title="Sorted Player Ranks", color=discord.Color.blue())
-        embed.description = table_value
-        embed.set_footer(text=f"Retrieved on {datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
+        embed = discord.Embed(title="Player Ranks", color=discord.Color.blue())
+
+        for i, chunk in enumerate(chunks):
+            embed.add_field(name=f"Ranks {i + 1}", value=f"```{chunk}```", inline=False)
 
         await ctx.respond(embed=embed, ephemeral=True)
 
