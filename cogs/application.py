@@ -156,7 +156,18 @@ class ApplicationButton(discord.ui.View):
             return_document=True
         )
 
+        # Also adds RIOT ID data to player collection
+        player_riot = dbInfo.player_collection.find_one_and_update({
+            "discord_id": interaction.user.id},
+            {"$set":
+             {
+                 "game_name": riot_game_name,
+                 "tag_line": riot_tag_line
+             }
+            })
+
         logger.info(f"Database update result: {result}")
+        logger.info(f"Database update player collection: {player_riot} ")
 
         # Send submission to log channel
         submission_log_channel = self.bot.get_channel(submission_log_channel_id)
