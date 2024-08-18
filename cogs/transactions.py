@@ -23,13 +23,6 @@ class Transactions(commands.Cog):
             return team.get("gm_id")
         return None
     
-    async def get_gov_id(self, team_code: str) -> int:
-        """Retrieve governor ID from database"""
-        team = dbInfo.team_collection.find_one({"team_code": team_code})
-        if team:
-            return team.get['gov_id']
-        return None
-    
     async def get_team_role(self, team_code: str) -> int:
         """Retrieve team role ID from the database."""
         team = dbInfo.team_collection.find_one({"team_code": team_code})
