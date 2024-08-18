@@ -18,7 +18,7 @@ class Transactions(commands.Cog):
         
     async def get_gm_id(self, team_code: str) -> int:
         """Retrieve GM ID from the database."""
-        team = dbInfo.teams_collection.find_one({"team_code": team_code})
+        team = dbInfo.team_collection.find_one({"team_code": team_code})
         if team:
             return team.get("gm_id")
         return None
@@ -32,7 +32,7 @@ class Transactions(commands.Cog):
     
     async def get_team_role(self, team_code: str) -> int:
         """Retrieve team role ID from the database."""
-        team = dbInfo.teams_collection.find_one({"team_code": team_code})
+        team = dbInfo.team_collection.find_one({"team_code": team_code})
         if team:
             return team.get("team_id")
         return None
@@ -47,11 +47,11 @@ class Transactions(commands.Cog):
     
     async def get_player_info(self, player_id):
         """Fetch player information from the database."""
-        return dbInfo.player_collection.find_one({"Discord ID": str(player_id)})
+        return dbInfo.player_collection.find_one({"discord_id": player_id})
 
     async def update_team_in_database(self, player_id, new_team):
         """Update the player's team information in the database."""
-        dbInfo.player_collection.update_one({"Discord ID": str(player_id)}, {'$set': {'Team': new_team}})
+        dbInfo.player_collection.update_one({"discord_id": player_id}, {'$set': {'team': new_team}})
 
     async def add_role_to_member(self, member, role, reason):
         """Add a role to a member with error handling."""
