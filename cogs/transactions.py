@@ -16,6 +16,20 @@ class Transactions(commands.Cog):
 
     # Helper functions
         
+    async def update_nickname(self, member, prefix):
+        """Update member's nickname with given prefix"""
+        try:
+            # Remove any existing prefix
+            new_nickname = re.sub(r"^(FA \| |S \| |[A-Z]{2,3} \| )", "", member.display_name)
+            # Add new prefix
+            if prefix:
+                new_nickname = f"{prefix} | {new_nickname}"
+            await member.edit(nick=new_nickname)
+            logger.info(f"Updated nickname for {member.name} to {new_nickname}")
+        except Exception as e:
+            logger.error(f"Error updating nickname for {member.name}: {e}")
+
+
     async def get_gm_id(self, team_code: str) -> int:
         """Retrieve GM ID from the database."""
         team = dbInfo.team_collection.find_one({"team_code": team_code})
@@ -110,6 +124,7 @@ class Transactions(commands.Cog):
             await channel.send(message)
 
             await self.update_team_in_database(user.id, team_code.upper())
+            await self.update_nickname(user, team_code.upper())
             await ctx.respond(f"{team_code.upper()} designates {user.mention} as GM.")
 
         except Exception as e:
@@ -143,6 +158,10 @@ class Transactions(commands.Cog):
             await channel.send(message)
 
             await ctx.respond(f"{team_code.upper} relieves {user.mention} of GM duties.")
+
+            team_status = await self.get_player_info(user.id)
+            if team_status.get("team") != team_code.upper():
+                await self.update_nickname(user, 'FA')
 
         except Exception as e:
             await ctx.respond(f"Error relieving {user.mention} from GM duties:\n{e}")
