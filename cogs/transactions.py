@@ -94,7 +94,7 @@ class Transactions(commands.Cog):
                 return
             
             player_entry = await self.get_player_info(user.id)
-            if not player_entry or player_entry.get("Team") != "FA" or player_entry.get("Team") != team_code.upper():
+            if not player_entry or player_entry.get("team") != "FA" or player_entry.get("team") != team_code.upper():
                 return await ctx.respond(f"{user.display_name} is not a free agent or is signed to a different team and cannot be designated as GM for {team_code.upper()}.")
             
             if not player_entry.get("rank_info"):
@@ -128,7 +128,6 @@ class Transactions(commands.Cog):
         # Ensure GM is not signed to a DIFFERENT team
         # Should add GM designation in DB
         # Does not add to playing roster automatically - default non-playing, must sign with general command to sign to active roster
-        await ctx.respond(f"If this command was finished it would have signed {user.display_name} to {team_code.upper()} - however it is not. So it did not. Check back later.")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Relieve GM of duties")
     @commands.has_any_role("League Ops", "Bot Guy")
