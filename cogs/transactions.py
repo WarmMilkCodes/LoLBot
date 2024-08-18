@@ -105,12 +105,12 @@ class Transactions(commands.Cog):
             await self.remove_role_from_member(user, FA, "Designated as GM")
 
 
-            message = f"{team_code.upper()} designates {user.mention} as General Manager"
+            message = f"{team_code.upper()} designates {user.mention} as GM"
             channel = self.bot.get_channel(config.posted_transactions_channel)
             await channel.send(message)
 
             await self.update_team_in_database(user.id, team_code.upper())
-            await ctx.respond(f"{user.mention} has been designated General Manager for {team_code.upper()}")
+            await ctx.respond(f"{team_code.upper()} designates {user.mention} as GM.")
 
         except Exception as e:
             logger.error(f"Error designating {user.name} as GM:\n{e}")
