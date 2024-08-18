@@ -138,11 +138,11 @@ class Transactions(commands.Cog):
             
             await self.remove_role_from_member(user, GM, "Relieved of GM")
 
-            message = f"{user.mention} has been relieved of GM duties for {team_code.upper()}"
+            message = f"{team_code.upper} relieves {user.mention} of GM duties"
             channel = self.bot.get_channel(config.posted_transactions_channel)
             await channel.send(message)
 
-            await ctx.respond(f"{user.mention} has been relieved of GM duties for {team_code.upper()}")
+            await ctx.respond(f"{team_code.upper} relieves {user.mention} of GM duties.")
 
         except Exception as e:
             await ctx.respond(f"Error relieving {user.mention} from GM duties:\n{e}")
