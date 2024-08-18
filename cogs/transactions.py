@@ -93,7 +93,38 @@ class Transactions(commands.Cog):
         # Ensure GM is not signed to a DIFFERENT team
         # Should add GM designation in DB
         # Does not add to playing roster automatically - default non-playing, must sign with general command to sign to active roster
-        await ctx.respond(f"If this command was finished it would have signed {user} to {team_code} - however it is not. So it did not. Check back later.")
+        await ctx.respond(f"If this command was finished it would have signed {user.display_name} to {team_code.upper()} - however it is not. So it did not. Check back later.")
+
+    @commands.slash_command(guild_ids=[config.lol_server], description="Relieve GM of duties")
+    @commands.has_any_role("League Ops", "Bot Guy")
+    async def relieve_gm(self, ctx, user: Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
+        ctx.defer()
+        await ctx.respond(f"If the command to sign {user.display_name} to {team_code.upper()} didn't work - I don't know why you thought this one would.")
+
+    @commands.slash_command(guild_ids=[config.lol_server], description="Sign player to active roster")
+    @commands.has_any_role("League Ops", "Bot Guy")
+    async def sign_player(self, ctx, user: Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
+        ctx.defer()
+        await ctx.respond("Shockingly no. This command isn't ready yet either.")
+
+    @commands.slash_command(guild_ids=[config.lol_server], description="Release player to free agency")
+    @commands.has_any_role("League Ops", "Bot Guy")
+    async def release_player(self, ctx, user:Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
+        ctx.defer()
+        await ctx.respond("I'm trying, ok? It's a lot of commands.")
+
+    @commands.slash_command(guild_ids=[config.lol_server], description="Designate team captain")
+    @commands.has_any_role("League Ops", "Bot Guy")
+    async def designate_captain(self, ctx, user:Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
+        ctx.defer()
+        await ctx.respond("I don't even know how to go about handling this command - but Gen says there will be captains!")
+
+    @commands.slash_command(guild_ids=[config.lol_server], description="Relieve team captain of duties")
+    @commands.has_any_role("League Ops", "Bot Guy")
+    async def relieve_captain(self, ctx, user:Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
+        ctx.defer()
+        await ctx.respond("This one's easy - but... also, not done.")
+    
         
 def setup(bot):
     bot.add_cog(Transactions(bot))
