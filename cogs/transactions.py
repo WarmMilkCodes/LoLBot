@@ -88,7 +88,7 @@ class Transactions(commands.Cog):
             
             player_entry = await self.get_player_info(user.id)
             if not player_entry or player_entry.get("team") not in ['FA', team_code.upper()]:
-                return await ctx.respond(f"{user.display_name} is not a free agent or is signed to a different team and cannot be designated as GM for {team_code.upper()}.")
+                return await ctx.respond(f"{user.mention} is not a free agent or is signed to a different team and cannot be designated as GM for {team_code.upper()}.")
         
             
             team_role_id = await self.get_team_role(team_code.upper())
@@ -105,7 +105,7 @@ class Transactions(commands.Cog):
             await self.remove_role_from_member(user, FA, "Designated as GM")
 
 
-            message = f"{team_code.upper()} designates {user.display_name} as General Manager"
+            message = f"{team_code.upper()} designates {user.mention} as General Manager"
             channel = self.bot.get_channel(config.posted_transactions_channel)
             await channel.send(message)
 
@@ -114,7 +114,7 @@ class Transactions(commands.Cog):
 
         except Exception as e:
             logger.error(f"Error designating {user.name} as GM:\n{e}")
-            await ctx.respond(f"There was an error designating {user.display_name} as GM:\n{e}")
+            await ctx.respond(f"There was an error designating {user.mention} as GM:\n{e}")
         # Command can only be invoked in transaction-bot channel
         # Ensure GM is not signed to a DIFFERENT team
         # Should add GM designation in DB
@@ -124,7 +124,27 @@ class Transactions(commands.Cog):
     @commands.has_any_role("League Ops", "Bot Guy")
     async def relieve_gm(self, ctx, user: Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
         await ctx.defer()
-        await ctx.respond(f"If the command to sign {user.display_name} to {team_code.upper()} didn't work - I don't know why you thought this one would.")
+        try:
+            if not await self.validate_command_channel(ctx):
+                return
+            
+            gm_role_id = await self.get_gm_id(team_code.upper())
+            if not gm_role_id:
+                return await ctx.respond(f"GM role not found for team: {team_code.upper()}")
+            
+            if gm_role_id not in user.roles:
+                return await ctx.respond(f"{user.mention} is not the GM of {team_code.upper()}")
+            
+            await self.remove_role_from_member(user, gm_role_id, "Relieved of GM")
+
+            message = f"{user.mention} has been relieved of GM duties for {team_code.upper()}"
+            channel = self.bot.get_channel(config.posted_transactions_channel)
+            await channel.send(message)
+
+            await ctx.respond(f"{user.mention} has been relieved of GM duties for {team_code.upper()}")
+
+        except Exception as e:
+            await ctx.respond(f"Error relieving {user.mention} from GM duties:\n{e}")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Sign player to active roster")
     @commands.has_any_role("League Ops", "Bot Guy")
