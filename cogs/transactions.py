@@ -153,11 +153,11 @@ class Transactions(commands.Cog):
             
             await self.remove_role_from_member(user, GM, "Relieved of GM")
 
-            message = f"{team_code.upper} relieves {user.mention} of GM duties"
+            message = f"{team_code.upper()} relieves {user.mention} of GM duties"
             channel = self.bot.get_channel(config.posted_transactions_channel)
             await channel.send(message)
 
-            await ctx.respond(f"{team_code.upper} relieves {user.mention} of GM duties.")
+            await ctx.respond(f"{team_code.upper()} relieves {user.mention} of GM duties.")
 
             team_status = await self.get_player_info(user.id)
             if team_status.get("team") != team_code.upper():
