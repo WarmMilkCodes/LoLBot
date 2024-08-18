@@ -132,10 +132,11 @@ class Transactions(commands.Cog):
             if not gm_role_id:
                 return await ctx.respond(f"GM role not found for team: {team_code.upper()}")
             
-            if gm_role_id not in user.roles:
+            GM = ctx.guild.get_role(gm_role_id)
+            if GM not in user.roles:
                 return await ctx.respond(f"{user.mention} is not the GM of {team_code.upper()}")
             
-            await self.remove_role_from_member(user, gm_role_id, "Relieved of GM")
+            await self.remove_role_from_member(user, GM, "Relieved of GM")
 
             message = f"{user.mention} has been relieved of GM duties for {team_code.upper()}"
             channel = self.bot.get_channel(config.posted_transactions_channel)
