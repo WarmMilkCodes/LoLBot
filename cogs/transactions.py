@@ -89,6 +89,41 @@ class Transactions(commands.Cog):
     @commands.has_any_role("League Ops", "Bot Guy")
     async def designate_gm(self, ctx, user: Option(discord.Member), team_code: Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada)")):
         ctx.defer()
+        try:
+            if not await self.validate_command_channel(ctx):
+                return
+            
+            player_entry = await self.get_player_info(user.id)
+            if not player_entry or player_entry.get("Team") != "FA" or player_entry.get("Team") != team_code.upper():
+                return await ctx.respond(f"{user.display_name} is not a free agent or is signed to a different team and cannot be designated as GM for {team_code.upper()}.")
+            
+            if not player_entry.get("rank_info"):
+                return await ctx.respond(f"{user.display_name} does not have ranked game data and cannot be signed.")
+            
+            team_role_id = await self.get_team_role(team_code.upper())
+            if not team_role_id:
+                return await ctx.respond(f"Invalid team code used in command: {team_code.upper()}")
+            
+            gm_role_id = await self.get_gm_id(team_code.upper())
+            if not gm_role_id:
+                return await ctx.respond(f"Invalid team code used in command: {team_code.upper()}")
+
+            FA = discord.utils.get(ctx.guild.roles, name="Free Agents")
+            await self.add_role_to_member(user, ctx.guild.get_role(team_role_id), "Designated as GM")
+            await self.add_role_to_member(user, ctx.guild.get_role(gm_role_id), "Designated as GM")
+            await self.remove_role_from_member(user, FA, "Designated as GM")
+
+
+            message = f"{team_code.upper()} designates {user.display_name} as General Manager"
+            channel = self.bot.get_channel(config.posted_transactions_channel)
+            await channel.send(message)
+
+            await self.update_team_in_database(user.id, team_code.upper())
+            await ctx.respond(f"{user.display_name} has been designated General Manager for {team_code.upper()}")
+
+        except Exception as e:
+            logger.error(f"Error designating {user.name} as GM:\n{e}")
+            await ctx.respond(f"There was an error designating {user.display_name} as GM:\n{e}")
         # Command can only be invoked in transaction-bot channel
         # Ensure GM is not signed to a DIFFERENT team
         # Should add GM designation in DB
