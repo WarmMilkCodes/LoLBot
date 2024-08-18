@@ -117,7 +117,7 @@ class Transactions(commands.Cog):
             await channel.send(message)
 
             await self.update_team_in_database(user.id, team_code.upper())
-            await ctx.respond(f"{user.display_name} has been designated General Manager for {team_code.upper()}")
+            await ctx.respond(f"{user.mention} has been designated General Manager for {team_code.upper()}")
 
         except Exception as e:
             logger.error(f"Error designating {user.name} as GM:\n{e}")
