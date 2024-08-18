@@ -118,6 +118,7 @@ class PlayerCog(commands.Cog):
                     else:
                         await self.report_failure(failure_channel, player_record['name'], 'Unable to retrieve rank info')
                         await self.assign_not_eligible_role(player_record['discord_id'])
+                        dbInfo.player_collection.update_one({"discord_id": player_record['discord_id']}, {"$set": {"eligible": "False"}})
             else:
                 logger.error(f"Player {player_record['name']} does not have game_name and tag_line set.")
                 await self.report_failure(failure_channel, player_record['name'], 'Riot ID is not set or is invalid.')
@@ -139,8 +140,13 @@ class PlayerCog(commands.Cog):
             logger.error(f"Member with discord_id {discord_id} not found.")
 
     async def get_puuid(self, game_name, tag_line):
+        import urllib.parse
+        encoded_game_name = urllib.parse.quote(game_name)
+        encoded_tag_line = urllib.parse.quote(tag_line)
+
         url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
         headers = {'X-Riot-Token': config.RIOT_API}
+        
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
                 if response.status == 200:
