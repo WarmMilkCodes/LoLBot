@@ -87,7 +87,7 @@ class Transactions(commands.Cog):
     # Commands
     @commands.slash_command(guild_ids=[config.lol_server], description="Designate GM to team")
     @commands.has_any_role("League Ops", "Bot Guy")
-    async def sign_gm(self, ctx, user: Option(discord.Member), team_code: Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada)")):
+    async def designate_gm(self, ctx, user: Option(discord.Member), team_code: Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada)")):
         ctx.defer()
         # Command can only be invoked in transaction-bot channel
         # Ensure GM is not signed to a DIFFERENT team
