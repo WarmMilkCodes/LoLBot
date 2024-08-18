@@ -170,7 +170,42 @@ class Transactions(commands.Cog):
     @commands.has_any_role("League Ops", "Bot Guy")
     async def sign_player(self, ctx, user: Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
         await ctx.defer()
-        await ctx.respond("Shockingly no. This command isn't ready yet either.")
+        try:
+            if not await self.validate_command_channel(ctx):
+                return
+            
+            player_entry = await self.get_player_info(user.id)
+            if not player_entry or player_entry.get("team") != "FA":
+                return await ctx.respond(f"{user.mention} is already on a team and cannot be signed.")
+            
+            if not player_entry.get("rank_info"):
+                return await ctx.respond(f"{user.mention} does not have rank game data and cannot be signed.")
+            
+            team_role_id = await self.get_team_role(team_code.upper())
+            if not team_role_id:
+                return await ctx.respond(f"Invalid team code passed: {team_code.upper()}")
+            
+            FA = discord.utils.get(ctx.guild.roles, name="Free Agents")
+            await self.add_role_to_member(user, ctx.guild.get_role(team_role_id), f"Player signed to {team_code.upper()}")
+            await self.remove_role_from_member(user, FA, f"Player signed to {team_code.upper()}")
+
+            gm_role_id = await self.get_gm_id(team_code.upper())
+            if not gm_role_id:
+                return await ctx.respond(f"No GM role found for team: {team_code.upper()}")
+            
+            GM = ctx.guild.get_role(gm_role_id)
+
+            message = f"{GM.mention} signs {user.mention} to active roster"
+            channel = self.bot.get_channel(config.posted_transactions_channel)
+            await channel.send(message)
+
+            await self.update_team_in_database(user.id, team_code.upper())
+            await self.update_nickname(user, team_code.upper())
+            await ctx.respond(f"{user.mention} has been signed to {team_code.upper()}")
+
+        except Exception as e:
+            await ctx.respond(f"Error signing {user.mention} to {team_code.upper():\n{e}}")
+            
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Release player to free agency")
     @commands.has_any_role("League Ops", "Bot Guy")
