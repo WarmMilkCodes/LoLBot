@@ -112,7 +112,7 @@ class Transactions(commands.Cog):
             governor_role = discord.utils.get(ctx.guild.roles, name="Franchise Governor")
             await self.add_role_to_member(user, ctx.guild.get_role(team_role_id), "Designated as Governor")
             await self.add_role_to_member(user, ctx.guild.get_role(governor_role), "Designated as Governor")
-            await self.remove_role_from_member(user, ctx.guild.get_role(FA, "Designated as Governor"))
+            await self.remove_role_from_member(user, ctx.guild.get_role(FA), "Designated as Governor")
 
             message = f"{team_code.upper()} designated {user.mention} as Governor"
             channel = self.bot.get_channel(config.posted_transactions_channel)
