@@ -152,8 +152,9 @@ class PlayerCog(commands.Cog):
     async def get_match_history(self, puuid):
         url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids"
         headers = {'X-Riot-Token': config.RIOT_API}
+        start_time = int(self.get_current_split_start().timestamp())
         params = {
-            "startTime": self.get_current_split_start().timestamp(),
+            "startTime": start_time,
             "type": "ranked",
             "count": 100
         }
