@@ -1,12 +1,19 @@
 import aiohttp, discord
 import logging
 import pytz
-from datetime import datetime
+from datetime import datetime, timezone
 import app.config as config
 import app.dbInfo as dbInfo
 from discord.ext import commands, tasks
 
 logger = logging.getLogger('lol_log')
+
+# Split dates for 2024
+SPLITS = [
+    {"start": datetime(2024, 1, 10, tzinfo=timezone.utc), "end": datetime(2024, 5, 14, tzinfo=timezone.utc), "name": "Spring Split"},
+    {"start": datetime(2024, 5, 15, tzinfo=timezone.utc), "end": datetime(2024, 9, 24, tzinfo=timezone.utc), "name": "Summer Split"},
+    {"start": datetime(2024, 9, 25, tzinfo=timezone.utc), "end": None, "name": "Fall Split"},  # End date unknown
+]
 
 class PlayerCog(commands.Cog):
     def __init__(self, bot):
@@ -194,6 +201,31 @@ class PlayerCog(commands.Cog):
         if channel:
             message = f"Player: {player_name} | Error: {reason}"
             await channel.send(message)
+
+    async def is_eligible_match(self, summoner_id):
+        """Check if the player has played the minimum number of matches in the current split."""
+        current_split = next((split for split in SPLITS if split['start'] <= datetime.now(timezone.utc) and (split['end'] is None or split['end'] >= datetime.now(timezone.utc))), None)
+        
+        if not current_split:
+            logger.error("No active split found.")
+            return False
+
+        start_timestamp = int(current_split['start'].timestamp() * 1000)  # Convert to milliseconds
+        match_history_url = f"https://na1.api.riotgames.com/lol/match/v4/matchlists/by-account/{summoner_id}?beginTime={start_timestamp}"
+
+        headers = {'X-Riot-Token': config.RIOT_API}
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(match_history_url, headers=headers) as response:
+                if response.status == 200:
+                    match_history = await response.json()
+                    total_matches = len(match_history.get('matches', []))
+                    logger.info(f"Player with summoner ID {summoner_id} has played {total_matches} matches in the current split.")
+                    return total_matches >= 30  # Check if the player has played at least 30 matches
+                else:
+                    logger.error(f"Error fetching match history for Summoner ID {summoner_id}: {await response.text()}")
+                    return False
+
 
 def setup(bot):
     bot.add_cog(PlayerCog(bot))
