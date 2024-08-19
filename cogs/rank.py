@@ -7,6 +7,8 @@ import app.dbInfo as dbInfo
 logger = logging.getLogger('rank_log')
 logging.basicConfig(level=logging.INFO)
 
+RANK_ORDER = ["Iron", "Bronze", "Silver", "Gold", "Platinum", "Emerald", "Diamond", "Master", "Grandmaster", "Challenger"]
+
 class RankCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -17,8 +19,9 @@ class RankCog(commands.Cog):
 
         # Dictionary to organize players by queue type and rank
         rank_dict = {}
+        total_ranked_players = 0
 
-        players = dbInfo.player_collection.find({})
+        players = dbInfo.player_collection.find({"left_at": None})
 
         for player in players:
             player_name = player.get('name', 'Unknown')
@@ -33,6 +36,18 @@ class RankCog(commands.Cog):
 
             for rank in rank_info:
                 queue_type = rank.get('queue_type', 'Unknown').replace('_', ' ').title()
+
+                # Only process 'Ranked Solo 5x5'
+                if queue_type != "RANKED_SOLO_5X5":
+                    logger.info(f"Skipping {queue_type} for player: {player_name}")
+                    continue
+
+                # Increment the total ranked players count
+                total_ranked_players += 1
+
+                # Format the queue_type for display
+                queue_type = queue_type.raplce('_', ' ').title()
+
                 tier = rank.get('tier')
                 division = rank.get('division')
 
@@ -54,7 +69,12 @@ class RankCog(commands.Cog):
 
         for queue_type, ranks in rank_dict.items():
             description = ""
-            for rank_label, players_list in ranks.items():
+
+            # Sort the ranks according to RANK_ORDER
+            sorted_ranks = sorted(ranks.keys(), key=lambda x: RANK_ORDER.index(x.split()[0]))
+
+            for rank_label in sorted_ranks:
+                players_list = ranks[rank_label]
                 players_str = ', '.join(players_list)
                 description += f"**{rank_label}**: {players_str}\n"
 
@@ -63,6 +83,9 @@ class RankCog(commands.Cog):
 
         if not embed.fields:
             embed.description = "No players with rank information found."
+
+        # Set the footer with the total count of ranked players
+        embed.set_footer(text=f"Total Ranked Players (Ranked Solo 5x5): {str(total_ranked_players)}")
 
         await ctx.respond(embed=embed)
 
