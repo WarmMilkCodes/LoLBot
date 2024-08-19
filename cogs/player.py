@@ -74,6 +74,7 @@ class PlayerCog(commands.Cog):
                 continue
 
             logger.info(f"Processing player: {player_record['name']}")
+            puuid = None  # Initialize puuid
 
             # Update Rank
             if 'game_name' in player_record and 'tag_line' in player_record:
@@ -119,27 +120,28 @@ class PlayerCog(commands.Cog):
                         logger.info(f"Updated rank information for player {player_record['name']} and set last updated.")
 
             # Check Eligibility after updating rank
-            match_history = await self.get_match_history(puuid)
-            if match_history is None:
-                logger.error(f"Failed to retrieve match history for {player_record['name']}. Skipping eligibility check.")
-                continue
+            if puuid:
+                match_history = await self.get_match_history(puuid)
+                if match_history is None:
+                    logger.error(f"Failed to retrieve match history for {player_record['name']}. Skipping eligibility check.")
+                    continue
 
-            eligible_games = [match for match in match_history if self.is_eligible_match(match)]
-            game_count = len(eligible_games)
-            is_eligible = game_count >= 30
+                eligible_games = [match for match in match_history if self.is_eligible_match(match)]
+                game_count = len(eligible_games)
+                is_eligible = game_count >= 30
 
-            if player_record.get("eligible_for_split") != is_eligible or player_record.get("current_split_game_count") != game_count:
-                logger.info(f"Updating eligibility for {player_record['name']}: Eligible: {is_eligible}, Games: {game_count}")
-                dbInfo.player_collection.update_one(
-                    {"discord_id": player_record['discord_id']},
-                    {"$set": {
-                        "eligible_for_split": is_eligible,
-                        "last_eligibility_check": datetime.now(pytz.utc),
-                        "current_split_game_count": game_count
-                    }}
-                )
-            else:
-                logger.info(f"No change in eligibility for {player_record['name']}")
+                if player_record.get("eligible_for_split") != is_eligible or player_record.get("current_split_game_count") != game_count:
+                    logger.info(f"Updating eligibility for {player_record['name']}: Eligible: {is_eligible}, Games: {game_count}")
+                    dbInfo.player_collection.update_one(
+                        {"discord_id": player_record['discord_id']},
+                        {"$set": {
+                            "eligible_for_split": is_eligible,
+                            "last_eligibility_check": datetime.now(pytz.utc),
+                            "current_split_game_count": game_count
+                        }}
+                    )
+                else:
+                    logger.info(f"No change in eligibility for {player_record['name']}")
 
         logger.info("Completed rank and eligibility check for all players.")
 
