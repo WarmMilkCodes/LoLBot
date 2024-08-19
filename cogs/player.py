@@ -159,17 +159,26 @@ class PlayerCog(commands.Cog):
             match_history = await self.get_match_history(puuid)
             eligible_games = [match for match in match_history if self.is_eligible_match(match)]
 
-            if len(eligible_games) >= 30:
+            game_count = len(eligible_games)
+            if game_count >= 30:
                 logger.info(f"Player {player_record['name']} has met the eligibility requirements.")
                 dbInfo.player_collection.update_one(
                     {"discord_id": player_record['discord_id']},
-                    {"$set": {"eligible_for_split": True, "last_eligibility_check": datetime.now(pytz.utc)}}
+                    {"$set": {
+                        "eligible_for_split": True,
+                        "last_eligibility_check": datetime.now(pytz.utc),
+                        "current_split_game_count": game_count
+                    }}
                 )
             else:
                 logger.warning(f"Player {player_record['name']} has not met the eligibility requirements.")
                 dbInfo.player_collection.update_one(
                     {"discord_id": player_record['discord_id']},
-                    {"$set": {"eligible_for_split": False, "last_eligibility_check": datetime.now(pytz.utc)}}
+                    {"$set": {
+                        "eligible_for_split": False,
+                        "last_eligibility_check": datetime.now(pytz.utc),
+                        "current_split_game_count": game_count
+                    }}
                 )
 
         logger.info("Completed checking eligibility for all players.")
