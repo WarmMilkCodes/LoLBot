@@ -13,11 +13,11 @@ class StaffCog(commands.Cog):
         self.bot = bot
 
     async def update_nickname(self, member, prefix):
-        """Update member's nickname with given prefix"""
+        """Update member's nickname with given prefix, or restore original if no prefix."""
         try:
             # Remove any existing prefix
             new_nickname = re.sub(r"^(FA \| |S \| |TBD \| |[A-Z]{2,3} \| )", "", member.display_name)
-            # Add new prefix
+            # Add new prefix if applicable
             if prefix:
                 new_nickname = f"{prefix} | {new_nickname}"
             await member.edit(nick=new_nickname)
@@ -25,30 +25,45 @@ class StaffCog(commands.Cog):
         except Exception as e:
             logger.error(f"Error updating nickname for {member.name}: {e}")
 
-    @commands.slash_command(guild_ids=[config.lol_server], description="Assign prefixes to Free Agent and Spectator roles")
+    @commands.slash_command(guild_ids=[config.lol_server], description="Assign prefixes based on roles and undo previous changes")
     @commands.has_any_role("Bot Guy", "League Ops")
     async def assign_prefixes(self, ctx):
         guild = ctx.guild
         free_agent_role = discord.utils.get(guild.roles, name="Free Agents")
         spectator_role = discord.utils.get(guild.roles, name="Spectator")
         not_eligible_role = discord.utils.get(guild.roles, name="Not Eligible")
+        franchise_governor_role = discord.utils.get(guild.roles, name="Franchise Governors")
 
-        if not free_agent_role or not spectator_role:
-            await ctx.respond("Roles not found. Ensure 'Free Agent' and 'Spectator' roles exist.", ephemeral=True)
+        if not free_agent_role or not spectator_role or not not_eligible_role:
+            await ctx.respond("Roles not found. Ensure 'Free Agents', 'Spectator', 'Not Eligible', and 'Franchise Governors' roles exist.", ephemeral=True)
             return
 
         updated_users = []
 
         for member in guild.members:
+            if franchise_governor_role in member.roles:
+                # Check for team role associated with Franchise Governor and assign team code as prefix
+                team_role = next((role for role in member.roles if dbInfo.team_collection.find_one({"team_id": role.id})), None)
+                if team_role:
+                    team_code = dbInfo.team_collection.find_one({"team_id": team_role.id}).get("team_code")
+                    if team_code:
+                        await self.update_nickname(member, team_code)
+                        updated_users.append(f"Updated {member.display_name} to {team_code} | {member.display_name}")
+                continue  # Skip other roles if Franchise Governor
+
             if free_agent_role in member.roles:
                 await self.update_nickname(member, "FA")
                 updated_users.append(f"Updated {member.display_name} to FA | {member.display_name}")
             elif spectator_role in member.roles:
                 await self.update_nickname(member, "S")
-                updated_users.append(f"Updated {member.display_name} to Spec | {member.display_name}")
+                updated_users.append(f"Updated {member.display_name} to S | {member.display_name}")
             elif not_eligible_role in member.roles:
                 await self.update_nickname(member, "TBD")
                 updated_users.append(f"Updated {member.display_name} to TBD | {member.display_name}")
+            else:
+                # Remove prefix if none of the roles apply
+                await self.update_nickname(member, None)
+                updated_users.append(f"Restored {member.display_name} to original nickname")
 
         response_message = "Updated prefixes:\n" + "\n".join(updated_users) if updated_users else "No users were updated."
         await ctx.respond(response_message, ephemeral=True)
