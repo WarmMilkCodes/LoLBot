@@ -4,6 +4,7 @@ from discord.ext import commands
 from discord.commands import Option
 import app.dbInfo as dbInfo
 import app.config as config
+import tabulate
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +110,6 @@ class StaffCog(commands.Cog):
         # Send the tabulated string as a code block in Discord
         await ctx.respond(f"```{table_string}```")
         
-        
+
 def setup(bot):
     bot.add_cog(StaffCog(bot))
