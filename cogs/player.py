@@ -183,7 +183,7 @@ class PlayerCog(commands.Cog):
             else:
                 logger.warning(f"Player {player_record['name']} has not met the eligibility requirements.")
                 await self.report_failure(failure_channel, player_record['name'], 'Player has not met the minimum game requirement for the split.')
-                await self.assign_not_eligible_role(player_record['discord_id'])
+                #await self.assign_not_eligible_role(player_record['discord_id'])
 
         logger.info("Completed checking eligibility for all players.")
 
