@@ -63,11 +63,14 @@ class PlayerCog(commands.Cog):
 
     async def update_ranks_and_check(self):
         logger.info("Updating ranks and checking eligibility for all players.")
+        riot_id_log_channel = self.bot.get_channel(config.failure_log_channel)
+
         players = dbInfo.intent_collection.find({"Playing": "Yes"})
 
         for player in players:
             discord_id = player.get('ID')
             player_record = dbInfo.player_collection.find_one({"discord_id": discord_id, "left_at": None})
+            
             
             if not player_record:
                 logger.info(f"Skipping player {discord_id} because not found or left server.")
@@ -88,6 +91,10 @@ class PlayerCog(commands.Cog):
                         logger.info(f"Stored PUUID for {player_record['name']}")
                 else:
                     logger.warning(f"Failed to retrieve PUUID for {player_record['name']}. Skipping rank and eligibility update.")
+                    if riot_id_log_channel:
+                        await riot_id_log_channel.send(
+                            f"Failed to retrieve PUUID for {player_record['name']} ({player_record['discord_id']}) - {player_record['game_name']}#{player_record['tag_line']}"
+                        )
                     continue
 
                 summoner_id = await self.get_summoner_id(puuid)
@@ -100,6 +107,10 @@ class PlayerCog(commands.Cog):
                         logger.info(f"Stored Summoner ID for player {player_record['name']}")
                 else:
                     logger.warning(f"Failed to retrieve Summoner ID for {player_record['name']}. Skipping rank and eligibility update.")
+                    if riot_id_log_channel:
+                        await riot_id_log_channel.send(
+                            f"Failed to retrieve Summoner ID for {player_record['name']} ({player_record['discord_id']}) - PUUID: {puuid}"
+                        )
                     continue
 
                 rank_info = await self.get_player_rank(summoner_id)
