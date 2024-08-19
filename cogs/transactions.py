@@ -328,8 +328,41 @@ class Transactions(commands.Cog):
     @commands.has_any_role("League Ops", "Bot Guy")
     async def relieve_captain(self, ctx, user:Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
         await ctx.defer()
-        await ctx.respond("This one's easy - but... also, not done.")
+        
+        try:
+            if not await self.validate_command_channel(ctx):
+                return
+            
+            team_captain_role = discord.utils.get(ctx.guild.roles, name="Captains")
+            if team_captain_role not in user.roles:
+                return await ctx.respond(f"{user.mention} has not been designated as a team captain.")
+            
+            player_entry = await self.get_player_info(user.id)
+            if not player_entry or player_entry.get("team") != team_code.upper():
+                return await ctx.respond(f"{user.mention} is not a member of {team_code.upper()}")
+            
+            team_role_id = await self.get_team_role(team_code.upper())
+            if not team_role_id:
+                return await ctx.respond(f"Invalid team code used in command: {team_code.upper()}")
+            
+            gm_role_id = await self.get_gm_id(team_code.upper())
+            if not gm_role_id:
+                return await ctx.respond(f"Invalid team code used in command: {team_code.upper()}")
+            
+            await self.remove_role_from_member(user, team_captain_role, "Relieved of Captaincy")
+
+            GM = ctx.guild.get_role(gm_role_id)
+            message = f"{GM.mention} relieves {user.mention} of captain duties"
+            channel = self.bot.get_channel(config.posted_transactions_channel)
+            await channel.send(message)
+
+            await ctx.respond(f"{GM.mention} relieves {user.mention} of captain duties")
+
+            if player_entry.get('team') != team_code.upper():
+                await self.update_nickname(user, 'FA')
     
+        except Exception as e:
+            await ctx.respond(f"There was an error relieving {user.mention} of captain duties:\n{e}")
         
 def setup(bot):
     bot.add_cog(Transactions(bot))
