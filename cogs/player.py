@@ -21,6 +21,7 @@ class PlayerCog(commands.Cog):
         self.bot = bot
         self.rank_update_task_started = False
         self.eligibility_check_task_started = False
+        self.eligibility_check_running = False
         logger.info("PlayerCog loaded. Waiting for rank update and eligibility check tasks to be started.")
 
     def cog_unload(self):
@@ -60,8 +61,18 @@ class PlayerCog(commands.Cog):
 
     @tasks.loop(hours=12)
     async def eligibility_check_task(self):
+        if self.eligibility_check_running:
+            logger.warning("Eligibility check task is already running. Skipping this execution. ")
+            return
+        
+        self.eligibility_check_running = True
         logger.info("Eligibility check task triggered.")
-        await self.check_player_eligibility()
+        
+        try:
+            await self.check_player_eligibility()
+        finally:
+            self.eligibility_check_running = False
+            logger.info("Eligibility check task completed.")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Update player ranks manually")
     @commands.has_permissions(administrator=True)
