@@ -82,6 +82,29 @@ class StaffCog(commands.Cog):
         embed.add_field(name="Team Info", value=team_info)
 
         await ctx.respond(embed=embed)
+        
+    @commands.slash_command(guild_ids=[config.lol_server], description="Return player elgibility")
+    @commands.has_any_role("Bot Guy", "League Ops")
+    async def player_eligibility(self, ctx):
+        await ctx.defer()
+        from tabulate import tabulate
+        # Fetch all players who are playing
+        players = dbInfo.player_collection.find({"eligibile_for_split": {"$exists": True}})
+        
+        table_data = []
+        for player in players:
+            discord_id = player.get("discord_id")
+            username = self.bot.get_user(discord_id).name if self.bot.get_user(discord_id) else player.get("name")
+            eligible = "Yes" if player.get("eligible_for_split") else "No"
+            game_count = player.get("current_split_game_count", "N/A")
+            last_check = player.get("last_eligibility_check", "N/A")
+            
+            table_data.append([username, eligible, game_count, last_check])
+            
+        table_headers = ['Username', 'Eligible', 'Game Count', 'Last Check']
+        table_string = tabulate(table_data, headers=table_headers, tablefmt="grid")
+        
+        await ctx.respond(f"```{table_string}```")
 
 def setup(bot):
     bot.add_cog(StaffCog(bot))
