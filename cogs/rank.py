@@ -21,6 +21,7 @@ class RankCog(commands.Cog):
         rank_dict = {}
         total_ranked_players = 0
 
+        # Only select players who have not left the server
         players = dbInfo.player_collection.find({"left_at": None})
 
         for player in players:
@@ -35,18 +36,15 @@ class RankCog(commands.Cog):
             logger.info(f"Found rank_info for player: {player_name}")
 
             for rank in rank_info:
-                queue_type = rank.get('queue_type', 'Unknown').replace('_', ' ').title()
+                queue_type = rank.get('queue_type')
 
-                # Only process 'Ranked Solo 5x5'
+                # Only process 'RANKED_SOLO_5X5'
                 if queue_type != "RANKED_SOLO_5X5":
                     logger.info(f"Skipping {queue_type} for player: {player_name}")
                     continue
 
                 # Increment the total ranked players count
                 total_ranked_players += 1
-
-                # Format the queue_type for display
-                queue_type = queue_type.raplce('_', ' ').title()
 
                 tier = rank.get('tier')
                 division = rank.get('division')
@@ -79,13 +77,13 @@ class RankCog(commands.Cog):
                 description += f"**{rank_label}**: {players_str}\n"
 
             if description:
-                embed.add_field(name=queue_type, value=description, inline=False)
+                embed.add_field(name=queue_type.replace('_', ' ').title(), value=description, inline=False)
 
         if not embed.fields:
             embed.description = "No players with rank information found."
 
         # Set the footer with the total count of ranked players
-        embed.set_footer(text=f"Total Ranked Players (Ranked Solo 5x5): {str(total_ranked_players)}")
+        embed.set_footer(text=f"Total Ranked Players (Ranked Solo 5x5): {total_ranked_players}")
 
         await ctx.respond(embed=embed)
 
