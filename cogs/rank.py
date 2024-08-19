@@ -7,7 +7,8 @@ import app.dbInfo as dbInfo
 logger = logging.getLogger('rank_log')
 logging.basicConfig(level=logging.INFO)
 
-RANK_ORDER = ["Iron", "Bronze", "Silver", "Gold", "Platinum", "Emerald", "Diamond", "Master", "Grandmaster", "Challenger"]
+# Update the rank order to match the capitalization in the database
+RANK_ORDER = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"]
 
 class RankCog(commands.Cog):
     def __init__(self, bot):
@@ -38,8 +39,8 @@ class RankCog(commands.Cog):
             for rank in rank_info:
                 queue_type = rank.get('queue_type')
 
-                # Only process 'RANKED_SOLO_5X5'
-                if queue_type != "RANKED_SOLO_5X5":
+                # Only process 'RANKED_SOLO_5x5'
+                if queue_type != "RANKED_SOLO_5x5":
                     logger.info(f"Skipping {queue_type} for player: {player_name}")
                     continue
 
@@ -52,7 +53,7 @@ class RankCog(commands.Cog):
                 logger.info(f"Player {player_name} - Queue: {queue_type}, Tier: {tier}, Division: {division}")
 
                 if tier and division:  # Only proceed if both tier and division are available
-                    rank_label = f"{tier.capitalize()} {division}"
+                    rank_label = f"{tier} {division}"
 
                     if queue_type not in rank_dict:
                         rank_dict[queue_type] = {}
