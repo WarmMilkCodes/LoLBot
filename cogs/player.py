@@ -30,7 +30,7 @@ class PlayerCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Start the rank and eligibility check task")
     @commands.has_permissions(administrator=True)
-    async def start_rank_and_eligibility_task(self, ctx):
+    async def start_check_task(self, ctx):
         if not self.task_started:
             self.rank_and_eligibility_task.start()
             self.task_started = True
@@ -49,19 +49,19 @@ class PlayerCog(commands.Cog):
         logger.info("Rank and Eligibility update task triggered.")
         
         try:
-            await self.update_ranks_and_check_eligibility()
+            await self.update_ranks_and_check()
         finally:
             self.task_running = False
             logger.info("Rank and eligibility check task completed.")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Update player ranks and check eligibility manually")
     @commands.has_permissions(administrator=True)
-    async def update_ranks_and_check_eligibility(self, ctx):
+    async def check_ranks_and_eligibility(self, ctx):
         await ctx.defer(ephemeral=True)
-        await self.update_ranks_and_check_eligibility()
+        await self.update_ranks_and_check()
         await ctx.respond("Updated ranks and checked eligibility for all players.", ephemeral=True)
 
-    async def update_ranks_and_check_eligibility(self):
+    async def update_ranks_and_check(self):
         logger.info("Updating ranks and checking eligibility for all players.")
         players = dbInfo.intent_collection.find({"Playing": "Yes"})
 
