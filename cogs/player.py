@@ -140,7 +140,8 @@ class PlayerCog(commands.Cog):
 
     async def check_player_eligibility(self):
         logger.info("Checking player eligibility for the current split.")
-        players = dbInfo.intent_collection.find({"Playing": "Yes"})
+        failure_channel = self.bot.get_channel(config.failure_log_channel)
+        players = list(dbInfo.intent_collection.find({"Playing": "Yes"}))
 
         for player in players:
             discord_id = player.get('ID')
