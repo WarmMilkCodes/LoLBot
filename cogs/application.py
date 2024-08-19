@@ -201,14 +201,24 @@ class ApplicationButton(discord.ui.View):
         try:
             # Determine the prefix based on roles
             prefix = ""
-            if discord.utils.get(user.roles, name="Free Agents"):
-                prefix = "FA"
-            elif discord.utils.get(user.roles, name="Spectator"):
-                prefix = "S"
+            franchise_governor_role = discord.utils.get(user.guild.roles, name="Franchise Governors")
+            
+            if franchise_governor_role in user.roles:
+                # Check for a team role and use the team code as the prefix
+                team_role = next((role for role in user.roles if dbInfo.team_collection.find_one({"team_id": role.id})), None)
+                if team_role:
+                    team_code = dbInfo.team_collection.find_one({"team_id": team_role.id}).get("team_code")
+                    if team_code:
+                        prefix = team_code
+            else:
+                if discord.utils.get(user.roles, name="Free Agents"):
+                    prefix = "FA"
+                elif discord.utils.get(user.roles, name="Spectator"):
+                    prefix = "S"
 
             # Remove any existing prefix
-            new_nickname = re.sub(r"^(FA \| |S \| |[A-Z]{2,3} \| )", "", user.display_name)
-            # Add new prefix
+            new_nickname = re.sub(r"^(FA \| |S \| |TBD \| |[A-Z]{2,3} \| )", "", user.display_name)
+            # Add new prefix if applicable
             if prefix:
                 new_nickname = f"{prefix} | {new_nickname}"
             await user.edit(nick=new_nickname)
