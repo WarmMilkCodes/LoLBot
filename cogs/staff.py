@@ -44,7 +44,7 @@ class StaffCog(commands.Cog):
                 await self.update_nickname(member, "FA")
                 updated_users.append(f"Updated {member.display_name} to FA | {member.display_name}")
             elif spectator_role in member.roles:
-                await self.update_nickname(member, "Spec")
+                await self.update_nickname(member, "S")
                 updated_users.append(f"Updated {member.display_name} to Spec | {member.display_name}")
             elif not_eligible_role in member.roles:
                 await self.update_nickname(member, "TBD")

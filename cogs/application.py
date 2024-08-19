@@ -4,7 +4,7 @@ from datetime import datetime
 import pytz
 from app import config, dbInfo
 import logging
-import asyncio
+import asyncio, re
 
 logger = logging.getLogger('lol_log')
 
@@ -16,7 +16,7 @@ tagline_image = "https://media.discordapp.net/attachments/1171263861240889405/12
 class ApplicationButton(discord.ui.View):
     def __init__(self, bot):
         super().__init__(timeout=None)
-        self.bot = bot  # Store the bot instance
+        self.bot = bot
 
     @discord.ui.button(label="Click here to fill out the intent form", style=discord.ButtonStyle.red, custom_id="Intent Form")
     async def report_button_press(self, button: discord.ui.Button, interaction: discord.Interaction):
@@ -127,6 +127,8 @@ class ApplicationButton(discord.ui.View):
 
         logger.info(f"Roles updated for {interaction.user.name}: Playing - {responses[0]}")
 
+        await self.update_nickname(interaction.user)
+        
         # Set time for database entry                        
         dateTimeObj = datetime.now()
         dateObj = dateTimeObj.date()
@@ -193,6 +195,27 @@ class ApplicationButton(discord.ui.View):
         riot_id_log_channel = self.bot.get_channel(config.riot_id_log_channel)
         if riot_id_log_channel:
             await riot_id_log_channel.send(f"{interaction.user.mention} updated their Riot ID: {riot_game_name}#{riot_tag_line}")
+
+    async def update_nickname(self, user):
+        """Update member's nickname based on their roles"""
+        try:
+            # Determine the prefix based on roles
+            prefix = ""
+            if discord.utils.get(user.roles, name="Free Agents"):
+                prefix = "FA"
+            elif discord.utils.get(user.roles, name="Spectator"):
+                prefix = "S"
+
+            # Remove any existing prefix
+            new_nickname = re.sub(r"^(FA \| |S \| |[A-Z]{2,3} \| )", "", user.display_name)
+            # Add new prefix
+            if prefix:
+                new_nickname = f"{prefix} | {new_nickname}"
+            await user.edit(nick=new_nickname)
+            logger.info(f"Updated nickname for {user.name} to {new_nickname}")
+        except Exception as e:
+            logger.error(f"Error updating nickname for {user.name}: {e}")
+
 
 class ButtonOptions(discord.ui.View):
     def __init__(self):
