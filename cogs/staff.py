@@ -83,28 +83,32 @@ class StaffCog(commands.Cog):
 
         await ctx.respond(embed=embed)
         
-    @commands.slash_command(guild_ids=[config.lol_server], description="Return player elgibility")
+    @commands.slash_command(guild_ids=[config.lol_server], description="Return player eligibility tabulate")
     @commands.has_any_role("Bot Guy", "League Ops")
     async def player_eligibility(self, ctx):
-        await ctx.defer()
-        from tabulate import tabulate
         # Fetch all players who are playing
-        players = dbInfo.player_collection.find({"eligibile_for_split": {"$exists": True}})
-        
+        players = list(dbInfo.player_collection.find({"eligible_for_split": {"$exists": True}}))
+
+        if not players:
+            await ctx.respond("No players found with eligibility information.", ephemeral=True)
+            return
+
         table_data = []
         for player in players:
-            discord_id = player.get("discord_id")
-            username = self.bot.get_user(discord_id).name if self.bot.get_user(discord_id) else player.get("name")
+            discord_id = player.get('discord_id')
+            username = self.bot.get_user(discord_id).name if self.bot.get_user(discord_id) else "Unknown"
             eligible = "Yes" if player.get("eligible_for_split") else "No"
             game_count = player.get("current_split_game_count", "N/A")
             last_check = player.get("last_eligibility_check", "N/A")
-            
-            table_data.append([username, eligible, game_count, last_check])
-            
-        table_headers = ['Username', 'Eligible', 'Game Count', 'Last Check']
-        table_string = tabulate(table_data, headers=table_headers, tablefmt="grid")
-        
-        await ctx.respond(f"```{table_string}```")
 
+            table_data.append([username, eligible, game_count, last_check])
+
+        table_headers = ["Username", "Eligible", "Game Count", "Last Check"]
+        table_string = tabulate(table_data, headers=table_headers, tablefmt="grid")
+
+        # Send the tabulated string as a code block in Discord
+        await ctx.respond(f"```{table_string}```")
+        
+        
 def setup(bot):
     bot.add_cog(StaffCog(bot))
