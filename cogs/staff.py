@@ -108,8 +108,10 @@ class StaffCog(commands.Cog):
         table_headers = ["Username", "Eligible", "Game Count", "Last Check"]
         table_string = tabulate(table_data, headers=table_headers, tablefmt="grid")
 
-        # Send the tabulated string as a code block in Discord
-        await ctx.respond(f"```{table_string}```")
+        messages = [table_string[i:i+1990] for i in range(0, len(table_string), 1990)]
+
+        for message in messages:
+            await ctx.respond(f"```{table_string}```")
         
 
 def setup(bot):
