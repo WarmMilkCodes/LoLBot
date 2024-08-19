@@ -244,13 +244,85 @@ class Transactions(commands.Cog):
     @commands.has_any_role("League Ops", "Bot Guy")
     async def release_player(self, ctx, user:Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
         await ctx.defer()
-        await ctx.respond("I'm trying, ok? It's a lot of commands.")
+        
+        try:
+            if not await self.validate_command_channel(ctx):
+                return
+            
+            player_entry = await self.get_player_info(user.id)
+            if player_entry is None:
+                return await ctx.respond(f"Unable to find player: {user.name} in database.", ephemeral=True)
+            
+            if player_entry['team'] == 'FA':
+                return await ctx.respond(f"{user.name} is already a free agent.")
+            
+            team_role_id = await self.get_team_role(team_code.upper())
+            if not team_role_id:
+                return await ctx.respond(f"Invalid team code used in command: {team_code.upper()}")
+            
+            if not user.roles.__contains__(ctx.guild.get_role(team_role_id)):
+                return await ctx.respond(f"{user.name} is not signed to {team_code.upper()}'s active roster.")
+            
+            FA = discord.utils.get(ctx.guild.roles, name="Free Agents")
+            await self.remove_role_from_member(user, ctx.guild.get_role(team_role_id), "Player released to free agency")
+            await self.add_role_to_member(user, FA, "Player released to free agency")
+
+            gm_role_id = await self.get_gm_id(team_code.upper())
+            if not gm_role_id:
+                return await ctx.respond(f"No GM role found for team: {team_code.upper()}")
+            GM = ctx.guild.get_role(gm_role_id)
+
+            message = f"{GM.mention} releases {user.mention} to free agency"
+            channel = self.bot.get_channel(config.posted_transactions_channel)
+            await channel.send(message)
+
+            await self.update_team_in_database(user.id, 'FA')
+            await self.update_nickname(user, 'FA')
+            await ctx.respond(f"{user.mention} has been released from {team_code.upper()} to free agency")
+
+        except Exception as e:
+            await ctx.respond(f"Error releasing {user.name}:\n{e}")
+            
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Designate team captain")
     @commands.has_any_role("League Ops", "Bot Guy")
     async def designate_captain(self, ctx, user:Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
         await ctx.defer()
-        await ctx.respond("I don't even know how to go about handling this command - but Gen says there will be captains!")
+        
+        try:
+            if not await self.validate_command_channel(ctx):
+                return
+            
+            player_entry = await self.get_player_info(user.id)
+            if not player_entry or player_entry.get("team") not in ['FA', team_code.upper()]:
+                return await ctx.respond(f"{user.mention} is not a free agent or is signed to a different team and cannot be signed to {team_code.upper()}")
+            
+            team_role_id = await self.get_team_role(team_code.upper())
+            if not team_role_id:
+                return await ctx.respond(f"Invalid team code used in command: {team_code.upper()}")
+            
+            gm_role_id = await self.get_gm_id(team_code.upper())
+            if not gm_role_id:
+                return await ctx.respond(f"Invalid team code used in command: {team_code.upper()}")
+            
+            GM = ctx.guild.get_role(gm_role_id)
+            FA = discord.utils.get(ctx.guild.roles, name="Free Agents")
+            captain_role = discord.utils.get(ctx.guild.roles, name="Captains")
+            await self.remove_role_from_member(user, FA, "Designated to captain")
+            await self.add_role_to_member(user, ctx.guild.get_role(team_role_id), "Designated as captain")
+            await self.add_role_to_member(user, ctx.guild.get_role(captain_role), "Designated as captain")
+
+            message = f"{GM.mention} designates {user.mention} as team captain"
+            channel = self.bot.get_channel(config.posted_transactions_channel)
+            await channel.send(message)
+
+            await self.update_team_in_database(user.id, team_code.upper())
+            await self.update_nickname(user, team_code.upper())
+            await ctx.respond(f"{user.mention} has been designated team captain of {team_code.upper()}")
+
+        except Exception as e:
+            await ctx.respond(f"Error designating {user.mention} as captain:\n{e}")
+
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Relieve team captain of duties")
     @commands.has_any_role("League Ops", "Bot Guy")
