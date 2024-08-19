@@ -146,7 +146,7 @@ class PlayerCog(commands.Cog):
         logger.info("Completed rank and eligibility check for all players.")
 
     async def get_match_history(self, puuid):
-        url = f"https://na1.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids"
+        url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids"
         headers = {'X-Riot-Token': config.RIOT_API}
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
@@ -171,7 +171,7 @@ class PlayerCog(commands.Cog):
         encoded_game_name = urllib.parse.quote(game_name)
         encoded_tag_line = urllib.parse.quote(tag_line)
 
-        url = f"https://na1.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{encoded_game_name}/{encoded_tag_line}"
+        url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{encoded_game_name}/{encoded_tag_line}"
         headers = {'X-Riot-Token': config.RIOT_API}
         
         async with aiohttp.ClientSession() as session:
@@ -184,7 +184,7 @@ class PlayerCog(commands.Cog):
                     return None
 
     async def get_summoner_id(self, puuid):
-        url = f"https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
+        url = f"https://americas.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
         headers = {'X-Riot-Token': config.RIOT_API}
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
@@ -196,7 +196,7 @@ class PlayerCog(commands.Cog):
                     return None
 
     async def get_player_rank(self, summoner_id):
-        url = f"https://na1.api.riotgames.com/lol/league/v4/entries/by-summoner/{summoner_id}"
+        url = f"https://americas.api.riotgames.com/lol/league/v4/entries/by-summoner/{summoner_id}"
         headers = {'X-Riot-Token': config.RIOT_API}
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
