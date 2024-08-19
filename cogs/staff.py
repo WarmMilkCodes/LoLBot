@@ -4,7 +4,7 @@ from discord.ext import commands
 from discord.commands import Option
 import app.dbInfo as dbInfo
 import app.config as config
-import tabulate
+from tabulate import tabulate
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +87,7 @@ class StaffCog(commands.Cog):
     @commands.slash_command(guild_ids=[config.lol_server], description="Return player eligibility tabulate")
     @commands.has_any_role("Bot Guy", "League Ops")
     async def player_eligibility(self, ctx):
+        await ctx.defer()
         # Fetch all players who are playing
         players = list(dbInfo.player_collection.find({"eligible_for_split": {"$exists": True}}))
 
