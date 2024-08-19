@@ -121,6 +121,10 @@ class PlayerCog(commands.Cog):
 
             # Check Eligibility after updating rank
             if puuid:
+                if player_record.get('eligible_for_split'):
+                    logger.info(f"{player_record['name']} is already eligible. Skipping further eligibility checks.")
+                    continue
+
                 match_history = await self.get_match_history(puuid)
                 if match_history is None:
                     logger.error(f"Failed to retrieve match history for {player_record['name']}. Skipping eligibility check.")
@@ -148,23 +152,26 @@ class PlayerCog(commands.Cog):
     async def get_match_history(self, puuid):
         url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids"
         headers = {'X-Riot-Token': config.RIOT_API}
+        params = {
+            "startTime": self.get_current_split_start().timestamp(),
+            "type": "ranked",
+            "count": 100
+        }
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers) as response:
+            async with session.get(url, headers=headers, params=params) as response:
                 if response.status == 200:
                     return await response.json()
                 else:
                     logger.error(f"Error fetching match history for PUUID {puuid}: {await response.text()}")
                     return []
-                
-    async def is_eligible_match(self, match):
-        current_split = next((split for split in SPLITS if split['start'] <= datetime.now(timezone.utc) and (split['end'] is None or split['end'] >= datetime.now(timezone.utc))), None)
-        
-        if not current_split:
-            logger.error("No active split found.")
-            return False
 
+    def get_current_split_start(self):
+        current_split = next((split for split in SPLITS if split['start'] <= datetime.now(timezone.utc) and (split['end'] is None or split['end'] >= datetime.now(timezone.utc))), None)
+        return current_split['start'] if current_split else None
+
+    async def is_eligible_match(self, match):
         match_timestamp = match.get('timestamp') / 1000  # Assuming match timestamp is in milliseconds
-        return current_split['start'].timestamp() <= match_timestamp <= (current_split['end'].timestamp() if current_split['end'] else float('inf'))
+        return match_timestamp >= self.get_current_split_start().timestamp()
 
     async def get_puuid(self, game_name, tag_line):
         import urllib.parse
