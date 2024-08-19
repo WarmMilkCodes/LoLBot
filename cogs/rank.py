@@ -9,6 +9,7 @@ logging.basicConfig(level=logging.INFO)
 
 # Update the rank order to match the capitalization in the database
 RANK_ORDER = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"]
+DIVISION_ORDER = ["I", "II", "III", "IV", "V"]
 
 class RankCog(commands.Cog):
     def __init__(self, bot):
@@ -69,8 +70,11 @@ class RankCog(commands.Cog):
         for queue_type, ranks in rank_dict.items():
             description = ""
 
-            # Sort the ranks according to RANK_ORDER
-            sorted_ranks = sorted(ranks.keys(), key=lambda x: RANK_ORDER.index(x.split()[0]))
+            # Sort the ranks according to RANK_ORDER and DIVISION_ORDER
+            sorted_ranks = sorted(
+                ranks.keys(),
+                key=lambda x: (RANK_ORDER.index(x.split()[0]), DIVISION_ORDER.index(x.split()[1]))
+            )
 
             for rank_label in sorted_ranks:
                 players_list = ranks[rank_label]
