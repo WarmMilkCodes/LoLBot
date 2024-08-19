@@ -59,6 +59,7 @@ class StaffCog(commands.Cog):
             f"**Username**: {user.name}",
             f"**Riot ID**: {player_info.get('game_name', 'N/A')}#{player_info.get('tag_line', 'N/A')}",
             f"**Status**: {player_status_embed}",
+            f"**Eligibility**:  {'Eligible' if player_info.get('eligible_for_split') == True else 'Not Eligible'}",
             f"**Rank Info**:\n{rank_info_display}"
         ]
 
