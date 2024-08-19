@@ -140,11 +140,14 @@ class PlayerCog(commands.Cog):
 
     async def check_player_eligibility(self):
         logger.info("Checking player eligibility for the current split.")
-        failure_channel = self.bot.get_channel(config.failure_log_channel)
         players = list(dbInfo.intent_collection.find({"Playing": "Yes"}))
 
-        for player in players:
+        total_players = len(players)
+        logger.info(f"Total players found with 'Playing: Yes': {total_players}")
+
+        for index, player in enumerate(players):
             discord_id = player.get('ID')
+            logger.info(f"Processing player {index + 1}/{total_players}: discord_id={discord_id}")
             player_record = dbInfo.player_collection.find_one({"discord_id": discord_id})
             
             if not player_record:
@@ -158,31 +161,29 @@ class PlayerCog(commands.Cog):
                 continue
 
             match_history = await self.get_match_history(puuid)
+            if match_history is None:
+                logger.error(f"Failed to retrieve match history for {player_record['name']}.")
+                continue
+
             eligible_games = [match for match in match_history if self.is_eligible_match(match)]
 
             game_count = len(eligible_games)
-            if game_count >= 30:
-                logger.info(f"Player {player_record['name']} has met the eligibility requirements.")
+            is_eligible = game_count >= 30
+
+            if player_record.get("eligible_for_split") != is_eligible or player_record.get("current_split_game_count") != game_count:
+                logger.info(f"Updating eligibility for {player_record['name']}: Eligible: {is_eligible}, Games: {game_count}")
                 dbInfo.player_collection.update_one(
                     {"discord_id": player_record['discord_id']},
                     {"$set": {
-                        "eligible_for_split": True,
+                        "eligible_for_split": is_eligible,
                         "last_eligibility_check": datetime.now(pytz.utc),
                         "current_split_game_count": game_count
                     }}
                 )
             else:
-                logger.warning(f"Player {player_record['name']} has not met the eligibility requirements.")
-                dbInfo.player_collection.update_one(
-                    {"discord_id": player_record['discord_id']},
-                    {"$set": {
-                        "eligible_for_split": False,
-                        "last_eligibility_check": datetime.now(pytz.utc),
-                        "current_split_game_count": game_count
-                    }}
-                )
+                logger.info(f"No change in eligibility for {player_record['name']}")
 
-        logger.info("Completed checking eligibility for all players.")
+    logger.info("Completed checking eligibility for all players.")
 
     async def get_match_history(self, puuid):
         url = f"https://<REGION>.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids"
