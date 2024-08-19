@@ -121,14 +121,10 @@ class PlayerCog(commands.Cog):
 
             # Check Eligibility after updating rank
             if puuid:
-                match_history = await self.get_match_history(puuid)
-                if match_history is None:
-                    logger.error(f"Failed to retrieve match history for {player_record['name']}. Skipping eligibility check.")
-                    continue
+                split_start = SPLITS[-1]['start'].timestamp()  # Use the start timestamp of the current split
+                is_eligible = await self.check_eligibility(puuid, split_start)
 
-                eligible_games = [match for match in match_history if self.is_eligible_match(match)]
-                game_count = len(eligible_games)
-                is_eligible = game_count >= 30
+                game_count = 30 if is_eligible else 0  # If eligible, set to 30, otherwise set to 0
 
                 if player_record.get("eligible_for_split") != is_eligible or player_record.get("current_split_game_count") != game_count:
                     logger.info(f"Updating eligibility for {player_record['name']}: Eligible: {is_eligible}, Games: {game_count}")
@@ -145,26 +141,42 @@ class PlayerCog(commands.Cog):
 
         logger.info("Completed rank and eligibility check for all players.")
 
-    async def get_match_history(self, puuid):
-        url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids"
-        headers = {'X-Riot-Token': config.RIOT_API}
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers) as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    logger.error(f"Error fetching match history for PUUID {puuid}: {await response.text()}")
-                    return []
-                
-    async def is_eligible_match(self, match):
-        current_split = next((split for split in SPLITS if split['start'] <= datetime.now(timezone.utc) and (split['end'] is None or split['end'] >= datetime.now(timezone.utc))), None)
-        
-        if not current_split:
-            logger.error("No active split found.")
-            return False
+    async def check_eligibility(self, puuid, split_start_timestamp):
+        """Check if a player has played at least 30 matches in the current split."""
+        match_count = 0
+        start = 0
 
-        match_timestamp = match.get('timestamp') / 1000  # Assuming match timestamp is in milliseconds
-        return current_split['start'].timestamp() <= match_timestamp <= (current_split['end'].timestamp() if current_split['end'] else float('inf'))
+        while match_count < 30:
+            url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?start={start}&count=20"
+            headers = {'X-Riot-Token': config.RIOT_API}
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, headers=headers) as response:
+                    if response.status == 200:
+                        matches = await response.json()
+                        if not matches:
+                            break  # No more matches to fetch
+
+                        for match_id in matches:
+                            match_url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{match_id}"
+                            async with session.get(match_url, headers=headers) as match_response:
+                                if match_response.status == 200:
+                                    match_data = await match_response.json()
+                                    match_timestamp = match_data['info']['gameStartTimestamp'] / 1000
+
+                                    if match_timestamp >= split_start_timestamp:
+                                        match_count += 1
+
+                                    if match_count >= 30:
+                                        return True  # Player has met the eligibility criteria
+
+                        if len(matches) < 20:
+                            break  # Fewer than 20 matches returned, indicating the end of match history
+                        start += 20
+                    else:
+                        logger.error(f"Error fetching match history for PUUID {puuid}: {await response.text()}")
+                        return False
+
+        return match_count >= 30
 
     async def get_puuid(self, game_name, tag_line):
         import urllib.parse
