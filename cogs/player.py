@@ -67,10 +67,10 @@ class PlayerCog(commands.Cog):
 
         for player in players:
             discord_id = player.get('ID')
-            player_record = dbInfo.player_collection.find_one({"discord_id": discord_id})
+            player_record = dbInfo.player_collection.find_one({"discord_id": discord_id, "left_at": None})
             
             if not player_record:
-                logger.error(f"Player record not found for discord_id {discord_id}")
+                logger.info(f"Skipping player {discord_id} because not found or left server.")
                 continue
 
             logger.info(f"Processing player: {player_record['name']}")
