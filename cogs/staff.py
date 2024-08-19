@@ -108,10 +108,14 @@ class StaffCog(commands.Cog):
         table_headers = ["Username", "Eligible", "Game Count", "Last Check"]
         table_string = tabulate(table_data, headers=table_headers, tablefmt="grid")
 
-        messages = [table_string[i:i+1990] for i in range(0, len(table_string), 1990)]
-
-        for message in messages:
+        if len(table_string) < 2000:
             await ctx.respond(f"```{table_string}```")
+        else:
+            messages = [table_string[i:i+1990] for i in range(0, len(table_string), 1990)]
+            await ctx.respond(f"```{messages[0]}```")
+        
+        for message in messages:
+            await ctx.followup.send(f"```{message}```")
         
 
 def setup(bot):
