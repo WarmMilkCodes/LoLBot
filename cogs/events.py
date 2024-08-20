@@ -78,12 +78,14 @@ class EventsCog(commands.Cog):
             upsert=True
         )
 
-        dbInfo.intent_collection.update_one(
-            {"ID": member.id},
-            {"$set": {"left_at": left_date}},
-            upsert=True
+        logger.info(f"Updated {member.name} ({member.id}) in the database with the date they left: {left_date}")
+
+        dbInfo.intent_collection.find_one_and_delete(
+            {"ID": member.id}
         )
-        logger.info(f"Updated {member.name} ({member.id}) in the database(s) with the date they left: {left_date}")
+
+        logger.info(f"Deleted {member.name}'s intent collection record due to leaving server.")
+        
 
         member_pfp = member.avatar.url if member.avatar else member.default_avatar.url
         embed = discord.Embed(title="Member Left", color=discord.Color.red())
