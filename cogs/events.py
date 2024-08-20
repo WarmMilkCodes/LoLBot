@@ -74,9 +74,16 @@ class EventsCog(commands.Cog):
         left_date = datetime.now(pytz.utc).strftime('%m-%d-%Y')
         dbInfo.player_collection.update_one(
             {"discord_id": member.id},
-            {"$set": {"left_at": left_date}}
+            {"$set": {"left_at": left_date}},
+            upsert=True
         )
-        logger.info(f"Updated {member.name} ({member.id}) in the database with the date they left: {left_date}")
+
+        dbInfo.intent_collection.update_one(
+            {"ID": member.id},
+            {"$set": {"left_at": left_date}},
+            upsert=True
+        )
+        logger.info(f"Updated {member.name} ({member.id}) in the database(s) with the date they left: {left_date}")
 
         member_pfp = member.avatar.url if member.avatar else member.default_avatar.url
         embed = discord.Embed(title="Member Left", color=discord.Color.red())

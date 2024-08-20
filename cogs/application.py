@@ -134,12 +134,6 @@ class ApplicationButton(discord.ui.View):
         dateObj = dateTimeObj.date()
         dateStr = dateObj.strftime("%b %d %Y")
 
-        # Debug: Print database connection and collection info
-        logger.info(f"Database Info: {dbInfo}")
-
-        # Debug: Print the collection name
-        logger.info(f"Using collection: {dbInfo.intent_collection.name}")
-
         # Checks if user is in the database, if they are updates, if not adds them
         result = dbInfo.intent_collection.find_one_and_update(
             {"ID": interaction.user.id},
