@@ -176,7 +176,7 @@ class PlayerCog(commands.Cog):
         params = {
             "startTime": start_time,
             "type": "ranked",
-            "count": 100
+            "count": 30
         }
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers, params=params) as response:
