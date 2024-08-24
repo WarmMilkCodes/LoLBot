@@ -29,7 +29,7 @@ class PlayerCog(commands.Cog):
             logger.info("PlayerCog unloaded and task cancelled.")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Start the rank and eligibility check task")
-    @commands.has_permissions(administrator=True)
+    @commands.has_role("Bot Guy")
     async def start_check_task(self, ctx):
         if not self.task_started:
             self.rank_and_eligibility_task.start()
@@ -55,7 +55,7 @@ class PlayerCog(commands.Cog):
             logger.info("Rank and eligibility check task completed.")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Update player ranks and check eligibility manually")
-    @commands.has_permissions(administrator=True)
+    @commands.has_role("Bot Guy")
     async def check_ranks_and_eligibility(self, ctx):
         await ctx.defer(ephemeral=True)
         await self.update_ranks_and_check()

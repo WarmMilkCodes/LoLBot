@@ -16,6 +16,7 @@ class RankCog(commands.Cog):
         self.bot = bot
 
     @commands.slash_command(description="Fetch and display ranks of all players.")
+    @commands.has_any_role("League Ops", "Bot Guy")
     async def fetch_ranks(self, ctx):
         await ctx.defer()
 
