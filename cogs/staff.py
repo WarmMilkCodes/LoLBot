@@ -211,7 +211,22 @@ class StaffCog(commands.Cog):
             sheet.write(row_num, 1, player.get("name", "N/A"))
             sheet.write(row_num, 2, player.get("game_name", "N/A"))
             sheet.write(row_num, 3, player.get("tag_line", "N/A"))
-            sheet.write(row_num, 4, str(player.get("rank_info", "N/A")))
+
+            rank_info = player.get('rank_info', [])
+            solo_rank_info = None
+            for rank in rank_info:
+                if rank.get('queue_type') == 'RANKED_SOLO_5X5':
+                    solo_rank_info = rank
+                    break
+
+            if solo_rank_info:
+                tier = solo_rank_info.get("tier", "N/A")
+                division = solo_rank_info.get("division", "N/A")
+                rank_str = f"{tier.capitalize()} {division}"
+            else:
+                rank_str = "N/A"
+
+            sheet.write(row_num, 4, rank_str)
             sheet.write(row_num, 5, "Yes" if player.get("eligible_for_split") else "No")
             sheet.write(row_num, 6, player.get("current_split_game_count", "N/A"))
             sheet.write(row_num, 7, player.get("left_at", "N/A"))
