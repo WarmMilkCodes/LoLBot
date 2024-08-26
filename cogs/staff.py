@@ -175,5 +175,10 @@ class StaffCog(commands.Cog):
             await ctx.followup.send(f"```{message}```")
         
 
+    @commands.slash_command(guild_ids=[config.lol_server], description="Return player data spreadsheet")
+    @commands.has_any_role("Bot Guy", "League Ops")
+    async def player_sheet(self, ctx):
+        
+
 def setup(bot):
     bot.add_cog(StaffCog(bot))
