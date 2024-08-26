@@ -192,54 +192,5 @@ class StaffCog(commands.Cog):
 
         await ctx.respond(f"Succesfully updated {user.mention}'s Riot ID: {game_name}#{tag_line}", ephemeral=True)
 
-    @commands.slash_command(guild_ids=[config.lol_server], description="Return player data spreadsheet")
-    @commands.has_any_role("Bot Guy", "League Ops")
-    async def player_sheet(self, ctx):
-        await ctx.defer()
-
-        wb = xlwt.Workbook()
-        sheet = wb.add_sheet('UR LoL Player Data')
-
-        headers = ['Discord ID', 'Name', 'Game Name', 'Tag Line', 'Rank', 'Eligible', 'Current Game Count', 'Left', 'Last Updated']
-        for col_num, header in enumerate(headers):
-            sheet.write(0, col_num, header)
-
-        players = dbInfo.player_collection.find({})
-
-        for row_num, player in enumerate(players, start=1):
-            sheet.write(row_num, 0, str(player.get("discord_id", "N/A")))
-            sheet.write(row_num, 1, player.get("name", "N/A"))
-            sheet.write(row_num, 2, player.get("game_name", "N/A"))
-            sheet.write(row_num, 3, player.get("tag_line", "N/A"))
-
-            rank_info = player.get('rank_info')
-            rank_label = "N/A"
-            if rank_info:
-                for rank in rank_info:
-                    queue_type = rank.get('queue_type')
-                    if queue_type == "RANKED_SOLO_5x5":
-                        tier = rank.get('tier')
-                        division = rank.get('division')
-                        if tier and division:
-                            rank_label = f"{tier} {division}"
-                        break
-
-            sheet.write(row_num, 4, rank_label)
-
-            sheet.write(row_num, 5, "Yes" if player.get("eligible_for_split") else "No")
-            sheet.write(row_num, 6, player.get("current_split_game_count", "N/A"))
-            sheet.write(row_num, 7, player.get("left_at", "N/A"))
-            sheet.write(row_num, 8, player.get("last_updated", "N/A"))
-
-        output = BytesIO()
-        wb.save(output)
-        output.seek(0)
-
-        discord_file = discord.File(fp=output, filename="player_data.xls")
-
-        await ctx.respond("Here is the exported player data:", file=discord_file)
-
-
-
 def setup(bot):
     bot.add_cog(StaffCog(bot))
