@@ -26,7 +26,7 @@ class StaffCog(commands.Cog):
             logger.error(f"Error updating nickname for {member.name}: {e}")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Assign prefixes based on roles and undo previous changes")
-    @commands.has_any_role("Bot Guy", "League Ops")
+    @commands.has_any_role("Bot Guy")
     async def assign_prefixes(self, ctx):
         guild = ctx.guild
         free_agent_role = discord.utils.get(guild.roles, name="Free Agents")
