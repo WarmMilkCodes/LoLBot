@@ -99,7 +99,7 @@ class Transactions(commands.Cog):
         try:
             if not await self.validate_command_channel(ctx):
                 return
-            
+
             player_entry = await self.get_player_info(user.id)
             if not player_entry or player_entry.get("team") not in [None, team_code.upper(), 'FA']:
                 return await ctx.respond(f"{user.mention} cannot be designated as team governor")
@@ -132,6 +132,10 @@ class Transactions(commands.Cog):
         try:
             if not await self.validate_command_channel(ctx):
                 return
+            
+            missing_intent = discord.utils.get(ctx.guild.roles, name="Missing Intent Form")
+            if missing_intent in user.roles:
+                return await ctx.respond(f"{user.mention} has not completed the intent form and cannot be designated as GM.")
             
             player_entry = await self.get_player_info(user.id)
             if not player_entry or player_entry.get("team") not in ['FA', team_code.upper()]:
@@ -206,6 +210,14 @@ class Transactions(commands.Cog):
         try:
             if not await self.validate_command_channel(ctx):
                 return
+            
+            missing_intent = discord.utils.get(ctx.guild.roles, name="Missing Intent Form")
+            if missing_intent in user.roles:
+                return await ctx.respond(f"{user.mention} has not completed the intent form and cannot be signed to roster.")
+            
+            not_eligible = discord.utils.get(ctx.guild.roles, name="Not Eligible")
+            if not_eligible in user.roles:
+                return await ctx.respond(f"{user.mention} has an invalid Riot ID and cannot be signed to roster.")
             
             player_entry = await self.get_player_info(user.id)
             if not player_entry or player_entry.get("team") != "FA":
