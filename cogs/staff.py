@@ -106,7 +106,7 @@ class StaffCog(commands.Cog):
                 queue_type = rank.get('queue_type', 'N/A').replace('_', ' ').title()
                 tier = rank.get('tier', 'N/A').capitalize()
                 division = rank.get('division', 'N/A').upper()
-                rank_info_list.append(f"**Queue Type**: {queue_type}\n**Tier**: {tier}\n**Division**: {division}")
+                rank_info_list.append(f"\n**Queue Type**: {queue_type}\n**Tier**: {tier}\n**Division**: {division}")
             rank_info_display = '\n'.join(rank_info_list)
         else:
             rank_info_display = "N/A"
