@@ -5,9 +5,6 @@ from discord.commands import Option
 import app.dbInfo as dbInfo
 import app.config as config
 from tabulate import tabulate
-import xlwt
-from io import BytesIO
-
 
 logger = logging.getLogger(__name__)
 
