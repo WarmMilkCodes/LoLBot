@@ -35,3 +35,4 @@ pytest_cache/
 .cache/
 nose2-*
 .pytest_cache/
+google_creds.json
