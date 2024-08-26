@@ -5,6 +5,9 @@ from discord.commands import Option
 import app.dbInfo as dbInfo
 import app.config as config
 from tabulate import tabulate
+import xlwt
+from io import BytesIO
+
 
 logger = logging.getLogger(__name__)
 
@@ -175,10 +178,54 @@ class StaffCog(commands.Cog):
             await ctx.followup.send(f"```{message}```")
         
 
+    @commands.slash_command(guild_ids=[config.lol_server], description="Update a user's Riot ID")
+    @commands.has_any_role("Bot Guy", "League Ops")
+    async def update_riot_id(self, ctx, user: Option(discord.Member), game_name: Option(str, "Enter user's game name"), tag_line: Option(str, "Enter user's tag line - do not include '#'")):
+        await ctx.defer()
+        
+        player_data = dbInfo.player_collection.find_one({"discord_id": user.id})
+
+        if not player_data:
+            return await ctx.respond(f"{user.mention} was not found in the database.")
+        
+        dbInfo.player_collection.update_one({"discord_id": user.id}, {"$set" : {"game_name":game_name, "tag_line":tag_line}})
+
+        await ctx.respond(f"Succesfully updated {user.mention}'s Riot ID: {game_name}#{tag_line}", ephemeral=True)
+
     @commands.slash_command(guild_ids=[config.lol_server], description="Return player data spreadsheet")
     @commands.has_any_role("Bot Guy", "League Ops")
     async def player_sheet(self, ctx):
-        
+        await ctx.defer()
+
+        wb = xlwt.Workbook()
+        sheet = wb.add_sheet('UR LoL Player Data')
+
+        headers = ['Discord ID', 'Name', 'Game Name', 'Tag Line', 'Rank', 'Eligible', 'Current Game Count', 'Left', 'Last Updated']
+        for col_num, header in enumerate(headers):
+            sheet.write(0, col_num, header)
+
+        players = dbInfo.player_collection.find({})
+
+        for row_num, player in enumerate(players, start=1):
+            sheet.write(row_num, 0, str(player.get("discord_id", "N/A")))
+            sheet.write(row_num, 1, player.get("name", "N/A"))
+            sheet.write(row_num, 2, player.get("game_name", "N/A"))
+            sheet.write(row_num, 3, player.get("tag_line", "N/A"))
+            sheet.write(row_num, 6, str(player.get("rank_info", "N/A")))
+            sheet.write(row_num, 7, "Yes" if player.get("eligible_for_split") else "No")
+            sheet.write(row_num, 9, player.get("current_split_game_count", "N/A"))
+            sheet.write(row_num, 10, player.get("left_at", "N/A"))
+            sheet.write(row_num, 8, player.get("last_updated", "N/A"))
+
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        discord_file = discord.File(fp=output, filename="player_data.xls")
+
+        await ctx.respond("Here is the exported player data:", file=discord_file)
+
+
 
 def setup(bot):
     bot.add_cog(StaffCog(bot))
