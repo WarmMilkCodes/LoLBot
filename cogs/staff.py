@@ -147,9 +147,9 @@ class StaffCog(commands.Cog):
         riot_log_channel = self.bot.get_channel(config.riot_id_log_channel)
 
         if riot_log_channel:
-            message = {f"{user.mention}'s Riot ID has been updated: {game_name}#{tag_line}"}
+            message = f"{user.mention}'s Riot ID has been updated: {game_name}#{tag_line}"
             await riot_log_channel.send(message)
-            
+
         await ctx.respond(f"Succesfully updated {user.mention}'s Riot ID: {game_name}#{tag_line}", ephemeral=True)
 
 def setup(bot):
