@@ -4,8 +4,6 @@ services:
   bot:
     build: .
     container_name: lol_bot
-    ports:
-      - "80:80"
     env_file: 
       - .env
     environment:
