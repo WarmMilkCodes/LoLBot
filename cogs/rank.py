@@ -24,8 +24,16 @@ class RankCog(commands.Cog):
         rank_dict = {}
         total_ranked_players = 0
 
-        # Only select players who have not left the server
-        players = dbInfo.player_collection.find({"left_at": None})
+        # Only select players who have not left the server and are playing
+        playing_players = dbInfo.intent_collection.find({"Playing": "Yes"})
+        playing_ids = [player['ID'] for player in playing_players]
+        
+        # Fetch players who have not left the server and are in previous list
+        players = dbInfo.player_collection.find({
+            "left_at": None,
+            "discord_id": {"$in": playing_ids}
+        })
+        
 
         for player in players:
             player_name = player.get('name', 'Unknown')
