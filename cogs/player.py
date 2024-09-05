@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import app.config as config
 import app.dbInfo as dbInfo
 from discord.ext import commands, tasks
+from discord.ui import Button, View
 
 logger = logging.getLogger('lol_log')
 
@@ -27,6 +28,51 @@ class PlayerCog(commands.Cog):
         if self.task_started:
             self.rank_and_eligibility_task.cancel()
             logger.info("PlayerCog unloaded and task cancelled.")
+
+    async def validate_command_channel(self, ctx):
+        """Check if the command is invoked in the correct channel."""
+        if ctx.channel.id != config.riot_id_log_channel:
+            riot_id_log_channel = ctx.guild.get_channel(config.riot_id_log_channel)
+            await ctx.respond(f"This command can only be used in {riot_id_log_channel.mention}", ephemeral=True)
+            return False
+        return True
+    
+    @commands.slash_command(guild_ids=[config.lol_server], description="Report alt account")
+    async def report_alt_account(self, ctx, game_name: Option(str, "Enter game name (no '#' sign or numbers)"), tag_line: Option(str, "Enter tag line (do not include game name or '#')")):
+        await ctx.defer()
+    
+        try:
+            if not await self.validate_command_channel(ctx):
+                return
+            
+            # Fetch user's main account from database
+            player_data = dbInfo.player_collection.find_one({"discord_id": ctx.author.id})
+
+            if not player_data:
+                return await ctx.respond(f"{ctx.author.mention}, you are not found in the database. Please reach out to staff.")
+            
+            # Create alt account entry
+            alt_account = {"game_name": game_name, "tag_line": tag_line}
+            
+            # Add the alt account to user's data (append to "alt_account")
+            dbInfo.player_collection.update_one(
+                {"discord_id": ctx.author.id},
+                {"$push": {"alt_accounts": alt_account}}
+            )
+
+            # Log the alt account report
+            alt_log_channel = self.bot.get_channel(config.riot_id_log_channel)
+            if alt_log_channel:
+                await alt_log_channel.send(f"{ctx.author.mention} reported a new alt account: {game_name}#{tag_line}")
+            
+            await ctx.respond(f"Alt account {game_name}#{tag_line} has been added to your account.", ephemeral=True)
+        
+        except Exception as e:
+            logger.error(f"Erro reporting alt account fo {ctx.author.name}: {e}")
+            await ctx.respond(f"An error occrued while reporting the alt account: {e}")
+                                           
+            
+
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Start the rank and eligibility check task")
     @commands.has_role("Bot Guy")
