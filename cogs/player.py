@@ -1,3 +1,4 @@
+import asyncio
 import aiohttp
 import discord
 import logging
@@ -43,10 +44,15 @@ class ConfirmAltView(View):
         # Remove embed and buttons after confirmation and make it ephemeral
         await interaction.response.edit_message(content=f"Alt account {self.game_name}#{self.tag_line} has been added.", embed=None, view=None)
 
-    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
+    @discord.ui.button(label="This button doesn't work - just click dismiss below.", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Cancel the alt account report and clear the embed and buttons
-        await interaction.response.edit_message(content="Alt account report canceled.", embed=None, view=None)
+        try:
+            # Try to delete the message
+            if interaction.message:
+                await interaction.message.delete()
+                logger.info(f"Deleted message for {interaction.user.name}")
+        except Exception as e:
+            logger.error(f"Failed to delete the message: {e}")
 
 
 class PlayerCog(commands.Cog):
@@ -156,6 +162,7 @@ class PlayerCog(commands.Cog):
                         f"Missing Riot ID info for {player_record['name']} ({player_record['discord_id']}). Please ensure their game_name and tag_line are set."
                     )
                 continue
+            
 
             # Update Rank
             if 'game_name' in player_record and 'tag_line' in player_record:
