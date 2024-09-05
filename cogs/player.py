@@ -17,35 +17,6 @@ SPLITS = [
     {"start": datetime(2024, 9, 25, tzinfo=timezone.utc), "end": None, "name": "Fall Split"},  # End date unknown
 ]
 
-
-cYour current implementation is mostly correct. To ensure that the confirmation embed is ephemeral and only the user who initiated the interaction can confirm or cancel, here are a few tweaks:
-
-Correct the embed behavior for Confirm and Cancel:
-
-When the user clicks "Confirm" or "Cancel," ensure the message is ephemeral and disappears only for that user.
-Avoid using <@{self.user_id}>:
-
-Instead of mentioning yourself like <@{self.user_id}>, you can use the ctx.author.mention to mention the user who invoked the command.
-Set proper visibility (ephemeral) for buttons and responses:
-
-The buttons can be clicked by the user who invoked the command, and since it’s ephemeral, only they can see it.
-Here’s the updated implementation:
-
-Updated ConfirmAltView and Command Handling:
-python
-Copy code
-import aiohttp
-import discord
-import logging
-import pytz
-from datetime import datetime, timezone
-import app.config as config
-import app.dbInfo as dbInfo
-from discord.ext import commands, tasks
-from discord.ui import Button, View
-
-logger = logging.getLogger('lol_log')
-
 class ConfirmAltView(View):
     def __init__(self, game_name, tag_line, ctx, bot):
         super().__init__(timeout=60)  # Buttons will timeout after 60 seconds
