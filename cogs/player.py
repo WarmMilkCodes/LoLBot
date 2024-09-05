@@ -18,6 +18,34 @@ SPLITS = [
 ]
 
 
+cYour current implementation is mostly correct. To ensure that the confirmation embed is ephemeral and only the user who initiated the interaction can confirm or cancel, here are a few tweaks:
+
+Correct the embed behavior for Confirm and Cancel:
+
+When the user clicks "Confirm" or "Cancel," ensure the message is ephemeral and disappears only for that user.
+Avoid using <@{self.user_id}>:
+
+Instead of mentioning yourself like <@{self.user_id}>, you can use the ctx.author.mention to mention the user who invoked the command.
+Set proper visibility (ephemeral) for buttons and responses:
+
+The buttons can be clicked by the user who invoked the command, and since it’s ephemeral, only they can see it.
+Here’s the updated implementation:
+
+Updated ConfirmAltView and Command Handling:
+python
+Copy code
+import aiohttp
+import discord
+import logging
+import pytz
+from datetime import datetime, timezone
+import app.config as config
+import app.dbInfo as dbInfo
+from discord.ext import commands, tasks
+from discord.ui import Button, View
+
+logger = logging.getLogger('lol_log')
+
 class ConfirmAltView(View):
     def __init__(self, game_name, tag_line, ctx, bot):
         super().__init__(timeout=60)  # Buttons will timeout after 60 seconds
@@ -41,7 +69,7 @@ class ConfirmAltView(View):
         if alt_log_channel:
             await alt_log_channel.send(f"{self.ctx.author.mention} reported a new alt account: {self.game_name}#{self.tag_line}")
 
-        # Remove embed and buttons after confirmation
+        # Remove embed and buttons after confirmation and make it ephemeral
         await interaction.response.edit_message(content=f"Alt account {self.game_name}#{self.tag_line} has been added.", embed=None, view=None)
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
@@ -49,9 +77,6 @@ class ConfirmAltView(View):
         # Cancel the alt account report and clear the embed and buttons
         await interaction.response.edit_message(content="Alt account report canceled.", embed=None, view=None)
 
-    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
-    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.edit_message(content="Alt account report canceled.", embed=None, view=None)
 
 class PlayerCog(commands.Cog):
     def __init__(self, bot):
@@ -74,18 +99,18 @@ class PlayerCog(commands.Cog):
         return True
     
     @commands.slash_command(guild_ids=[config.lol_server], description="Report alt account")
-    async def report_alt_account(self, ctx, game_name: Option(str, "Enter game name (no '#' sign or numbers)"), tag_line: Option(str, "Enter tag line (do not include game name or '#')")):
-        await ctx.defer()
+    async def report_alt_account(self, ctx, game_name: discord.Option(str, "Enter game name (no '#' sign or numbers)"), tag_line: discord.Option(str, "Enter tag line (do not include game name or '#')")):
+        await ctx.defer(ephemeral=True)
 
         try:
             if not await self.validate_command_channel(ctx):
                 return
-            
+
             # Fetch user's main account from database
             player_data = dbInfo.player_collection.find_one({"discord_id": ctx.author.id})
 
             if not player_data:
-                return await ctx.respond(f"{ctx.author.mention}, you are not found in the database. Please reach out to staff.")
+                return await ctx.respond(f"{ctx.author.mention}, you are not found in the database. Please reach out to staff.", ephemeral=True)
 
             # Create an embed to display the alt account info and buttons to confirm/cancel
             embed = discord.Embed(title="Confirm Alt Account", description=f"Game Name: **{game_name}**\nTag Line: **{tag_line}**", color=discord.Color.blue())
@@ -98,7 +123,7 @@ class PlayerCog(commands.Cog):
 
         except Exception as e:
             logger.error(f"Error reporting alt account for {ctx.author.name}: {e}")
-            await ctx.respond(f"An error occurred while reporting the alt account: {e}")
+            await ctx.respond(f"An error occurred while reporting the alt account: {e}", ephemeral=True)
 
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Start the rank and eligibility check task")
