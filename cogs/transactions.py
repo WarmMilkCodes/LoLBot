@@ -154,7 +154,7 @@ class Transactions(commands.Cog):
             OG_GM = discord.utils.get(ctx.guild.roles, name="General Managers")
             await self.add_role_to_member(user, ctx.guild.get_role(team_role_id), "Designated as GM")
             await self.add_role_to_member(user, ctx.guild.get_role(gm_role_id), "Designated as GM")
-            await self.add_role_to_member(user, ctx.guild.get_role(OG_GM), "Designated as GM")
+            await self.add_role_to_member(user, OG_GM, "Designated as GM")
             await self.remove_role_from_member(user, FA, "Designated as GM")
 
 
