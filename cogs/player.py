@@ -18,15 +18,16 @@ SPLITS = [
 ]
 
 class ConfirmAltView(View):
-    def __init__(self, game_name, tag_line, user_id, bot):
+    def __init__(self, game_name, tag_line, user_id, ctx, bot):
         super().__init__(timeout=60)
         self.game_name = game_name
         self.tag_line = tag_line
         self.user_id = user_id
+        self.ctx = ctx
         self.bot = bot
 
     @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green)
-    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def confirm(self, ctx, interaction: discord.Interaction, button: discord.ui.Button):
         # Add alt account to the database
         alt_account = {"game_name": self.game_name, "tag_line":self.tag_line}
 
@@ -38,7 +39,7 @@ class ConfirmAltView(View):
         # Log to Riot ID channel
         riot_id_channel = self.bot.get_channel(config.riot_id_log_channel)
         if riot_id_channel:
-            await riot_id_channel.send(f"<{self.user_id}> reported a new alt account: {self.game_name}#{self.tag_line}")
+            await riot_id_channel.send(f"{self.ctx.author.mention} reported a new alt account: {self.game_name}#{self.tag_line}")
 
         await interaction.response.edit_message(content=f"Alt account {self.game_name}#{self.tag_line} has been added.", embed=None, view=None)
 
