@@ -70,7 +70,7 @@ class PlayerCog(commands.Cog):
     
     @commands.slash_command(guild_ids=[config.lol_server], description="Report alt account")
     async def report_alt_account(self, ctx, game_name: str, tag_line: str):
-        await ctx.defer()
+        await ctx.defer(ephemeral=True)
     
         if not await self.validate_command_channel(ctx):
             return
