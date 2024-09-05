@@ -17,6 +17,36 @@ SPLITS = [
     {"start": datetime(2024, 9, 25, tzinfo=timezone.utc), "end": None, "name": "Fall Split"},  # End date unknown
 ]
 
+class ConfirmAltView(View):
+    def __init__(self, game_name, tag_line, user_id, bot):
+        super().__init__(timeout=60)
+        self.game_name = game_name
+        self.tag_line = tag_line
+        self.user_id = user_id
+        self.bot = bot
+
+    @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green)
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # Add alt account to the database
+        alt_account = {"game_name": self.game_name, "tag_line":self.tag_line}
+
+        dbInfo.player_collection.update_one(
+            {"discord_id": self.user_id},
+            {"$push": {"alt_accounts": alt_account}}
+        )
+
+        # Log to Riot ID channel
+        riot_id_channel = self.bot.get_channel(config.riot_id_log_channel)
+        if riot_id_channel:
+            await riot_id_channel.send(f"<{self.user_id}> reported a new alt account: {self.game_name}#{self.tag_line}")
+
+        await interaction.response.edit_message(content=f"Alt account {self.game_name}#{self.tag_line} has been added.", embed=None, view=None)
+
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(content="Alt account report canceled.", embed=None, view=None)
+
 class PlayerCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -38,41 +68,24 @@ class PlayerCog(commands.Cog):
         return True
     
     @commands.slash_command(guild_ids=[config.lol_server], description="Report alt account")
-    async def report_alt_account(self, ctx, game_name: Option(str, "Enter game name (no '#' sign or numbers)"), tag_line: Option(str, "Enter tag line (do not include game name or '#')")):
+    async def report_alt_account(self, ctx, game_name: str, tag_line: str):
         await ctx.defer()
     
-        try:
-            if not await self.validate_command_channel(ctx):
-                return
-            
-            # Fetch user's main account from database
-            player_data = dbInfo.player_collection.find_one({"discord_id": ctx.author.id})
-
-            if not player_data:
-                return await ctx.respond(f"{ctx.author.mention}, you are not found in the database. Please reach out to staff.")
-            
-            # Create alt account entry
-            alt_account = {"game_name": game_name, "tag_line": tag_line}
-            
-            # Add the alt account to user's data (append to "alt_account")
-            dbInfo.player_collection.update_one(
-                {"discord_id": ctx.author.id},
-                {"$push": {"alt_accounts": alt_account}}
-            )
-
-            # Log the alt account report
-            alt_log_channel = self.bot.get_channel(config.riot_id_log_channel)
-            if alt_log_channel:
-                await alt_log_channel.send(f"{ctx.author.mention} reported a new alt account: {game_name}#{tag_line}")
-            
-            await ctx.respond(f"Alt account {game_name}#{tag_line} has been added to your account.", ephemeral=True)
+        if not await self.validate_command_channel(ctx):
+            return
         
-        except Exception as e:
-            logger.error(f"Erro reporting alt account fo {ctx.author.name}: {e}")
-            await ctx.respond(f"An error occrued while reporting the alt account: {e}")
-                                           
-            
+        # Create embed with alt account details for confirmation
+        embed = discord.Embed(
+            title="Confirm Alt Account",
+            description=f"**Game Name**: {game_name}\n**Tag Line**: {tag_line}",
+            color=discord.Color.blue()
+        )
 
+        # Create the confirmation view (buttons)                                          
+        view = ConfirmAltView(game_name=game_name, tag_line=tag_line, user_id=ctx.author.id, bot=self.bot)
+            
+        # Send confirmation with buttons
+        await ctx.respond(embed=embed, view=view, ephemeral=True)
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Start the rank and eligibility check task")
     @commands.has_role("Bot Guy")
