@@ -9,7 +9,7 @@ class RoleSelectionView(discord.ui.View):
     def __init__(self, bot, log_channel_id):
         super().__init__(timeout=None)
         self.bot = bot
-        self.log_channel_id = log_channel_id  # Channel where role changes will be logged
+        self.log_channel_id = config.riot_id_log_channel
 
     async def assign_role(self, interaction, role_name):
         member = interaction.user
