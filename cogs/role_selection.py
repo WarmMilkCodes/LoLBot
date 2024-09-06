@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from discord.ui import Button, View
-import app.dbInfo as dbInfo 
+import app.dbInfo as dbInfo  # Assuming you're using a module named dbInfo for your database
 from app.config import lol_server
 
 class RoleSelectionView(View):
@@ -26,13 +26,19 @@ class RoleSelectionView(View):
         )
 
     async def post_role_update(self, interaction, role_name):
-        # Post the role update in the specified log channel
+        # Ensure that we can retrieve the log channel
         log_channel = interaction.guild.get_channel(self.log_channel_id)
         if log_channel:
             await log_channel.send(f"{interaction.user.mention} updated their in-game role to **{role_name}**")
 
     async def assign_role(self, interaction, role_name):
         guild = interaction.guild
+
+        # Ensure the interaction has a valid guild context
+        if not guild:
+            await interaction.response.send_message("This interaction cannot be completed outside a guild.", ephemeral=True)
+            return
+
         role = discord.utils.get(guild.roles, name=role_name)
 
         if role:
@@ -82,3 +88,6 @@ class RoleSelectionCog(commands.Cog):
 
 def setup(bot):
     bot.add_cog(RoleSelectionCog(bot))
+
+
+
