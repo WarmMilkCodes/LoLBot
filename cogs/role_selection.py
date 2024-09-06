@@ -2,11 +2,12 @@ import discord
 from discord.ext import commands
 from discord.ui import Button, View
 import app.dbInfo as dbInfo 
-from app.config import lol_server 
+from app.config import lol_server
 
 class RoleSelectionView(View):
-    def __init__(self):
+    def __init__(self, log_channel_id):
         super().__init__(timeout=None)  # No timeout for persistent buttons
+        self.log_channel_id = log_channel_id  # Log channel ID to post role updates
 
     async def remove_existing_roles(self, user, guild):
         role_names = ["Top", "JG", "Mid", "ADC", "Sup"]
@@ -24,6 +25,12 @@ class RoleSelectionView(View):
             {"$set": {"in_game_role": role_name}}  # Update their in-game role
         )
 
+    async def post_role_update(self, interaction, role_name):
+        # Post the role update in the specified log channel
+        log_channel = interaction.guild.get_channel(self.log_channel_id)
+        if log_channel:
+            await log_channel.send(f"{interaction.user.mention} updated their in-game role to **{role_name}**")
+
     async def assign_role(self, interaction, role_name):
         guild = interaction.guild
         role = discord.utils.get(guild.roles, name=role_name)
@@ -36,6 +43,8 @@ class RoleSelectionView(View):
             await interaction.user.add_roles(role)
             # Update the role in the database
             await self.update_role_in_db(interaction.user, role_name)
+            # Post the role update in the log channel
+            await self.post_role_update(interaction, role_name)
             await interaction.response.send_message(f"You have been assigned the {role_name} role!", ephemeral=True)
         else:
             await interaction.response.send_message(f"Role '{role_name}' not found.", ephemeral=True)
@@ -67,7 +76,8 @@ class RoleSelectionCog(commands.Cog):
     @commands.slash_command(guild_ids=[lol_server], description="Post the in-game role selection message")
     @commands.has_role("Bot Guy")
     async def post_role_selection(self, ctx):
-        view = RoleSelectionView()
+        log_channel_id = 1194430443362205767
+        view = RoleSelectionView(log_channel_id)
         await ctx.respond("Please select your in-game role:", view=view)
 
 def setup(bot):
