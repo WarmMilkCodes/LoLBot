@@ -5,8 +5,9 @@ import app.dbInfo as dbInfo  # Assuming you're using a module named dbInfo for y
 from app.config import lol_server
 
 class RoleSelectionView(View):
-    def __init__(self, log_channel_id):
+    def __init__(self, ctx, log_channel_id):
         super().__init__(timeout=None)  # No timeout for persistent buttons
+        self.ctx = ctx  # Pass the context to the view
         self.log_channel_id = log_channel_id  # Log channel ID to post role updates
 
     async def remove_existing_roles(self, user, guild):
@@ -25,19 +26,14 @@ class RoleSelectionView(View):
             {"$set": {"in_game_role": role_name}}  # Update their in-game role
         )
 
-    async def post_role_update(self, interaction, role_name):
-        # Ensure that we can retrieve the log channel
-        log_channel = interaction.guild.get_channel(self.log_channel_id)
+    async def post_role_update(self, user, role_name):
+        # Post the role update in the specified log channel
+        log_channel = self.ctx.guild.get_channel(self.log_channel_id)
         if log_channel:
-            await log_channel.send(f"{interaction.user.mention} updated their in-game role to **{role_name}**")
+            await log_channel.send(f"{user.mention} updated their in-game role to **{role_name}**")
 
     async def assign_role(self, interaction, role_name):
-        guild = interaction.guild
-
-        # Ensure the interaction has a valid guild context
-        if not guild:
-            await interaction.response.send_message("This interaction cannot be completed outside a guild.", ephemeral=True)
-            return
+        guild = self.ctx.guild
 
         role = discord.utils.get(guild.roles, name=role_name)
 
@@ -50,7 +46,7 @@ class RoleSelectionView(View):
             # Update the role in the database
             await self.update_role_in_db(interaction.user, role_name)
             # Post the role update in the log channel
-            await self.post_role_update(interaction, role_name)
+            await self.post_role_update(interaction.user, role_name)
             await interaction.response.send_message(f"You have been assigned the {role_name} role!", ephemeral=True)
         else:
             await interaction.response.send_message(f"Role '{role_name}' not found.", ephemeral=True)
@@ -82,12 +78,9 @@ class RoleSelectionCog(commands.Cog):
     @commands.slash_command(guild_ids=[lol_server], description="Post the in-game role selection message")
     @commands.has_role("Bot Guy")
     async def post_role_selection(self, ctx):
-        log_channel_id = 1194430443362205767
-        view = RoleSelectionView(log_channel_id)
-        await ctx.respond("Please select your in-game role:", view=view)
+        log_channel_id = 1194430443362205767  # Replace with the log channel ID where updates should be posted
+        view = RoleSelectionView(ctx, log_channel_id)  # Pass ctx to the view
+        await ctx.send("Please select your in-game role:", view=view)
 
 def setup(bot):
     bot.add_cog(RoleSelectionCog(bot))
-
-
-
