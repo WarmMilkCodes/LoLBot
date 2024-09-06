@@ -9,7 +9,7 @@ class RoleSelectionView(discord.ui.View):
     def __init__(self, bot, log_channel_id):
         super().__init__(timeout=None)
         self.bot = bot
-        self.log_channel_id = config.riot_id_log_channel
+        self.log_channel_id = log_channel_id
 
     async def assign_role(self, interaction, role_name):
         member = interaction.user
@@ -79,13 +79,13 @@ class RoleSelectionCog(commands.Cog):
     @commands.slash_command(guild_ids=[config.lol_server], description="Post the role selection buttons")
     @commands.has_role("Bot Guy")
     async def post_role_selection(self, ctx):
-        view = RoleSelectionView(self.bot, config.role_log_channel)  # Assuming role_log_channel is in your config
+        view = RoleSelectionView(self.bot, config.riot_id_log_channel)
         await ctx.send("Select your in-game role:", view=view)
 
     @commands.Cog.listener()
     async def on_ready(self):
         if not self.persistent_views_added:
-            self.bot.add_view(RoleSelectionView(self.bot, config.role_log_channel))  # Make the view persistent
+            self.bot.add_view(RoleSelectionView(self.bot, config.riot_id_log_channel))  # Make the view persistent
             self.persistent_views_added = True
             logger.info("Persistent view added for role selection")
 
