@@ -88,7 +88,7 @@ class RoleSelectionCog(commands.Cog):
     @commands.has_role("Bot Guy")
     async def post_role_selection(self, ctx):
         view = RoleSelectionView(self.bot, config.riot_id_log_channel)
-        await ctx.send("Select your in-game role(s):", view=view)
+        await ctx.send("Select up to two in-game roles:", view=view)
 
     @commands.Cog.listener()
     async def on_ready(self):
