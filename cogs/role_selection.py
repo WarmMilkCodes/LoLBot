@@ -33,10 +33,9 @@ class RoleSelectionView(discord.ui.View):
         existing_roles = await self.get_existing_roles(member, guild)
 
         if len(existing_roles) >= 2:
-            # User already has two roles, prevent assigning more
-            await interaction.response.send_message(
-                "You already have two roles assigned. Please remove one to assign a new role.", ephemeral=True)
-            return
+            # Automatically remove the oldest role before assigning the new one
+            await member.remove_roles(existing_roles[0])
+            existing_roles.pop(0)  # Remove the first role from the list
 
         # Add the new role if they have fewer than 2
         await member.add_roles(new_role)
