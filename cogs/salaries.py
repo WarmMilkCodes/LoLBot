@@ -7,15 +7,16 @@ import logging
 logger = logging.getLogger('salary_log')
 
 RANK_ORDER = {
-    'Iron': 1,
-    'Bronze': 2,
-    'Silver': 3,
-    'Gold': 4,
-    'Platinum': 5,
-    'Diamond': 6,
-    'Master': 7,
-    'Grandmaster': 8,
-    'Challenger': 9
+    "IRON": 1,
+    "BRONZE": 2,
+    "SILVER": 3,
+    "GOLD": 4,
+    "PLATINUM": 5,
+    "EMERALD": 6,
+    "DIAMOND": 7,
+    "MASTER": 8,
+    "GRANDMASTER": 9,
+    "CHALLENGER": 10
 }
 
 DIVISION_ORDER = {
