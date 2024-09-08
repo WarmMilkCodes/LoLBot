@@ -27,15 +27,15 @@ DIVISION_ORDER = {
 }
 
 BASE_SALARY = {
-    'Iron': 10,
-    'Bronze': 50,
-    'Silver': 90,
-    'Gold': 130,
-    'Platinum': 170,
-    'Diamond': 210,
-    'Master': 250,
-    'Grandmaster': 270,
-    'Challenger': 290
+    'IRON': 10,
+    'BRONZE': 50,
+    'SILVER': 90,
+    'GOLD': 130,
+    'PLATINUM': 170,
+    'DIAMOND': 210,
+    'MASTER': 250,
+    'GRANDMASTER': 270,
+    'CHALLENGER': 290
 }
 
 
@@ -80,7 +80,7 @@ class SalaryCog(commands.Cog):
     async def calculate_all_salaries(self, ctx):
         await ctx.defer()
 
-        players = dbInfo.player_collection.find({"left_at": None, "salary": None})  # Only active players and those who don't have a salary already
+        players = dbInfo.player_collection.find({"left_at": None})  # Only active players and those who don't have a salary already
         salary_report = []
         total_salary = 0
 
