@@ -58,23 +58,23 @@ class RoleSelectionView(discord.ui.View):
         # Confirm to the user
         await interaction.response.send_message(f"You have been assigned the {role_name} role!", ephemeral=True)
 
-    @discord.ui.button(label="Top", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="Top", style=discord.ButtonStyle.primary, custom_id="top_role")
     async def top_role(self, button: discord.ui.Button, interaction: discord.Interaction):
         await self.assign_role(interaction, "Top")
 
-    @discord.ui.button(label="JG", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="JG", style=discord.ButtonStyle.primary, custom_id="jg_role")
     async def jg_role(self, button: discord.ui.Button, interaction: discord.Interaction):
         await self.assign_role(interaction, "JG")
 
-    @discord.ui.button(label="Mid", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="Mid", style=discord.ButtonStyle.primary, custom_id="mid_role")
     async def mid_role(self, button: discord.ui.Button, interaction: discord.Interaction):
         await self.assign_role(interaction, "Mid")
 
-    @discord.ui.button(label="ADC", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="ADC", style=discord.ButtonStyle.primary, custom_id="adc_role")
     async def adc_role(self, button: discord.ui.Button, interaction: discord.Interaction):
         await self.assign_role(interaction, "ADC")
 
-    @discord.ui.button(label="Sup", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="Sup", style=discord.ButtonStyle.primary, custom_id="sup_role")
     async def sup_role(self, button: discord.ui.Button, interaction: discord.Interaction):
         await self.assign_role(interaction, "Sup")
 
