@@ -115,12 +115,25 @@ class SalaryCog(commands.Cog):
     @commands.has_role("Bot Guy", "Commissioner", "URLOL Owner")
     async def adjust_salary(self, ctx, user: discord.Member, new_salary: int):
         """Command for staff to manually adjust a player's salary"""
+        player_data = dbInfo.player_collection.find_one({"discord_id": user.id})
+
+        if not player_data:
+            return await ctx.respond(f"{user.mention} was not found in the database", ephemeral=True)
+        
+        current_salary = player_data.get('salary')
+
+        if not current_salary:
+            return await ctx.respond(f"{user.mention} does not have a current salary and cannot be manually changed.", ephemeral=True)
+
         dbInfo.player_collection.update_one(
             {"discord_id": user.id},
-            {"$set": {"salary": new_salary}}
+            {"$set": {
+                "previous_salary": current_salary,
+                "manual_salary": new_salary
+                }}
         )
 
-        await ctx.respond(f"Updated {user.mention}'s salary to {new_salary}.", ephemeral=True)
+        await ctx.respond(f"Adjusted {user.mention}'s salary to {new_salary}.", ephemeral=True)
 
         # Log the manual adjustment
         logger.info(f"{ctx.author.name} adjusted {user.name}'s salary to {new_salary}")
