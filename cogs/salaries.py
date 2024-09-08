@@ -112,7 +112,7 @@ class SalaryCog(commands.Cog):
         await ctx.respond(embed=embed)
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Manually adjust a player's salary")
-    @commands.has_role("Bot Guy", "Commissioner", "URLOL Owner")
+    @commands.has_any_role("Bot Guy", "Commissioner", "URLOL Owner")
     async def adjust_salary(self, ctx, user: discord.Member, new_salary: int):
         """Command for staff to manually adjust a player's salary"""
         player_data = dbInfo.player_collection.find_one({"discord_id": user.id})
