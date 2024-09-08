@@ -80,7 +80,7 @@ class SalaryCog(commands.Cog):
     async def calculate_all_salaries(self, ctx):
         await ctx.defer()
 
-        players = dbInfo.player_collection.find({"left_at": None})  # Only active players and those who don't have a salary already
+        players = dbInfo.player_collection.find({"left_at": None, "salary": None})  # Only active players and those who don't have a salary already
         salary_report = []
         total_salary = 0
 
@@ -106,11 +106,31 @@ class SalaryCog(commands.Cog):
             else:
                 salary_report.append(f"**{player_name}**: No rank data - Salary: N/A")
 
-        # Create the embed message with salary info
-        embed = discord.Embed(title="Player Salary Report", description="\n".join(salary_report), color=discord.Color.green())
-        embed.set_footer(text=f"Total Salary: {total_salary}")
+        # Split the report into multiple embeds if the content exceeds the 4096-character limit
+        max_length = 4096
+        embed_list = []
+        description = ""
 
-        await ctx.respond(embed=embed)
+        for report_line in salary_report:
+            if len(description) + len(report_line) > max_length:
+                embed = discord.Embed(title="Player Salary Report", description=description, color=discord.Color.green())
+                embed_list.append(embed)
+                description = ""
+
+            description += report_line + "\n"
+
+        # Add the last part of the report
+        if description:
+            embed = discord.Embed(title="Player Salary Report", description=description, color=discord.Color.green())
+            embed_list.append(embed)
+
+        # Add the total salary to the last embed
+        embed_list[-1].set_footer(text=f"Total Salary: {total_salary}")
+
+        # Send all embeds
+        for embed in embed_list:
+            await ctx.send(embed=embed)
+
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Manually adjust a player's salary")
     @commands.has_any_role("Bot Guy", "Commissioner", "URLOL Owner")
