@@ -35,6 +35,7 @@ class StaffCog(commands.Cog):
             channels_str = ', '.join([ch.mention for ch in allowed_channels if ch])
             return await ctx.respond(f"This command can only be used in the following channels: {channels_str}", ephemeral=True)
 
+        # Fetch team info
         team_id = dbInfo.team_collection.find_one({"team_id": {"$in": [r.id for r in user.roles]}}, {"_id": 0, "team_id": 1})
         team_info = "Unassigned"
         if team_id:
@@ -42,6 +43,7 @@ class StaffCog(commands.Cog):
             if team_role:
                 team_info = team_role.mention
 
+        # Fetch player intent and info from DB
         player_intent = dbInfo.intent_collection.find_one({"ID": user.id})
         player_info = dbInfo.player_collection.find_one({"discord_id": user.id}, {"_id": 0})
 
@@ -68,18 +70,26 @@ class StaffCog(commands.Cog):
         else:
             rank_info_display = "N/A"
 
+        # Determine salary, prioritize manual salary if available
+        manual_salary = player_info.get('manual_salary')
+        salary = manual_salary if manual_salary else player_info.get('salary', 'N/A')
+
+        # Construct player info list
         player_info_list = [
             f"**Username**: {user.name}",
             f"**Riot ID**: {player_info.get('game_name', 'N/A')}#{player_info.get('tag_line', 'N/A')}",
             f"**Status**: {player_status_embed}",
             f"**Eligibility**:  {'Eligible' if player_info.get('eligible_for_split') == True else 'Not Eligible'}",
-            f"**Rank Info**:\n{rank_info_display}"
+            f"**Rank Info**:\n{rank_info_display}",
+            f"**Salary**: {salary}"  # Add salary to player info
         ]
 
+        # Embed creation
         embed = discord.Embed(title=f"Player Info for {user.display_name}", color=discord.Color.blue())
         embed.set_thumbnail(url=user.avatar.url)
         embed.add_field(name="Player Info", value='\n'.join(player_info_list))
 
+        # Display user roles excluding default role
         user_roles = '\n'.join([x.mention for x in user.roles if x != ctx.guild.default_role])
         if user_roles:
             embed.add_field(name="User Roles", value=user_roles)
@@ -96,7 +106,9 @@ class StaffCog(commands.Cog):
 
         embed.add_field(name="Team Info", value=team_info)
 
+        # Respond with the embed
         await ctx.respond(embed=embed)
+
         
     @commands.slash_command(guild_ids=[config.lol_server], description="Return player eligibility tabulate")
     @commands.has_any_role("Bot Guy", "League Ops")

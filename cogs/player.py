@@ -44,7 +44,7 @@ class ConfirmAltView(View):
         # Remove embed and buttons after confirmation and make it ephemeral
         await interaction.response.edit_message(content=f"Alt account {self.game_name}#{self.tag_line} has been added.", embed=None, view=None)
 
-    @discord.ui.button(label="This button doesn't work - just click dismiss below.", style=discord.ButtonStyle.red)
+    @discord.ui.button(label="Click dismiss below.", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
             # Try to delete the message
@@ -80,9 +80,6 @@ class PlayerCog(commands.Cog):
         await ctx.defer(ephemeral=True)
 
         try:
-            if not await self.validate_command_channel(ctx):
-                return
-
             # Fetch user's main account from database
             player_data = dbInfo.player_collection.find_one({"discord_id": ctx.author.id})
 
