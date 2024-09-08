@@ -11,41 +11,50 @@ class RoleSelectionView(discord.ui.View):
         self.bot = bot
         self.log_channel_id = log_channel_id
 
+    async def get_existing_roles(self, member, guild):
+        """Retrieve the user's current roles from the allowed in-game roles list."""
+        allowed_roles = ["Top", "JG", "Mid", "ADC", "Sup"]
+        existing_roles = [role for role in member.roles if role.name in allowed_roles]
+        return existing_roles
+
     async def assign_role(self, interaction, role_name):
         member = interaction.user
         guild = interaction.guild
-        
-        # Get the role
-        role = discord.utils.get(guild.roles, name=role_name)
+
+        # Get the selected role
+        new_role = discord.utils.get(guild.roles, name=role_name)
 
         # Check if the role exists
-        if not role:
+        if not new_role:
             await interaction.response.send_message(f"Role '{role_name}' not found.", ephemeral=True)
             return
 
-        # Remove existing roles
-        role_names = ["Top", "JG", "Mid", "ADC", "Sup"]
-        roles_to_remove = [discord.utils.get(guild.roles, name=role_name) for role_name in role_names]
-        for role_to_remove in roles_to_remove:
-            if role_to_remove and role_to_remove in member.roles:
-                await member.remove_roles(role_to_remove)
+        # Retrieve the current in-game roles the user has
+        existing_roles = await self.get_existing_roles(member, guild)
 
-        # Assign the new role
-        await member.add_roles(role)
+        if len(existing_roles) >= 2:
+            # User already has two roles, prevent assigning more
+            await interaction.response.send_message(
+                "You already have two roles assigned. Please remove one to assign a new role.", ephemeral=True)
+            return
+
+        # Add the new role if they have fewer than 2
+        await member.add_roles(new_role)
         logger.info(f"Assigned {role_name} role to {member.name}")
 
-        # Update the database
+        # Update the database with the new roles
+        updated_roles = [role.name for role in (existing_roles + [new_role])]
         dbInfo.player_collection.update_one(
             {"discord_id": member.id},
-            {"$set": {"in_game_role": role_name}},
+            {"$set": {"in_game_roles": updated_roles}},  # Store both roles
             upsert=True
         )
-        logger.info(f"Updated database for {member.name} with role {role_name}")
+        logger.info(f"Updated database for {member.name} with roles {updated_roles}")
 
         # Log role change in the log channel
         log_channel = interaction.guild.get_channel(self.log_channel_id)
         if log_channel:
-            await log_channel.send(f"{member.mention} updated their in-game role to **{role_name}**")
+            await log_channel.send(f"{member.mention} updated their in-game roles to: **{', '.join(updated_roles)}**")
 
         # Confirm to the user
         await interaction.response.send_message(f"You have been assigned the {role_name} role!", ephemeral=True)
