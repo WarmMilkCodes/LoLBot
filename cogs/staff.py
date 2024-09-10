@@ -25,6 +25,33 @@ class StaffCog(commands.Cog):
         except Exception as e:
             logger.error(f"Error updating nickname for {member.name}: {e}")
 
+    @commands.slash_command(guild_ids=[config.lol_server], description="Update avatar URLs for all existing members in the database.")
+    @commands.has_role("Bot Guy")
+    async def update_avatars(self, ctx):
+        await ctx.defer(ephemeral=True)
+
+        # Get the list of all members in the guild
+        members = ctx.guild.members
+
+        updated_count = 0
+
+        for member in members:
+            if not member.bot:
+                # Get the user's avatar URL (using default avatar if they don't have one)
+                avatar_url = str(member.avatar.url if member.avatar else member.default_avatar.url)
+
+                # Update the player's document in the database with the avatar URL
+                dbInfo.player_collection.update_one(
+                    {"discord_id": member.id},
+                    {"$set": {"avatar_url": avatar_url}},
+                    upsert=True
+                )
+                updated_count += 1
+                logger.info(f"Updated avatar for {member.name} ({member.id})")
+
+        await ctx.respond(f"Avatar URLs updated for {updated_count} members.", ephemeral=True)
+
+
     @commands.slash_command(guild_ids=[config.lol_server], description="Return player info embed")
     @commands.has_any_role("Bot Guy", "League Ops")
     async def player_info(self, ctx, user: Option(discord.Member)):
