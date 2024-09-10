@@ -19,7 +19,7 @@ class EventsCog(commands.Cog):
                 self.add_member_to_db(member)
         logger.info("Bot is ready and members have been checked and added to database.")
 
-    def add_member_to_db(self, member):
+    def add_member_to_db(self, member, avatar_url):
         existing_member = dbInfo.player_collection.find_one({"discord_id": member.id})
         if existing_member is None:
             # Add new member(s) to database
@@ -29,7 +29,8 @@ class EventsCog(commands.Cog):
                 "team": None,
                 "rank": None,
                 "joined_at": datetime.now(pytz.utc).strftime('%m-%d-%Y'),
-                "left_at": None  # Initialize with None
+                "left_at": None,  # Initialize with None
+                "avatar_url": avatar_url
             })
             logger.info(f"Added {member.name} ({member.id}) to database.")
         else:
@@ -46,6 +47,7 @@ class EventsCog(commands.Cog):
             return
         
         logger.info(f"New member joined: {member.name} ({member.id}). Adding to database.")
+        avatar_url = str(member.avatar.url if member.avatar else member.default_avatar.url)
 
         existing_member = dbInfo.player_collection.find_one({"discord_id": member.id})
         if existing_member:
@@ -57,7 +59,7 @@ class EventsCog(commands.Cog):
             logger.info(f"Cleared 'left_at' date for returning member: {member.name} ({member.id})")
         else:
             # Add the new member to the database
-            self.add_member_to_db(member)
+            self.add_member_to_db(member, avatar_url)
 
         # Assign "Missing Intent Form" role to new member
         await self.assign_role(member, "Missing Intent Form")
