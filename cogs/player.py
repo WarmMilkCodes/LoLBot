@@ -9,6 +9,7 @@ import app.dbInfo as dbInfo
 from discord.ext import commands, tasks
 from discord.ui import Button, View
 import urllib.parse
+import unicodedata
 
 logger = logging.getLogger('lol_log')
 
@@ -18,6 +19,10 @@ SPLITS = [
     {"start": datetime(2024, 5, 15, tzinfo=timezone.utc), "end": datetime(2024, 9, 24, tzinfo=timezone.utc), "name": "Summer Split"},
     {"start": datetime(2024, 9, 25, tzinfo=timezone.utc), "end": None, "name": "Fall Split"},  # End date unknown
 ]
+
+def contains_special_chars(s):
+        return any(ord(char) > 127 for char in s)
+
 
 class ConfirmAltView(View):
     def __init__(self, game_name, tag_line, ctx, bot):
@@ -160,14 +165,10 @@ class PlayerCog(commands.Cog):
                         f"Missing Riot ID info for {player_record['name']} ({player_record['discord_id']}). Please ensure their game_name and tag_line are set."
                     )
                 continue
-            
-            # URL encode game_name and tag_line to handle special characters
-            encoded_game_name = urllib.parse.quote(player_record['game_name'])
-            encoded_tag_line = urllib.parse.quote(player_record['tag_line'])
 
             # Update Rank
             if 'game_name' in player_record and 'tag_line' in player_record:
-                puuid = await self.get_puuid(encoded_game_name, encoded_tag_line)
+                puuid = await self.get_puuid(player_record['game_name'], player_record['tag_line'])
                 if puuid:
                     if not player_record.get('puuid') or player_record.get('puuid') != puuid:
                         dbInfo.player_collection.update_one(
@@ -272,10 +273,13 @@ class PlayerCog(commands.Cog):
         return match_timestamp >= self.get_current_split_start().timestamp()
 
     async def get_puuid(self, game_name, tag_line):
-        import urllib.parse
-        encoded_game_name = urllib.parse.quote(game_name)
-        encoded_tag_line = urllib.parse.quote(tag_line)
-
+        if contains_special_chars(game_name) or contains_special_chars(tag_line):
+            encoded_game_name = urllib.parse.quote(game_name)
+            encoded_tag_line = urllib.parse.quote(tag_line)
+        else:
+            encoded_game_name = game_name
+            encoded_tag_line = tag_line
+            
         url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{encoded_game_name}/{encoded_tag_line}"
         headers = {'X-Riot-Token': config.RIOT_API}
         
