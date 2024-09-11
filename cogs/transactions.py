@@ -250,6 +250,7 @@ class Transactions(commands.Cog):
             await channel.send(message)
 
             await self.update_team_in_database(user.id, team_code.upper())
+            dbInfo.player_collection.update_one({"discord_id": user.id}, {"$set": {"active_roster": True}})
             await self.update_nickname(user, team_code.upper())
             await ctx.respond(f"{user.mention} has been signed to {team_code.upper()}")
 
@@ -295,6 +296,7 @@ class Transactions(commands.Cog):
 
             await self.update_team_in_database(user.id, 'FA')
             await self.update_nickname(user, 'FA')
+            dbInfo.player_collection.update_one({"discord_id": user.id}, {"$set": {"active_roster": False}})
             await ctx.respond(f"{user.mention} has been released from {team_code.upper()} to free agency")
 
         except Exception as e:
