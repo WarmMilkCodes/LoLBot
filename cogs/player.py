@@ -8,6 +8,7 @@ import app.config as config
 import app.dbInfo as dbInfo
 from discord.ext import commands, tasks
 from discord.ui import Button, View
+import urllib.parse
 
 logger = logging.getLogger('lol_log')
 
@@ -160,10 +161,13 @@ class PlayerCog(commands.Cog):
                     )
                 continue
             
+            # URL encode game_name and tag_line to handle special characters
+            encoded_game_name = urllib.parse.quote(player_record['game_name'])
+            encoded_tag_line = urllib.parse.quote(player_record['tag_line'])
 
             # Update Rank
             if 'game_name' in player_record and 'tag_line' in player_record:
-                puuid = await self.get_puuid(player_record['game_name'], player_record['tag_line'])
+                puuid = await self.get_puuid(encoded_game_name, encoded_tag_line)
                 if puuid:
                     if not player_record.get('puuid') or player_record.get('puuid') != puuid:
                         dbInfo.player_collection.update_one(
