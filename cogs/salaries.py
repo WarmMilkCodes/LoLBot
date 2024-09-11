@@ -32,10 +32,11 @@ BASE_SALARY = {
     'SILVER': 90,
     'GOLD': 130,
     'PLATINUM': 170,
-    'DIAMOND': 210,
-    'MASTER': 250,
-    'GRANDMASTER': 270,
-    'CHALLENGER': 290
+    'EMERALD': 210,
+    'DIAMOND': 250,
+    'MASTER': 290,
+    'GRANDMASTER': 300,
+    'CHALLENGER': 310
 }
 
 
@@ -80,9 +81,12 @@ class SalaryCog(commands.Cog):
     async def calculate_all_salaries(self, ctx):
         await ctx.defer()
 
-        players = dbInfo.player_collection.find({"left_at": None})  # Only active players and those who don't have a salary already
+        players = dbInfo.player_collection.find({"left_at": None, "salary": None})  # Only active players and those who don't have a salary already
         salary_report = []
         total_salary = 0
+
+        ## UPDATE THIS EACH SEASON ##
+        season_number = "1" 
 
         for player in players:
             player_name = player.get('name', 'Unknown')
@@ -98,7 +102,7 @@ class SalaryCog(commands.Cog):
                 # Store the calculated salary in the player's document
                 dbInfo.player_collection.update_one(
                     {"discord_id": player['discord_id']},
-                    {"$set": {"salary": salary}}
+                    {"$set": {"salary": salary, "salary_season": season_number}}
                 )
 
                 salary_report.append(f"**{player_name}**: {highest_rank} {highest_division} - Salary: {salary}")
@@ -113,7 +117,7 @@ class SalaryCog(commands.Cog):
 
         for report_line in salary_report:
             if len(description) + len(report_line) > max_length:
-                embed = discord.Embed(title="Player Salary Report", description=description, color=discord.Color.green())
+                embed = discord.Embed(title=f"Season {season_number} Player Salary Report", description=description, color=discord.Color.green())
                 embed_list.append(embed)
                 description = ""
 
@@ -133,7 +137,7 @@ class SalaryCog(commands.Cog):
 
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Manually adjust a player's salary")
-    @commands.has_any_role("Bot Guy", "Commissioner", "URLOL Owner")
+    @commands.has_any_role("Bot Guy", "Commissioner", "URLOL Owner", "League Ops")
     async def adjust_salary(self, ctx, user: discord.Member, new_salary: int):
         """Command for staff to manually adjust a player's salary"""
         player_data = dbInfo.player_collection.find_one({"discord_id": user.id})
@@ -150,7 +154,8 @@ class SalaryCog(commands.Cog):
             {"discord_id": user.id},
             {"$set": {
                 "previous_salary": current_salary,
-                "manual_salary": new_salary
+                "manual_salary": new_salary,
+                "adjusted_by": ctx.author.name
                 }}
         )
 
