@@ -89,18 +89,21 @@ class StaffCog(commands.Cog):
         if rank_info_array:
             rank_info_list = []
             for rank in rank_info_array:
-                queue_type = rank.get('queue_type', 'N/A').replace('_', ' ').title()
+                queue_type = rank.get('queue_type', 'N/A')  # Do not format here yet
                 
-                # Only process 'RANKED_SOLO_5X5'
-                if queue_type == "RANKED_SOLO_5X5":
+                # Only process 'RANKED_SOLO_5x5'
+                if queue_type == "RANKED_SOLO_5x5":  # Check the original value
                     tier = rank.get('tier')
                     tier_display = tier.capitalize() if tier else 'N/A'
 
                     division = rank.get('division')
                     division_display = division.upper() if division else 'N/A'
 
-                    rank_info_list.append(f"\n**Queue Type**: {queue_type}\n**Tier**: {tier_display}\n**Division**: {division_display}")
-            rank_info_display = '\n'.join(rank_info_list)
+                    # Now format queue_type for display
+                    formatted_queue_type = queue_type.replace('_', ' ').title()
+                    rank_info_list.append(f"\n**Queue Type**: {formatted_queue_type}\n**Tier**: {tier_display}\n**Division**: {division_display}")
+
+            rank_info_display = '\n'.join(rank_info_list) if rank_info_list else "N/A"
         else:
             rank_info_display = "N/A"
 
