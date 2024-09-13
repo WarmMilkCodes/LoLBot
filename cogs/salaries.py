@@ -64,15 +64,6 @@ class SalaryCog(commands.Cog):
                     highest_rank = rank
                     highest_division = division
 
-        # Check historical rank_info
-        for date, rank_data in historical_rank_info.items():
-            for rank_entry in rank_data:
-                if rank_entry['queue_type'] == "RANKED_SOLO_5x5":
-                    rank = rank_entry.get('tier')
-                    division = rank_entry.get('division')
-                    if highest_rank is None or (RANK_ORDER[rank] > RANK_ORDER[highest_rank]) or (RANK_ORDER[rank] == RANK_ORDER[highest_rank] and DIVISION_ORDER[division] > DIVISION_ORDER[highest_division]):
-                        highest_rank = rank
-                        highest_division = division
 
         return highest_rank, highest_division
 
