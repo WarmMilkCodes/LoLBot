@@ -246,7 +246,7 @@ class Transactions(commands.Cog):
                 gm_role_id = await self.get_gm_id(team_code.upper())
                 gm_role = ctx.guild.get_role(gm_role_id)
                 
-                if gm_role in user.roles:
+                if gm_role not in user.roles:
                     return await ctx.respond(f"{user.mention} is already on a team and cannot be signed.")
                 
             
