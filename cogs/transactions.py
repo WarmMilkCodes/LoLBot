@@ -247,29 +247,46 @@ class Transactions(commands.Cog):
             if not player_entry.get("rank_info"):
                 return await ctx.respond(f"{user.mention} does not have rank game data and cannot be signed.")
             
+            # Calculate the current team salary
             current_team_salary = await self.calculate_team_salary(team_code.upper())
 
+            # Retrieve player's salary
             player_salary = player_entry.get("salary", 0)
             if player_salary == 0:
                 return await ctx.respond(f"{user.mention} does not have a salary and cannot be signed.")
             
+            # Ensure the team has enough remaining cap space
             if current_team_salary + player_salary > SALARY_CAP:
                 return await ctx.respond(f"Signing {user.mention} would exceed the team's salary cap of {SALARY_CAP}. Current total: {current_team_salary}. Player's salary: {player_salary}.")
 
+            # Fetch team role
             team_role_id = await self.get_team_role(team_code.upper())
             if not team_role_id:
                 return await ctx.respond(f"Invalid team code passed: {team_code.upper()}")
             
+            # Add player to team's role and remove from Free Agency
             FA = discord.utils.get(ctx.guild.roles, name="Free Agents")
             await self.add_role_to_member(user, ctx.guild.get_role(team_role_id), f"Player signed to {team_code.upper()}")
             await self.remove_role_from_member(user, FA, f"Player signed to {team_code.upper()}")
 
+            # Update the GM mention for notification(s)
             gm_role_id = await self.get_gm_id(team_code.upper())
             if not gm_role_id:
                 return await ctx.respond(f"No GM role found for team: {team_code.upper()}")
-            
             GM = ctx.guild.get_role(gm_role_id)
 
+            # Update the team's remaining cap
+            team_entry = dbInfo.team_collection.find_one({"team_code":team_code})
+            remaining_cap = team_entry.get("remaining_cap", SALARY_CAP)
+            new_remaining_cap = remaining_cap - player_salary
+
+            # Update the remaining cap in the database
+            dbInfo.team_collection.update_one({
+                {"team_code": team_code.upper()},
+                {"$set": {"remaining_cap": new_remaining_cap}}
+            })
+
+            # Send the transaction message
             message = f"{GM.mention} signs {user.mention} to active roster"
             channel = self.bot.get_channel(config.posted_transactions_channel)
             await channel.send(message)
@@ -306,6 +323,11 @@ class Transactions(commands.Cog):
             if not user.roles.__contains__(ctx.guild.get_role(team_role_id)):
                 return await ctx.respond(f"{user.name} is not signed to {team_code.upper()}'s active roster.")
             
+            # Fetch the player's salary
+            player_salary = player_entry.get("salary", 0)
+            if player_salary == 0:
+                return await ctx.respond(f"{user.mention} does not have a salary assigned.")
+            
             FA = discord.utils.get(ctx.guild.roles, name="Free Agents")
             await self.remove_role_from_member(user, ctx.guild.get_role(team_role_id), "Player released to free agency")
             await self.add_role_to_member(user, FA, "Player released to free agency")
@@ -314,6 +336,17 @@ class Transactions(commands.Cog):
             if not gm_role_id:
                 return await ctx.respond(f"No GM role found for team: {team_code.upper()}")
             GM = ctx.guild.get_role(gm_role_id)
+
+            # Calculate and update the team's remaining cap space
+            team_entry = dbInfo.team_collection.find_one({"team_code": team_code})
+            remaining_cap = team_entry.get("remaining_cap", SALARY_CAP)
+            new_remaining_cap = remaining_cap + player_salary
+
+            # Update the team's remaining cap in the database
+            dbInfo.team_collection.update_one(
+                {"team_code": team_code.upper()},
+                {"$set": {"remaining_cap": new_remaining_cap}}
+            )
 
             message = f"{GM.mention} releases {user.mention} to free agency"
             channel = self.bot.get_channel(config.posted_transactions_channel)
