@@ -11,13 +11,17 @@ logger = logging.getLogger(__name__)
 class EventsCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.is_ready = False
 
     @commands.Cog.listener()
     async def on_ready(self):
-        for member in self.bot.get_all_members():
-            if not member.bot:
-                self.add_member_to_db(member)
-        logger.info("Bot is ready and members have been checked and added to database.")
+        if not self.is_ready:
+            for member in self.bot.get_all_members():
+                if not member.bot:
+                    avatar_url = str(member.avatar.url if member.avatar else member.default_avatar.url)
+                    self.add_member_to_db(member, avatar_url)
+            logger.info("Bot is ready and members have been checked and added to database.")
+            self.is_ready = True
 
     def add_member_to_db(self, member, avatar_url):
         existing_member = dbInfo.player_collection.find_one({"discord_id": member.id})
@@ -34,10 +38,10 @@ class EventsCog(commands.Cog):
             })
             logger.info(f"Added {member.name} ({member.id}) to database.")
         else:
-            # Update the member's name in case it has changed
+            # Update the member's name and avatar in case it has changed
             dbInfo.player_collection.update_one(
                 {"discord_id": member.id},
-                {"$set": {"name": member.name}}
+                {"$set": {"name": member.name, "avatar_url": avatar_url}}
             )
             logger.info(f"Member {member.name} ({member.id}) already exists in database.")
 
