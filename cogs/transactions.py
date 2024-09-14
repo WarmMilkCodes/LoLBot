@@ -242,7 +242,11 @@ class Transactions(commands.Cog):
             
             player_entry = await self.get_player_info(user.id)
             if not player_entry or player_entry.get("team") not in ['FA', None]:
-                return await ctx.respond(f"{user.mention} is already on a team and cannot be signed.")
+                # check if player is GM for the team
+                gm_role_id = await self.get_gm_id(team_code.upper())
+                if not gm_role_id in user.roles:
+                    return await ctx.respond(f"{user.mention} is already on a team and cannot be signed.")
+                
             
             if not player_entry.get("rank_info"):
                 return await ctx.respond(f"{user.mention} does not have rank game data and cannot be signed.")
