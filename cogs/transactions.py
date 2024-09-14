@@ -297,7 +297,7 @@ class Transactions(commands.Cog):
             await ctx.respond(f"{user.mention} has been signed to {team_code.upper()}")
 
         except Exception as e:
-            await ctx.respond(f"Error signing {user.mention} to {team_code.upper():\n{e}}")
+            await ctx.respond(f"Error signing {user.mention} to {team_code.upper()}:\n{e}")
             
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Release player to free agency")
