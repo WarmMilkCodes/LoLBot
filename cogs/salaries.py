@@ -72,7 +72,7 @@ class SalaryCog(commands.Cog):
     async def calculate_all_salaries(self, ctx):
         await ctx.defer()
 
-        players = dbInfo.player_collection.find({"left_at": None})  # Only active players and those who don't have a salary already
+        players = dbInfo.player_collection.find({"left_at": None, "salary": None})  # Only active players and those who don't have a salary already
         salary_report = []
         total_salary = 0
 
