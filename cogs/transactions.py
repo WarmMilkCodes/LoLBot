@@ -244,7 +244,9 @@ class Transactions(commands.Cog):
             if not player_entry or player_entry.get("team") not in ['FA', None]:
                 # check if player is GM for the team
                 gm_role_id = await self.get_gm_id(team_code.upper())
-                if not gm_role_id in user.roles:
+                gm_role = ctx.guild.get_role(gm_role_id)
+                
+                if gm_role in user.roles:
                     return await ctx.respond(f"{user.mention} is already on a team and cannot be signed.")
                 
             
