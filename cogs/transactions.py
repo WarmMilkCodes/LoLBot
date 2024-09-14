@@ -281,10 +281,10 @@ class Transactions(commands.Cog):
             new_remaining_cap = remaining_cap - player_salary
 
             # Update the remaining cap in the database
-            dbInfo.team_collection.update_one({
+            dbInfo.team_collection.update_one(
                 {"team_code": team_code.upper()},
                 {"$set": {"remaining_cap": new_remaining_cap}}
-            })
+            )
 
             # Send the transaction message
             message = f"{GM.mention} signs {user.mention} to active roster"
