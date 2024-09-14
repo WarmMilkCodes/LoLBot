@@ -9,12 +9,24 @@ from discord.ext.commands import MissingAnyRole, CommandInvokeError, CommandErro
 logger = logging.getLogger('lol_log')
 
 GUILD_ID = config.lol_server
+SALARY_CAP = 610
+
 
 class Transactions(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     # Helper functions
+
+    async def calculate_team_salary(self, team_code: str):
+        players_on_team = dbInfo.player_collection.find({"team": team_code, "active_roster": True})
+        total_salary = 0
+
+        for player in players_on_team:
+            salary = player.get("salary", 0)
+            total_salary += salary
+
+        return total_salary
         
     async def update_nickname(self, member, prefix):
         """Update member's nickname with given prefix"""
@@ -220,6 +232,10 @@ class Transactions(commands.Cog):
             if missing_intent in user.roles:
                 return await ctx.respond(f"{user.mention} has not completed the intent form and cannot be signed to roster.")
             
+            spectator = discord.utils.get(ctx.guild.roles, name = "Spectator")
+            if spectator in user.roles:
+                return await ctx.respond(f"{user.mention} is a spectator and cannot be signed.")
+
             not_eligible = discord.utils.get(ctx.guild.roles, name="Not Eligible")
             if not_eligible in user.roles:
                 return await ctx.respond(f"{user.mention} has an invalid Riot ID and cannot be signed to roster.")
@@ -231,6 +247,15 @@ class Transactions(commands.Cog):
             if not player_entry.get("rank_info"):
                 return await ctx.respond(f"{user.mention} does not have rank game data and cannot be signed.")
             
+            current_team_salary = await self.calculate_team_salary(team_code.upper())
+
+            player_salary = player_entry.get("salary", 0)
+            if player_salary == 0:
+                return await ctx.respond(f"{user.mention} does not have a salary and cannot be signed.")
+            
+            if current_team_salary + player_salary > SALARY_CAP:
+                return await ctx.respond(f"Signing {user.mention} would exceed the team's salary cap of {SALARY_CAP}. Current total: {current_team_salary}. Player's salary: {player_salary}.")
+
             team_role_id = await self.get_team_role(team_code.upper())
             if not team_role_id:
                 return await ctx.respond(f"Invalid team code passed: {team_code.upper()}")
