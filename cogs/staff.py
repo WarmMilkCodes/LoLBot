@@ -55,7 +55,9 @@ class StaffCog(commands.Cog):
     @commands.slash_command(guild_ids=[config.lol_server], description="Return player info embed")
     @commands.has_any_role("Bot Guy", "League Ops")
     async def player_info(self, ctx, user: Option(discord.Member)):
+        await ctx.defer()
         guild = ctx.guild
+        player_profile_url = f"https://lol-web-app.onrender.com/player/{user.id}"
 
         allowed_channels = [self.bot.get_channel(ch_id) for ch_id in config.admin_channels]
         if ctx.channel.id not in config.admin_channels:
@@ -82,6 +84,12 @@ class StaffCog(commands.Cog):
                 player_status_embed = 'Spectator'
             else:
                 player_status_embed = 'N/A'
+
+        # Fetch number of games in split
+        split_games = player_info.get('current_split_game_count')
+        if not split_games:
+            split_games = 'N/A'
+
 
         # Handling the rank_info array with proper formatting
         rank_info_array = player_info.get('rank_info', [])
@@ -117,6 +125,7 @@ class StaffCog(commands.Cog):
             f"**Riot ID**: {player_info.get('game_name', 'N/A')}#{player_info.get('tag_line', 'N/A')}",
             f"**Status**: {player_status_embed}",
             f"**Eligibility**:  {'Eligible' if player_info.get('eligible_for_split') == True else 'Not Eligible'}",
+            f"**Current Games**: {split_games}"
             f"**Rank Info**:\n{rank_info_display}",
             f"**Salary**: {salary}"  # Add salary to player info
         ]
@@ -124,6 +133,7 @@ class StaffCog(commands.Cog):
         # Embed creation
         embed = discord.Embed(title=f"Player Info for {user.display_name}", color=discord.Color.blue())
         embed.set_thumbnail(url=user.avatar.url)
+        embed.add_field(name="Player Profile", value=f"[Click here to view profile]({player_profile_url})", inline=False)
         embed.add_field(name="Player Info", value='\n'.join(player_info_list))
 
         # Display user roles excluding default role
