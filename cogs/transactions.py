@@ -258,8 +258,11 @@ class Transactions(commands.Cog):
 
             # Retrieve player's salary
             player_salary = player_entry.get("salary", 0)
-            if player_salary == 0:
-                return await ctx.respond(f"{user.mention} does not have a salary and cannot be signed.")
+            manual_player_salary = player_entry.get("manual_salary", 0)
+            if manual_player_salary:
+                player_salary = manual_player_salary
+                if player_salary == 0:
+                    return await ctx.respond(f"{user.mention} does not have a salary and cannot be signed.")
             
             # Ensure the team has enough remaining cap space
             if current_team_salary + player_salary > SALARY_CAP:
