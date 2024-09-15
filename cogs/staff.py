@@ -123,11 +123,11 @@ class StaffCog(commands.Cog):
         player_info_list = [
             f"**Username**: {user.name}",
             f"**Riot ID**: {player_info.get('game_name', 'N/A')}#{player_info.get('tag_line', 'N/A')}",
+            f"**Salary**: {salary}",
             f"**Status**: {player_status_embed}",
             f"**Eligibility**:  {'Eligible' if player_info.get('eligible_for_split') == True else 'Not Eligible'}",
-            f"**Current Games**: {split_games}"
-            f"**Rank Info**:\n{rank_info_display}",
-            f"**Salary**: {salary}"  # Add salary to player info
+            f"**Current Games**: {split_games}\n"
+            f"**Rank Info**:\n{rank_info_display}"
         ]
 
         # Embed creation
