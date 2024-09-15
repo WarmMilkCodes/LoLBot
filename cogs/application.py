@@ -35,6 +35,8 @@ class ApplicationButton(discord.ui.View):
         
         lol_description = "**Thank you for submitting the intent form for UR League of Legends**\n\nIf you need to change any of your responses, please click on the intent form button again to resubmit"
 
+        # Collect 
+
         # Collecting responses for general questions
         for x in range(len(questions)):
             view = ButtonOptions()
@@ -49,6 +51,17 @@ class ApplicationButton(discord.ui.View):
             embed.set_footer(text=f"Answered: {view.value}")
             await message.edit(embed=embed, view=None)
 
+        # Default values for Riot game name and tag line
+        riot_game_name = None
+        riot_tag_line = None
+        
+        # Check if user has existing Riot ID in database
+        existing_player_data = dbInfo.intent_collection.find_one({"ID": interaction.user.id})
+        if existing_player_data:
+            riot_game_name = existing_player_data.get('game_name')
+            riot_tag_line = existing_player_data.get('tag_line')
+
+        # If they intend to player ask for Riot ID info
         if responses[0] == 'Yes':
             # Asking for Riot Game Name
             await interaction.user.send(embed=discord.Embed(
@@ -134,36 +147,41 @@ class ApplicationButton(discord.ui.View):
         dateObj = dateTimeObj.date()
         dateStr = dateObj.strftime("%b %d %Y")
 
-        # Checks if user is in the database, if they are updates, if not adds them
+        #Prepare fields to update in database
+        update_fields = {
+            "User": str(interaction.user),
+            "Playing": responses[0],
+            "Development Team": responses[1],
+            "Production Team": responses[2],
+            "Completed On": dateStr
+        }
+        
+
+         # Only update Riot Game Name and Tag Line if the user is playing
+        if responses[0] == 'Yes':
+            update_fields["Riot Game Name"] = riot_game_name
+            update_fields["Riot Tag Line"] = riot_tag_line
+
+        # Update the intent collection
         result = dbInfo.intent_collection.find_one_and_update(
             {"ID": interaction.user.id},
-            {"$set":
-                {
-                    "User": str(interaction.user),
-                    "Playing": responses[0],
-                    "Development Team": responses[1],
-                    "Production Team": responses[2],
-                    "Riot Game Name": riot_game_name,
-                    "Riot Tag Line": riot_tag_line,
-                    "Completed On": dateStr
-                }
-            },
+            {"$set": update_fields},
             upsert=True,
             return_document=True
         )
 
-        # Also adds RIOT ID data to player collection
-        player_riot = dbInfo.player_collection.find_one_and_update({
-            "discord_id": interaction.user.id},
-            {"$set":
-             {
-                 "game_name": riot_game_name,
-                 "tag_line": riot_tag_line
-             }
-            })
+        # If they are playing, also update the player collection with Riot Game Name and Tag Line
+        if responses[0] == 'Yes':
+            dbInfo.player_collection.find_one_and_update(
+                {"discord_id": interaction.user.id},
+                {"$set": {
+                    "game_name": riot_game_name,
+                    "tag_line": riot_tag_line
+                }},
+                upsert=True
+            )
 
         logger.info(f"Database update result: {result}")
-        logger.info(f"Database update player collection: {player_riot} ")
 
         # Send submission to log channel
         submission_log_channel = self.bot.get_channel(submission_log_channel_id)
@@ -189,6 +207,7 @@ class ApplicationButton(discord.ui.View):
         riot_id_log_channel = self.bot.get_channel(config.riot_id_log_channel)
         if riot_id_log_channel:
             await riot_id_log_channel.send(f"{interaction.user.mention} updated their Riot ID: {riot_game_name}#{riot_tag_line}")
+
 
     async def update_nickname(self, user):
         """Update member's nickname based on their roles"""
