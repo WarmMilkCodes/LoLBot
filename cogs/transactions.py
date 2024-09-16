@@ -51,7 +51,7 @@ class Transactions(commands.Cog):
             await member.edit(nick=new_nickname)
             logger.info(f"Updated nickname for {member.name} to {new_nickname}")
         except Exception as e:
-        logger.error(f"Error updating nickname for {member.name}: {e}")
+            logger.error(f"Error updating nickname for {member.name}: {e}")
 
 
     async def get_gm_id(self, team_code: str) -> int:
