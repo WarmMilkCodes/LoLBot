@@ -8,7 +8,7 @@ from tabulate import tabulate
 
 logger = logging.getLogger(__name__)
 
-def get_peak_rank(rank_info_array):
+def get_peak_rank(player_info):
     RANK_ORDER = {
         "IRON": 1, "BRONZE": 2, "SILVER": 3, "GOLD": 4, "PLATINUM": 5, 
         "EMERALD": 6, "DIAMOND": 7, "MASTER": 8, "GRANDMASTER": 9, "CHALLENGER": 10
@@ -18,14 +18,17 @@ def get_peak_rank(rank_info_array):
     highest_rank = None
     highest_division = None
 
-    for rank in rank_info_array:
-        queue_type = rank.get('queue_type', 'N/A')
+    # Process rank_info (current rank) for peak rank
+    rank_info_array = player_info.get('rank_info', [])
+    
+    def process_rank(rank_data):
+        nonlocal highest_rank, highest_division
+        queue_type = rank_data.get('queue_type', 'N/A')
         if queue_type == "RANKED_SOLO_5x5":
-            # Use default 'N/A' if 'tier' or 'division' is not available
-            tier = rank.get('tier', 'N/A')
-            division = rank.get('division', 'N/A')
+            tier = rank_data.get('tier', 'N/A')
+            division = rank_data.get('division', 'N/A')
 
-            # Proceed with comparisons only if 'tier' is not 'N/A'
+            # Update peak rank if higher rank is found
             if highest_rank is None or (
                 tier != 'N/A' and RANK_ORDER.get(tier, 0) > RANK_ORDER.get(highest_rank, 0)
             ) or (
@@ -34,9 +37,21 @@ def get_peak_rank(rank_info_array):
                 highest_rank = tier
                 highest_division = division
 
+    # Process current rank info
+    for rank in rank_info_array:
+        process_rank(rank)
+
+    # Process historical rank info if available
+    historical_rank_info = player_info.get('historical_rank_info', {})
+    for date, rank_array in historical_rank_info.items():
+        for rank in rank_array:
+            process_rank(rank)
+
     if highest_rank:
         return f"{highest_rank.capitalize()} {highest_division.upper()}"
     return "N/A"
+
+
 
 
 class StaffCog(commands.Cog):
@@ -113,21 +128,17 @@ class StaffCog(commands.Cog):
         player_status = player_intent.get('Playing')
         if player_intent:
             if player_status == 'Yes':
-                player_status_embed = 'Playing' 
+                player_status_embed = 'Playing'
             elif player_status == 'No':
                 player_status_embed = 'Spectator'
             else:
                 player_status_embed = 'N/A'
 
         # Fetch number of games in split
-        split_games = player_info.get('current_split_game_count')
-        if not split_games:
-            split_games = 'N/A'
+        split_games = player_info.get('current_split_game_count', 'N/A')
 
-
-        # Handle rank_info for peak rank
-        rank_info_array = player_info.get('rank_info', [])
-        peak_rank = get_peak_rank(rank_info_array)
+        # Calculate peak rank (pass the entire player_info to get_peak_rank function)
+        peak_rank = get_peak_rank(player_info)
 
         # Determine salary, prioritize manual salary if available
         manual_salary = player_info.get('manual_salary')
@@ -141,7 +152,7 @@ class StaffCog(commands.Cog):
             f"**Status**: {player_status_embed}",
             f"**Eligibility**:  {'Eligible' if player_info.get('eligible_for_split') == True else 'Not Eligible'}",
             f"**Current Games**: {split_games}\n"
-            f"**Peak Rank**:\n{peak_rank}"
+            f"**Peak Rank**: {peak_rank}"  # Display peak rank here
         ]
 
         # Embed creation
@@ -169,6 +180,7 @@ class StaffCog(commands.Cog):
 
         # Respond with the embed
         await ctx.respond(embed=embed)
+
         
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Update a user's Riot ID")
