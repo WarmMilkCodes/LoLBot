@@ -289,7 +289,7 @@ class Transactions(commands.Cog):
                 GM = ctx.guild.get_role(gm_role_id)
 
                 # Send the transaction message
-                message = f"{GM.mention} signs {user.mention} to active roster"
+                message = f"{GM.mention} signs {user.mention} as reserve to active roster."
                 channel = self.bot.get_channel(config.posted_transactions_channel)
                 await channel.send(message)
 
