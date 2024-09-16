@@ -44,9 +44,9 @@ class Roster(commands.Cog):
             team_code = team["team_code"]
             team_logo_path = team.get("logo", None)
 
-            team_owner = team.get("owner", "N/A")
-            team_gm = team.get("gm", "N/A")
-            team_color_name = team.get("color", "Blue")
+            team_owner = team.get("owner", "")
+            team_gm = team.get("gm", "")
+            team_color_name = team.get("team_color", "Blue")
             team_color = DISCORD_COLOR_MAP.get(team_color_name, discord.Color.blue())
             team_cap = team.get("salary_cap", 610)
             team_rmn_cap = team.get("remaining_cap", 610)
