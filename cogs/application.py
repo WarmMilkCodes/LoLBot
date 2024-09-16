@@ -214,7 +214,7 @@ class ApplicationButton(discord.ui.View):
         try:
             # Determine the prefix based on roles
             prefix = ""
-            franchise_governor_role = discord.utils.get(user.guild.roles, name="Franchise Governors")
+            franchise_governor_role = discord.utils.get(user.guild.roles, name="Franchise Owner")
             
             if franchise_governor_role in user.roles:
                 # Check for a team role and use the team code as the prefix
@@ -226,14 +226,27 @@ class ApplicationButton(discord.ui.View):
             else:
                 if discord.utils.get(user.roles, name="Free Agents"):
                     prefix = "FA"
+
+                    # If player is Free Agent, retrieve salary to append to nickname
+                    player_entry = dbInfo.player_collection.find_one({"discord_id":user.id})
+                    if player_entry:
+                        player_salary = player_entry.get("salary", "TBD")
+                        suffix = f"{player_salary}"
+                    else:
+                        suffix = "| TBD"
                 elif discord.utils.get(user.roles, name="Spectator"):
                     prefix = "S"
+                    suffix = ""
 
-            # Remove any existing prefix
+            # Remove any existing prefix or salary suffix
             new_nickname = re.sub(r"^(FA \| |S \| |TBD \| |[A-Z]{2,3} \| )", "", user.display_name)
-            # Add new prefix if applicable
+            new_nickname = re.sub(r" \| \d+$", "", new_nickname)
+
+            # Add new prefix if applicable and append suffix for FA
             if prefix:
                 new_nickname = f"{prefix} | {new_nickname}"
+            new_nickname = f"{new_nickname} | {suffix}"
+            
             await user.edit(nick=new_nickname)
             logger.info(f"Updated nickname for {user.name} to {new_nickname}")
         except Exception as e:
