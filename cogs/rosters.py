@@ -66,7 +66,7 @@ class Roster(commands.Cog):
             slot_index = 0
             for player in roster_list:
                 # Truncate long player names
-                player_name = player['display_name'].replace(f"{team_code} | ", "")[:20]  # Truncate after 20 characters
+                player_name = player['nickname'].replace(f"{team_code} | ", "")[:20]  # Truncate after 20 characters
                 player_salary = player.get("salary", "TBD")
 
                 # Check if the player is a reserve
