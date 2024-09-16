@@ -9,29 +9,35 @@ from tabulate import tabulate
 logger = logging.getLogger(__name__)
 
 def get_peak_rank(rank_info_array):
-        RANK_ORDER = {
-            "IRON": 1, "BRONZE": 2, "SILVER": 3, "GOLD": 4, " PLATINUM": 5,
-            "EMERALD": 6, "DIAMOND": 7, "MASTER": 8, "GRANDMASTER": 9, "CHALLENGER": 10
-        }
-        DIVISION_ORDER = {"IV": 1, "III": 2, "II": 3, "I": 4}
+    RANK_ORDER = {
+        "IRON": 1, "BRONZE": 2, "SILVER": 3, "GOLD": 4, "PLATINUM": 5, 
+        "EMERALD": 6, "DIAMOND": 7, "MASTER": 8, "GRANDMASTER": 9, "CHALLENGER": 10
+    }
+    DIVISION_ORDER = {"IV": 1, "III": 2, "II": 3, "I": 4}
 
-        highest_rank = None
-        highest_division = None
+    highest_rank = None
+    highest_division = None
 
-        for rank in rank_info_array:
-            queue_type = rank.get('queue_type', 'N/A')
-            if queue_type == "RANKED_SOLO_5X5":
-                tier = rank.get('tier', 'N/A')
-                division = rank.get('division', 'N/A')
+    for rank in rank_info_array:
+        queue_type = rank.get('queue_type', 'N/A')
+        if queue_type == "RANKED_SOLO_5x5":
+            # Use default 'N/A' if 'tier' or 'division' is not available
+            tier = rank.get('tier', 'N/A')
+            division = rank.get('division', 'N/A')
 
-            if highest_rank is None or RANK_ORDER[tier] > RANK_ORDER[highest_rank] or (
-                RANK_ORDER[tier] == RANK_ORDER[highest_rank] and DIVISION_ORDER[division] > DIVISION_ORDER[highest_division]):
+            # Proceed with comparisons only if 'tier' is not 'N/A'
+            if highest_rank is None or (
+                tier != 'N/A' and RANK_ORDER.get(tier, 0) > RANK_ORDER.get(highest_rank, 0)
+            ) or (
+                tier != 'N/A' and RANK_ORDER.get(tier) == RANK_ORDER.get(highest_rank) and DIVISION_ORDER.get(division, 0) > DIVISION_ORDER.get(highest_division, 0)
+            ):
                 highest_rank = tier
                 highest_division = division
 
-        if highest_rank:
-            return f"{highest_rank.capitalize()} {highest_division.upper()}"
-        return "N/A"
+    if highest_rank:
+        return f"{highest_rank.capitalize()} {highest_division.upper()}"
+    return "N/A"
+
 
 class StaffCog(commands.Cog):
     def __init__(self, bot):
