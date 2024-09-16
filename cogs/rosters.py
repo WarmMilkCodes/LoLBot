@@ -32,7 +32,7 @@ class Roster(commands.Cog):
             team_gm = team.get("gm")
             team_cap = team.get("salary_cap", 610)
             team_rmn_cap = team.get("remaining_cap", 610)
-            logo_url = team.get("logo")
+            #logo_url = team.get("logo")
 
             owner_name = team_owner if team_owner else ''
             gm_name = team_gm if team_gm else ''
@@ -62,7 +62,7 @@ class Roster(commands.Cog):
                 color=discord.Color.teal()
             )
 
-            embed.set_thumbnail(url=logo_url)
+            #embed.set_thumbnail(url=logo_url)
             embed.add_field(name="Roster", value=f"```\n{roster_display}\n```", inline=False)
             embed.add_field(name="Owner", value=owner_name, inline=True)
             embed.add_field(name="GM", value=gm_name, inline=True)
