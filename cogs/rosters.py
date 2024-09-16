@@ -5,6 +5,7 @@ import app.config as config
 import app.dbInfo as dbInfo
 from tabulate import tabulate
 import re
+from datetime import datetime
 
 logger = logging.getLogger('__name__')
 
@@ -57,24 +58,28 @@ class Roster(commands.Cog):
             # Fetch active roster players for this team
             roster_list = dbInfo.player_collection.find({"team": team_code, "active_roster": True})
 
-            # Prepare player data for tabulate
-            players_table = []
-            for index, player in enumerate(roster_list, start=1):
-                # Remove team prefixes from player names
-                player_name = player['nickname'].replace(f'{team_code} | ', '')
-                player_salary = player.get('salary', 'TBD')
+            player_slots = ['A', 'B', 'C', 'D', 'E']
+            reserve_slot = 'R'
 
-                # Check if the player is a reserve player
-                if player.get('reserve_player', False):
-                    roster_number = "R"  # Mark reserve players with "R"
+            # Tabulate the roster with 'Slots' header
+            roster_table = []
+            slot_index = 0
+            for player in roster_list:
+                # Truncate long player names
+                player_name = player['display_name'].replace(f"{team_code} | ", "")[:20]  # Truncate after 20 characters
+                player_salary = player.get("salary", "TBD")
+
+                # Check if the player is a reserve
+                if player.get("reserve_player", False):
+                    roster_table.append([reserve_slot, player_name, player_salary])
                 else:
-                    roster_number = str(index)
+                    if slot_index < len(player_slots):
+                        slot = player_slots[slot_index]
+                        roster_table.append([slot, player_name, player_salary])
+                        slot_index += 1
 
-                # Append player data to the table
-                players_table.append([roster_number, player_name, player_salary])
-
-            # Use tabulate to display roster neatly in the embed with # header
-            roster_display = tabulate(players_table, headers=["#", "Player", "Salary"], tablefmt="plain") if players_table else "No players on roster"
+            # Create tabulated roster display
+            roster_display = tabulate(roster_table, headers=["Slot", "Player", "Salary"], tablefmt="plain") if roster_table else "No players on roster"
 
             # Create the embed for this team's roster
             embed = discord.Embed(
@@ -90,7 +95,7 @@ class Roster(commands.Cog):
             embed.add_field(name="GM", value=team_gm, inline=True)
             embed.add_field(name="Salary Cap", value=f"${team_cap}", inline=True)
             embed.add_field(name="Remaining Cap", value=f"${team_rmn_cap}", inline=True)
-            embed.set_footer(text="Last updated")
+            embed.set_footer(text=f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
             # Send embed to the roster channel
             await roster_channel.send(embed=embed)
