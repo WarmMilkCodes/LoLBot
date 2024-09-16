@@ -61,12 +61,9 @@ class Roster(commands.Cog):
             player_slots = ['A', 'B', 'C', 'D', 'E']
             reserve_slot = 'R'
 
-            regular_players = []
-            reserve_players = []
-
             # Tabulate the roster with 'Slots' header
             roster_table = []
-            slot_index = 0
+
             for player in roster_list:
                 # Truncate long player names
                 player_name = player['nickname'].replace(f"{team_code} | ", "")[:20]  # Truncate after 20 characters
@@ -74,17 +71,14 @@ class Roster(commands.Cog):
 
                 # Check if the player is a reserve
                 if player.get("reserve_player", True):
-                    reserve_players.append([reserve_slot, player_name, player_salary])
+                    roster_table.append(['R', player_name, player_salary])
                 else:
-                    regular_players.append([player_name, player_salary])
+                    # Assign regular slots (A-E)
+                    current_slot = player_slots[len(roster_table) % len(player_slots)]  # Use modulo to safely assign slots
+                    roster_table.append([current_slot, player_name, player_salary])
 
-            roster_table = []
-            for i, player in enumerate(regular_players):
-                if i < len(player_slots):
-                    roster_table.append([player_slots[i], player[0], player[1]])
-
-            # Append reserve players list
-            roster_table.extend(reserve_players)
+            # Sort the roster table by Slot (which will automatically order A-E followed by R)
+            roster_table.sort(key=lambda x: x[0])
 
             # Create tabulated roster display
             roster_display = tabulate(roster_table, headers=["Slot", "Player", "Salary"], tablefmt="plain") if roster_table else "No players on roster"
