@@ -35,9 +35,9 @@ class Roster(commands.Cog):
             gm_name = team_gm if team_gm else ''
 
             # Fetch active roster players from player collection
-            roster_members = dbInfo.player_collection.find({"team": team, "active_roster":True})
+            roster_members = dbInfo.player_collection.find({"team": team_code, "active_roster":True})
 
-            # Prepare the roster list
+                        # Prepare the roster list
             roster_list = []
 
             for member in roster_members:
