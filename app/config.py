@@ -18,13 +18,15 @@ RIOT_API = os.getenv("RIOT_API")
 
 # Commonly used server channels
 bot_admin_channel = 1171263860716601366
+bot_testing_channel = 1171263860716601367
 riot_id_log_channel = 1194430443362205767
 transaction_bot_channel = 1264833838916567090
 posted_transactions_channel = 1171263861987475482
 submission_log_channel = 1271698169721393193
 failure_log_channel = 1171263860716601368
+rosters_channel = 1285089150898409522
 
-admin_channels = bot_admin_channel, transaction_bot_channel, submission_log_channel, failure_log_channel
+admin_channels = bot_admin_channel, bot_testing_channel, transaction_bot_channel, submission_log_channel, failure_log_channel
 
 # Server ID
 lol_server = 1171263858971770901
