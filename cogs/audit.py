@@ -74,7 +74,7 @@ class Audit(commands.Cog):
     async def audit_roles(self):
         guild = self.bot.get_guild(config.lol_server)
         if guild:
-            audit_channel = guild.get_channel(config.failure_log_channel) 
+            audit_channel = guild.get_channel(config.failure_log_channel)
             for member in guild.members:
                 if member.bot:
                     continue
@@ -86,35 +86,29 @@ class Audit(commands.Cog):
                     logger.warning(f"No player info found for {member.name} in database")
                     continue
 
-                team_code = player_info.get("team")
-                if not team_code or team_code == "Unassigned" or team_code == None:
-                    continue
-
+                team_code = player_info.get("team", "Unassigned")
                 is_free_agent = (team_code == "FA")
-                team_role_id = await self.get_team_role(team_code) if not is_free_agent else None
 
-                roles_changed = await self.update_roles(member, team_role_id, is_free_agent)
-
-                if roles_changed:
-                    message = f"Roles updated for {member.mention}: {'Free Agent' if is_free_agent else team_code}"
-                    await audit_channel.send(message)
-                
-                # Update nickname
+                # Determine the prefix based on the player's team or role
                 prefix = ""
                 spectator_role = discord.utils.get(member.roles, name="Spectator")
                 not_eligible_role = discord.utils.get(member.roles, name="Not Eligible")
+                
                 if is_free_agent:
                     prefix = "FA"
-                elif spectator_role in member.roles and not team_role_id:
+                elif spectator_role in member.roles:
                     prefix = "S"
                 elif not_eligible_role in member.roles and not spectator_role:
                     prefix = "TBD"
-                elif team_code != "Unassigned":
+                elif team_code and team_code != "Unassigned":
                     prefix = team_code
-                
+
+                # Call the update_nickname function with the determined prefix
                 await self.update_nickname(member, prefix)
-        
-        logger.info("Audit finished. Next audit will occur in 24 hours.")
+                
+                logger.info(f"Nickname updated for {member.display_name}")
+
+            logger.info("Audit finished. Next audit will occur in 24 hours.")
 
     @audit_roles.before_loop
     async def before_audit_roles(self):
