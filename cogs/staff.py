@@ -18,34 +18,38 @@ def get_peak_rank(player_info):
     highest_rank = None
     highest_division = None
 
-    # Process rank_info (current rank) for peak rank
-    rank_info_array = player_info.get('rank_info', [])
-    
-    def process_rank(rank_data):
+    # Function to update the highest rank
+    def update_highest_rank(tier, division):
         nonlocal highest_rank, highest_division
-        queue_type = rank_data.get('queue_type', 'N/A')
-        if queue_type == "RANKED_SOLO_5x5":
-            tier = rank_data.get('tier', 'N/A')
-            division = rank_data.get('division', 'N/A')
+        if tier is None or division is None:
+            return
 
-            # Update peak rank if higher rank is found
-            if highest_rank is None or (
-                tier != 'N/A' and RANK_ORDER.get(tier, 0) > RANK_ORDER.get(highest_rank, 0)
-            ) or (
-                tier != 'N/A' and RANK_ORDER.get(tier) == RANK_ORDER.get(highest_rank) and DIVISION_ORDER.get(division, 0) > DIVISION_ORDER.get(highest_division, 0)
-            ):
-                highest_rank = tier
-                highest_division = division
+        if highest_rank is None or (
+            RANK_ORDER.get(tier, 0) > RANK_ORDER.get(highest_rank, 0)
+        ) or (
+            RANK_ORDER.get(tier) == RANK_ORDER.get(highest_rank) and DIVISION_ORDER.get(division, 0) > DIVISION_ORDER.get(highest_division, 0)
+        ):
+            highest_rank = tier
+            highest_division = division
 
-    # Process current rank info
+    # Process current rank_info (if exists)
+    rank_info_array = player_info.get('rank_info', [])
     for rank in rank_info_array:
-        process_rank(rank)
+        queue_type = rank.get('queue_type')
+        if queue_type == "RANKED_SOLO_5x5":
+            tier = rank.get('tier', None)
+            division = rank.get('division', None)
+            update_highest_rank(tier, division)
 
-    # Process historical rank info if available
+    # Process historical_rank_info (if exists)
     historical_rank_info = player_info.get('historical_rank_info', {})
     for date, rank_array in historical_rank_info.items():
         for rank in rank_array:
-            process_rank(rank)
+            queue_type = rank.get('queue_type')
+            if queue_type == "RANKED_SOLO_5x5":
+                tier = rank.get('tier', None)
+                division = rank.get('division', None)
+                update_highest_rank(tier, division)
 
     if highest_rank:
         return f"{highest_rank.capitalize()} {highest_division.upper()}"
