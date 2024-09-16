@@ -44,31 +44,36 @@ class Audit(commands.Cog):
         return roles_changed
 
     async def update_nickname(self, member, prefix):
-        """Update the member's nickname with the given prefix and append salary as suffix if Free Agent."""
+        """Update the member's nickname with the given prefix and append salary as suffix if Free Agent, unless Franchise Owner."""
         try:
             # Remove any existing prefix or suffix
             new_nickname = re.sub(r"^(FA \| |S \| |TBD \| |[A-Z]{2,3} \| )", "", member.display_name)
             new_nickname = re.sub(r" \| \d+$", "", new_nickname)  # Remove existing salary suffix if any
 
+            # Franchise Owner logic: Use team_code as prefix if the user has the Franchise Owner role
+            franchise_owner_role = discord.utils.get(member.roles, name="Franchise Owner")
+            if franchise_owner_role:
+                # Retrieve the player's team code from the database
+                player_info = dbInfo.player_collection.find_one({"discord_id": member.id})
+                team_code = player_info.get("team", "Unassigned") if player_info else "Unassigned"
+                
+                if team_code != "Unassigned":
+                    prefix = team_code  # Set the prefix to the team code for Franchise Owners
+                    logger.info(f"User {member.name} (ID: {member.id}) has Franchise Owner role. Prefix set to team_code: {team_code}")
+                else:
+                    logger.warning(f"User {member.name} (ID: {member.id}) has Franchise Owner role but no team_code found.")
+            
             # Add the new prefix if applicable
             if prefix:
                 new_nickname = f"{prefix} | {new_nickname}"
 
-            # If the player is a Free Agent, append salary as suffix
-            if prefix == "FA":
+            # If the player has the "Free Agents" role, append salary as suffix, but skip this for Franchise Owners
+            fa_role = discord.utils.get(member.roles, name="Free Agents")
+            if fa_role and not franchise_owner_role:  # Only add salary suffix if they are not a Franchise Owner
                 player_info = dbInfo.player_collection.find_one({"discord_id": member.id})
-                
-                if player_info:
-                    salary = player_info.get("salary", "TBD")
-                    logger.info(f"User {member.name} (ID: {member.id}) is a Free Agent. Salary: {salary}")
-                else:
-                    salary = "TBD"
-                    logger.warning(f"User {member.name} (ID: {member.id}) is a Free Agent but no salary information was found in the database.")
-
+                salary = player_info.get("salary", "TBD") if player_info else "TBD"
                 new_nickname = f"{new_nickname} | {salary}"  # Append salary to nickname
-                logger.info(f"User {member.name} (ID: {member.id}) nickname updated with salary suffix: {new_nickname}")
-            else:
-                logger.info(f"User {member.name} (ID: {member.id}) is not a Free Agent. Prefix: {prefix}")
+                logger.info(f"User {member.name} (ID: {member.id}) has the Free Agents role. Salary: {salary}")
 
             # Update the member's nickname
             await member.edit(nick=new_nickname)
@@ -97,14 +102,17 @@ class Audit(commands.Cog):
                     continue
 
                 team_code = player_info.get("team", "Unassigned")
-                is_free_agent = (team_code == "FA")
+                is_free_agent = discord.utils.get(member.roles, name="Free Agents") is not None
 
                 # Determine the prefix based on the player's team or role
                 prefix = ""
+                franchise_owner_role = discord.utils.get(member.roles, name="Franchise Owner")
                 spectator_role = discord.utils.get(member.roles, name="Spectator")
                 not_eligible_role = discord.utils.get(member.roles, name="Not Eligible")
-                
-                if is_free_agent:
+
+                if franchise_owner_role:
+                    prefix = team_code if team_code and team_code != "Unassigned" else ""
+                elif is_free_agent:
                     prefix = "FA"
                 elif spectator_role in member.roles:
                     prefix = "S"
