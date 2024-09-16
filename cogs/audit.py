@@ -48,7 +48,8 @@ class Audit(commands.Cog):
         try:
             # Remove any existing prefix or suffix
             new_nickname = re.sub(r"^(FA \| |S \| |TBD \| |[A-Z]{2,3} \| )", "", member.display_name)
-            new_nickname = re.sub(r" \| \d+$", "", new_nickname)  # Remove existing salary suffix if any
+            new_nickname = re.sub(r" \| \d+$", "", new_nickname)  # Remove any existing salary suffix
+            new_nickname = re.sub(r" \| TBD$", "", new_nickname)  # Remove any existing TBD suffix
 
             # Franchise Owner logic: Use team_code as prefix if the user has the Franchise Owner role
             franchise_owner_role = discord.utils.get(member.roles, name="Franchise Owner")
