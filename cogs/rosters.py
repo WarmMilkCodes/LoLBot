@@ -2,6 +2,8 @@ import discord, logging
 from discord.ext import commands
 import app.config as config
 import app.dbInfo as dbInfo
+from tabulate import tabulate
+import re
 
 logger = logging.getLogger('__name__')
 
@@ -30,6 +32,7 @@ class Roster(commands.Cog):
             team_gm = team.get("gm")
             team_cap = team.get("salary_cap", 610)
             team_rmn_cap = team.get("remaining_cap", 610)
+            logo_url = team.get("logo")
 
             owner_name = team_owner if team_owner else ''
             gm_name = team_gm if team_gm else ''
@@ -43,11 +46,15 @@ class Roster(commands.Cog):
             for member in roster_members:
                 discord_member = ctx.guild.get_member(member.get('discord_id'))
                 salary = member.get('salary', 0)
+                
                 if discord_member:
-                    roster_list.append(f"{discord_member.display_name} - ${salary}")
+                    clean_name = re.sub(r"^[A-Z]{2,3} \| ", "", discord_member.display_name)
+                    roster_list.append([clean_name, f"${salary}"])
 
-            # If no players show message
-            roster_display = "\n".join(roster_list) if roster_list else "No players on roster."
+            if roster_list:
+                roster_display = tabulate(roster_list, headers=["Player", "Salary"], tablefmt="plain")
+            else:
+                roster_display = "No active players on roster"
 
             # Create an embed for the team roster
             embed = discord.Embed(
@@ -55,7 +62,8 @@ class Roster(commands.Cog):
                 color=discord.Color.teal()
             )
 
-            embed.add_field(name="Players", value=roster_display, inline=False)
+            embed.set_thumbnail(url=logo_url)
+            embed.add_field(name="Roster", value=f"```\n{roster_display}\n```", inline=False)
             embed.add_field(name="Owner", value=owner_name, inline=True)
             embed.add_field(name="GM", value=gm_name, inline=True)
             embed.add_field(name="Salary Cap", value=f"${team_cap}", inline=True)
