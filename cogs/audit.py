@@ -44,41 +44,41 @@ class Audit(commands.Cog):
         return roles_changed
 
     async def update_nickname(self, member, prefix):
-    """Update the member's nickname with the given prefix and append salary as suffix if Free Agent."""
-    try:
-        # Remove any existing prefix or suffix
-        new_nickname = re.sub(r"^(FA \| |S \| |TBD \| |[A-Z]{2,3} \| )", "", member.display_name)
-        new_nickname = re.sub(r" \| \d+$", "", new_nickname)  # Remove existing salary suffix if any
+        """Update the member's nickname with the given prefix and append salary as suffix if Free Agent."""
+        try:
+            # Remove any existing prefix or suffix
+            new_nickname = re.sub(r"^(FA \| |S \| |TBD \| |[A-Z]{2,3} \| )", "", member.display_name)
+            new_nickname = re.sub(r" \| \d+$", "", new_nickname)  # Remove existing salary suffix if any
 
-        # Add the new prefix if applicable
-        if prefix:
-            new_nickname = f"{prefix} | {new_nickname}"
+            # Add the new prefix if applicable
+            if prefix:
+                new_nickname = f"{prefix} | {new_nickname}"
 
-        # If the player is a Free Agent, append salary as suffix
-        if prefix == "FA":
-            player_info = dbInfo.player_collection.find_one({"discord_id": member.id})
-            
-            if player_info:
-                salary = player_info.get("salary", "TBD")
-                logger.info(f"User {member.name} (ID: {member.id}) is a Free Agent. Salary: {salary}")
+            # If the player is a Free Agent, append salary as suffix
+            if prefix == "FA":
+                player_info = dbInfo.player_collection.find_one({"discord_id": member.id})
+                
+                if player_info:
+                    salary = player_info.get("salary", "TBD")
+                    logger.info(f"User {member.name} (ID: {member.id}) is a Free Agent. Salary: {salary}")
+                else:
+                    salary = "TBD"
+                    logger.warning(f"User {member.name} (ID: {member.id}) is a Free Agent but no salary information was found in the database.")
+
+                new_nickname = f"{new_nickname} | {salary}"  # Append salary to nickname
+                logger.info(f"User {member.name} (ID: {member.id}) nickname updated with salary suffix: {new_nickname}")
             else:
-                salary = "TBD"
-                logger.warning(f"User {member.name} (ID: {member.id}) is a Free Agent but no salary information was found in the database.")
+                logger.info(f"User {member.name} (ID: {member.id}) is not a Free Agent. Prefix: {prefix}")
 
-            new_nickname = f"{new_nickname} | {salary}"  # Append salary to nickname
-            logger.info(f"User {member.name} (ID: {member.id}) nickname updated with salary suffix: {new_nickname}")
-        else:
-            logger.info(f"User {member.name} (ID: {member.id}) is not a Free Agent. Prefix: {prefix}")
+            # Update the member's nickname
+            await member.edit(nick=new_nickname)
+            logger.info(f"Updated nickname for {member.display_name} to {new_nickname}")
 
-        # Update the member's nickname
-        await member.edit(nick=new_nickname)
-        logger.info(f"Updated nickname for {member.display_name} to {new_nickname}")
-
-        # Update nickname in the database
-        dbInfo.player_collection.update_one({"discord_id": member.id}, {'$set': {'nickname': new_nickname}})
-    except Exception as e:
-        logger.error(f"Error updating nickname for {member.display_name}: {e}")
-       
+            # Update nickname in the database
+            dbInfo.player_collection.update_one({"discord_id": member.id}, {'$set': {'nickname': new_nickname}})
+        except Exception as e:
+            logger.error(f"Error updating nickname for {member.display_name}: {e}")
+        
     
     @tasks.loop(hours=24)
     async def audit_roles(self):
