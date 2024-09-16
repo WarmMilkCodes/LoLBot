@@ -347,8 +347,14 @@ class Transactions(commands.Cog):
             GM = ctx.guild.get_role(gm_role_id)
 
             # Calculate and update the team's remaining cap space
-            team_entry = dbInfo.team_collection.find_one({"team_code": team_code})
+            team_entry = dbInfo.team_collection.find_one({"team_code": team_code.upper()})
+            if team_entry is None:
+                return await ctx.respond(f"{team_code.upper} not found in database.")
+            
             remaining_cap = team_entry.get("remaining_cap", SALARY_CAP)
+            if remaining_cap is None:
+                return await ctx.respond("Remaining cap not found in team's document.")
+            
             new_remaining_cap = remaining_cap + player_salary
 
             # Update the team's remaining cap in the database
