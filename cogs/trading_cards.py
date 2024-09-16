@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 from PIL import Image, ImageDraw, ImageFont
 import app.dbInfo as dbInfo
+import app.config as config
 import os
 import requests
 from io import BytesIO
