@@ -8,6 +8,31 @@ from tabulate import tabulate
 
 logger = logging.getLogger(__name__)
 
+def get_peak_rank(rank_info_array):
+        RANK_ORDER = {
+            "IRON": 1, "BRONZE": 2, "SILVER": 3, "GOLD": 4, " PLATINUM": 5,
+            "EMERALD": 6, "DIAMOND": 7, "MASTER": 8, "GRANDMASTER": 9, "CHALLENGER": 10
+        }
+        DIVISION_ORDER = {"IV": 1, "III": 2, "II": 3, "I": 4}
+
+        highest_rank = None
+        highest_division = None
+
+        for rank in rank_info_array:
+            queue_type = rank.get('queue_type', 'N/A')
+            if queue_type == "RANKED_SOLO_5X5":
+                tier = rank.get('tier', 'N/A')
+                division = rank.get('division', 'N/A')
+
+            if highest_rank is None or RANK_ORDER[tier] > RANK_ORDER[highest_rank] or (
+                RANK_ORDER[tier] == RANK_ORDER[highest_rank] and DIVISION_ORDER[division] > DIVISION_ORDER[highest_division]):
+                highest_rank = tier
+                highest_division = division
+
+        if highest_rank:
+            return f"{highest_rank.capitalize()} {highest_division.upper()}"
+        return "N/A"
+
 class StaffCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -24,6 +49,9 @@ class StaffCog(commands.Cog):
             logger.info(f"Updated nickname for {member.name} to {new_nickname}")
         except Exception as e:
             logger.error(f"Error updating nickname for {member.name}: {e}")
+
+    
+
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Update avatar URLs for all existing members in the database.")
     @commands.has_role("Bot Guy")
@@ -91,29 +119,9 @@ class StaffCog(commands.Cog):
             split_games = 'N/A'
 
 
-        # Handling the rank_info array with proper formatting
+        # Handle rank_info for peak rank
         rank_info_array = player_info.get('rank_info', [])
-        rank_info_display = ""
-        if rank_info_array:
-            rank_info_list = []
-            for rank in rank_info_array:
-                queue_type = rank.get('queue_type', 'N/A')  # Do not format here yet
-                
-                # Only process 'RANKED_SOLO_5x5'
-                if queue_type == "RANKED_SOLO_5x5":  # Check the original value
-                    tier = rank.get('tier')
-                    tier_display = tier.capitalize() if tier else 'N/A'
-
-                    division = rank.get('division')
-                    division_display = division.upper() if division else 'N/A'
-
-                    # Now format queue_type for display
-                    formatted_queue_type = queue_type.replace('_', ' ').title()
-                    rank_info_list.append(f"\n**Queue Type**: {formatted_queue_type}\n**Tier**: {tier_display}\n**Division**: {division_display}")
-
-            rank_info_display = '\n'.join(rank_info_list) if rank_info_list else "N/A"
-        else:
-            rank_info_display = "N/A"
+        peak_rank = get_peak_rank(rank_info_array)
 
         # Determine salary, prioritize manual salary if available
         manual_salary = player_info.get('manual_salary')
@@ -127,7 +135,7 @@ class StaffCog(commands.Cog):
             f"**Status**: {player_status_embed}",
             f"**Eligibility**:  {'Eligible' if player_info.get('eligible_for_split') == True else 'Not Eligible'}",
             f"**Current Games**: {split_games}\n"
-            f"**Rank Info**:\n{rank_info_display}"
+            f"**Peak Rank**:\n{peak_rank}"
         ]
 
         # Embed creation
