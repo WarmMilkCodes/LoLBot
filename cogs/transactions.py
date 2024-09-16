@@ -231,6 +231,150 @@ class Transactions(commands.Cog):
         except Exception as e:
             await ctx.respond(f"Error relieving {user.mention} from GM duties:\n{e}")
 
+    @commands.slash_command(guild_ids=[config.lol_server], description="Designate player as reserve")
+    @commands.has_any_role("League Ops", "Bot Guy")
+    async def sign_reserve(self, ctx, user: Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada)")):
+        await ctx.defer()
+        try:
+            if not await self.validate_command_channel(ctx):
+                return
+            
+            missing_intent = discord.utils.get(ctx.guild.roles, name="Missing Intent Form")
+            if missing_intent in user.roles:
+                return await ctx.respond(f"{user.mention} has not completed the intent form and cannot be signed to roster.")
+            
+            spectator = discord.utils.get(ctx.guild.roles, name = "Spectator")
+            if spectator in user.roles:
+                return await ctx.respond(f"{user.mention} is a spectator and cannot be signed.")
+
+            not_eligible = discord.utils.get(ctx.guild.roles, name="Not Eligible")
+            if not_eligible in user.roles:
+                return await ctx.respond(f"{user.mention} has an invalid Riot ID and cannot be signed to roster.")
+            
+            player_entry = await self.get_player_info(user.id)
+            if not player_entry or player_entry.get("team") not in ['FA', None]:
+                # check if player is GM for the team
+                gm_role_id = await self.get_gm_id(team_code.upper())
+                gm_role = ctx.guild.get_role(gm_role_id)
+                
+                if gm_role not in user.roles:
+                    return await ctx.respond(f"{user.mention} is already on a team and cannot be signed.")
+                
+                if not player_entry.get("rank_info"):
+                    return await ctx.respond(f"{user.mention} does not have rank game data and cannot be signed.")
+                
+                # Calculate the current team salary
+                current_team_salary = await self.calculate_team_salary(team_code.upper())
+
+                # Retrieve player's salary
+                player_salary = player_entry.get("salary", 0)
+                manual_player_salary = player_entry.get("manual_salary", 0)
+                if manual_player_salary:
+                    player_salary = manual_player_salary
+                    if player_salary == 0:
+                        return await ctx.respond(f"{user.mention} does not have a salary and cannot be signed.")
+                    
+                # Fetch team role
+                team_role_id = await self.get_team_role(team_code.upper())
+                if not team_role_id:
+                    return await ctx.respond(f"Invalid team code passed: {team_code.upper()}")
+                
+                # Add player to team's role and KEEP Free Agents role
+                await self.add_role_to_member(user, ctx.guild.get_role(team_role_id), f"Player signed as reserve to {team_code.upper()}")
+
+                # Update the GM mention for notification(s)
+                gm_role_id = await self.get_gm_id(team_code.upper())
+                if not gm_role_id:
+                    return await ctx.respond(f"No GM role found for team: {team_code.upper()}")
+                GM = ctx.guild.get_role(gm_role_id)
+
+                # Send the transaction message
+                message = f"{GM.mention} signs {user.mention} to active roster"
+                channel = self.bot.get_channel(config.posted_transactions_channel)
+                await channel.send(message)
+
+                await self.update_team_in_database(user.id, team_code.upper())
+                dbInfo.player_collection.update_one({"discord_id": user.id}, {"$set": {"reserve_player": True, "active_roster": True}})
+                await self.update_nickname(user, team_code.upper())
+                await ctx.respond(f"{user.mention} has been signed as a reserve to {team_code.upper()}")
+
+        except Exception as e:
+            await ctx.respond(f"Error signing reserve {user.mention} to {team_code.upper()}:\n{e}")
+
+
+    @commands.slash_command(guild_ids=[config.lol_server], description="Release reserve from team")
+    @commands.has_any_role("League Ops", "Bot Guy")
+    async def release_reserve(self, ctx, user: Option(discord.Member), team_code: Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
+        await ctx.defer()
+
+        try:
+            # Validate command channel
+            if not await self.validate_command_channel(ctx):
+                return
+
+            # Fetch player entry from database
+            player_entry = await self.get_player_info(user.id)
+            if player_entry is None:
+                return await ctx.respond(f"Unable to find player: {user.name} in the database.", ephemeral=True)
+
+            # Check if player is a reserve
+            if player_entry['reserve_player': False]:
+                return await ctx.respond(f"{user.name} is not signed as a reserve to any team.")
+
+            # Check if the player is a Free Agent already
+            if player_entry['team'] == 'FA':
+                return await ctx.respond(f"{user.name} is already a free agent.")
+
+            # Fetch the team role ID from the database
+            team_role_id = await self.get_team_role(team_code.upper())
+            if not team_role_id:
+                return await ctx.respond(f"Invalid team code used in command: {team_code.upper()}")
+
+            # Check if the user is actually signed to the team in the command
+            if not ctx.guild.get_role(team_role_id) in user.roles:
+                return await ctx.respond(f"{user.name} is not signed to {team_code.upper()}'s roster.")
+
+            # Check if user is a General Manager
+            general_manager_role = discord.utils.get(ctx.guild.roles, name="General Managers")
+            if general_manager_role and general_manager_role in user.roles:
+                # GM-specific release: Mark as non-playing GM
+                team_entry = dbInfo.team_collection.find_one({"team_code": team_code.upper()})
+                if team_entry is None:
+                    return await ctx.respond(f"{team_code.upper()} not found in database.")
+
+                # Notify and update GM status
+                message = f"{team_code.upper()} moves {user.mention} to non-playing GM"
+                channel = self.bot.get_channel(config.posted_transactions_channel)
+                await channel.send(message)
+
+                await self.update_team_in_database(user.id, f"{team_code.upper()}")
+                await self.update_nickname(user, f"{team_code.upper()}")
+                dbInfo.player_collection.update_one({"discord_id": user.id}, {"$set": {"active_roster": False, "reserve_player": False}})
+
+                return await ctx.respond(f"{user.mention} has been moved to non-playing GM")
+
+            # Regular player release to free agency
+            FA = discord.utils.get(ctx.guild.roles, name="Free Agents")
+            await self.remove_role_from_member(user, ctx.guild.get_role(team_role_id), "Player released to free agency")
+            await self.add_role_to_member(user, FA, "Player released to free agency")
+
+            # Notify about the player release
+            gm_role_id = await self.get_gm_id(team_code.upper())
+            GM = ctx.guild.get_role(gm_role_id)
+            message = f"{GM.mention} releases {user.mention} to free agency"
+            channel = self.bot.get_channel(config.posted_transactions_channel)
+            await channel.send(message)
+
+            # Update player in the database and nickname
+            await self.update_team_in_database(user.id, 'FA')
+            await self.update_nickname(user, 'FA')
+            dbInfo.player_collection.update_one({"discord_id": user.id}, {"$set": {"active_roster": False, "reserve_player": False}})
+            await ctx.respond(f"{user.mention} has been released from {team_code.upper()} to free agency")
+
+        except Exception as e:
+            await ctx.respond(f"Error releasing {user.name}:\n{e}")
+                
+
     @commands.slash_command(guild_ids=[config.lol_server], description="Sign player to active roster")
     @commands.has_any_role("League Ops", "Bot Guy")
     async def sign_player(self, ctx, user: Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
