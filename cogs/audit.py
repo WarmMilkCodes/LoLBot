@@ -44,20 +44,32 @@ class Audit(commands.Cog):
         return roles_changed
 
     async def update_nickname(self, member, prefix):
-        """Update the member's nickname with the given prefix."""
+        """Update the member's nickname with the given prefix and append salary as suffix if Free Agent."""
         try:
-            # Remove any existing prefix
+            # Remove any existing prefix or suffix
             new_nickname = re.sub(r"^(FA \| |S \| |TBD \| |[A-Z]{2,3} \| )", "", member.display_name)
+            new_nickname = re.sub(r" \| \d+$", "", new_nickname)  # Remove existing salary suffix if any
+
             # Add the new prefix if applicable
             if prefix:
                 new_nickname = f"{prefix} | {new_nickname}"
+
+            # If the player is a Free Agent, append salary as suffix
+            if prefix == "FA":
+                player_info = dbInfo.player_collection.find_one({"discord_id": member.id})
+                salary = player_info.get("salary", "TBD") if player_info else "TBD"
+                new_nickname = f"{new_nickname} | {salary}"  # Append salary to nickname
+
+            # Update the member's nickname
             await member.edit(nick=new_nickname)
             logger.info(f"Updated nickname for {member.display_name} to {new_nickname}")
+
             # Update nickname in the database
             dbInfo.player_collection.update_one({"discord_id": member.id}, {'$set': {'nickname': new_nickname}})
         except Exception as e:
             logger.error(f"Error updating nickname for {member.display_name}: {e}")
-
+        
+    
     @tasks.loop(hours=24)
     async def audit_roles(self):
         guild = self.bot.get_guild(config.lol_server)
