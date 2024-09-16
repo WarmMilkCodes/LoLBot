@@ -29,15 +29,16 @@ class Transactions(commands.Cog):
         return total_salary
         
     async def update_nickname(self, member, prefix):
-        """Update member's nickname with given prefix"""
+        """Update member's nickname with the given prefix."""
         try:
-            # Remove any existing prefix
+            # Remove any existing prefix and salary suffix
             new_nickname = re.sub(r"^(FA \| |S \| |[A-Z]{2,3} \| )", "", member.display_name)
-            
+            new_nickname = re.sub(r" \| \d+$", "", new_nickname)  # Remove existing salary suffix if any
+
             # Check if the player is a Free Agent
             FA = discord.utils.get(member.guild.roles, name="Free Agents")
             player_entry = await self.get_player_info(member.id)
-                        
+
             if prefix == 'FA' and player_entry:
                 # Fetch salary and append to nickname if Free Agent
                 player_salary = player_entry.get("salary", "TBD")
@@ -50,7 +51,7 @@ class Transactions(commands.Cog):
             await member.edit(nick=new_nickname)
             logger.info(f"Updated nickname for {member.name} to {new_nickname}")
         except Exception as e:
-            logger.error(f"Error updating nickname for {member.name}: {e}")
+        logger.error(f"Error updating nickname for {member.name}: {e}")
 
 
     async def get_gm_id(self, team_code: str) -> int:
