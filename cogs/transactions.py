@@ -322,50 +322,76 @@ class Transactions(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Release player to free agency")
     @commands.has_any_role("League Ops", "Bot Guy")
-    async def release_player(self, ctx, user:Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
+    async def release_player(self, ctx, user: Option(discord.Member), team_code: Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
         await ctx.defer()
-        
+
         try:
+            # Validate command channel
             if not await self.validate_command_channel(ctx):
                 return
-            
+
+            # Fetch player entry from database
             player_entry = await self.get_player_info(user.id)
             if player_entry is None:
-                return await ctx.respond(f"Unable to find player: {user.name} in database.", ephemeral=True)
-            
+                return await ctx.respond(f"Unable to find player: {user.name} in the database.", ephemeral=True)
+
+            # Check if the player is already a free agent
             if player_entry['team'] == 'FA':
                 return await ctx.respond(f"{user.name} is already a free agent.")
-            
+
+            # Fetch the team role ID from the database
             team_role_id = await self.get_team_role(team_code.upper())
             if not team_role_id:
                 return await ctx.respond(f"Invalid team code used in command: {team_code.upper()}")
-            
-            if not user.roles.__contains__(ctx.guild.get_role(team_role_id)):
+
+            # Check if the user is actually signed to the team in the command
+            if not ctx.guild.get_role(team_role_id) in user.roles:
                 return await ctx.respond(f"{user.name} is not signed to {team_code.upper()}'s active roster.")
-            
-            # Fetch the player's salary
+
+            # Fetch the player's salary from the database
             player_salary = player_entry.get("salary", 0)
             if player_salary == 0:
                 return await ctx.respond(f"{user.mention} does not have a salary assigned.")
-            
+
+            # Check if user is a General Manager
+            general_manager_role = discord.utils.get(ctx.guild.roles, name="General Managers")
+            if general_manager_role and general_manager_role in user.roles:
+                # GM-specific release: Mark as non-playing GM, return salary to team's cap
+                team_entry = dbInfo.team_collection.find_one({"team_code": team_code.upper()})
+                if team_entry is None:
+                    return await ctx.respond(f"{team_code.upper()} not found in database.")
+                
+                remaining_cap = team_entry.get("remaining_cap", SALARY_CAP)
+                new_remaining_cap = remaining_cap + player_salary
+
+                # Update team's remaining cap in the database
+                dbInfo.team_collection.update_one(
+                    {"team_code": team_code.upper()},
+                    {"$set": {"remaining_cap": new_remaining_cap}}
+                )
+
+                # Notify and update GM status
+                message = f"{team_code.upper()} moves {user.mention} to non-playing GM"
+                channel = self.bot.get_channel(config.posted_transactions_channel)
+                await channel.send(message)
+
+                await self.update_team_in_database(user.id, f"{team_code.upper()}")
+                await self.update_nickname(user, f"{team_code.upper()}")
+                dbInfo.player_collection.update_one({"discord_id": user.id}, {"$set": {"active_roster": False}})
+
+                return await ctx.respond(f"{user.mention} has been moved to non-playing GM")
+
+            # Regular player release to free agency
             FA = discord.utils.get(ctx.guild.roles, name="Free Agents")
             await self.remove_role_from_member(user, ctx.guild.get_role(team_role_id), "Player released to free agency")
             await self.add_role_to_member(user, FA, "Player released to free agency")
 
-            gm_role_id = await self.get_gm_id(team_code.upper())
-            if not gm_role_id:
-                return await ctx.respond(f"No GM role found for team: {team_code.upper()}")
-            GM = ctx.guild.get_role(gm_role_id)
-
-            # Calculate and update the team's remaining cap space
+            # Update remaining cap for the team
             team_entry = dbInfo.team_collection.find_one({"team_code": team_code.upper()})
             if team_entry is None:
-                return await ctx.respond(f"{team_code.upper} not found in database.")
+                return await ctx.respond(f"{team_code.upper()} not found in database.")
             
             remaining_cap = team_entry.get("remaining_cap", SALARY_CAP)
-            if remaining_cap is None:
-                return await ctx.respond("Remaining cap not found in team's document.")
-            
             new_remaining_cap = remaining_cap + player_salary
 
             # Update the team's remaining cap in the database
@@ -374,18 +400,22 @@ class Transactions(commands.Cog):
                 {"$set": {"remaining_cap": new_remaining_cap}}
             )
 
+            # Notify about the player release
+            gm_role_id = await self.get_gm_id(team_code.upper())
+            GM = ctx.guild.get_role(gm_role_id)
             message = f"{GM.mention} releases {user.mention} to free agency"
             channel = self.bot.get_channel(config.posted_transactions_channel)
             await channel.send(message)
 
+            # Update player in the database and nickname
             await self.update_team_in_database(user.id, 'FA')
-            
             await self.update_nickname(user, 'FA')
             dbInfo.player_collection.update_one({"discord_id": user.id}, {"$set": {"active_roster": False}})
             await ctx.respond(f"{user.mention} has been released from {team_code.upper()} to free agency")
 
         except Exception as e:
             await ctx.respond(f"Error releasing {user.name}:\n{e}")
+
             
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Designate team captain")
