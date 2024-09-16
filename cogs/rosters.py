@@ -52,7 +52,7 @@ class Roster(commands.Cog):
             team_rmn_cap = team.get("remaining_cap", 610)
 
             # Convert local path to URL or fall back to none
-            team_logo_url = f"{base_logo_url}{team_logo_path}" if team_logo_path else None
+            team_logo_url = f"{base_logo_url}{team_logo_path}" if team_logo_path else ''
 
             # Fetch active roster players for this team
             roster_list = dbInfo.player_collection.find({"team": team_code, "active_roster": True})
@@ -61,7 +61,7 @@ class Roster(commands.Cog):
             players_table = []
             for index, player in enumerate(roster_list, start=1):
                 # Remove team prefixes from player names
-                player_name = player['display_name'].replace(f'{team_code} | ', '')
+                player_name = player['nickname'].replace(f'{team_code} | ', '')
                 player_salary = player.get('salary', 'TBD')
 
                 # Check if the player is a reserve player
