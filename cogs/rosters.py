@@ -7,6 +7,15 @@ import re
 
 logger = logging.getLogger('__name__')
 
+# Discord color mapping
+DISCORD_COLOR_MAP = {
+    "Blue": discord.Color.blue(),
+    "Red": discord.Color.red(),
+    "Teal": discord.Color.teal(),
+    "Yellow": discord.Color.gold(),
+    "Orange": discord.Color.orange()
+}
+
 class Roster(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
