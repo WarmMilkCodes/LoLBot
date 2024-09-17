@@ -247,6 +247,12 @@ class Transactions(commands.Cog):
             if not await self.validate_command_channel(ctx):
                 return
             
+            # Ensure team is not already filled (5 active roster spots)
+            team_roster_count = dbInfo.player_collection.count_documents({"team":team_code, "reserve_player":True})
+            if team_roster_count:
+                return await ctx.respond(f"{team_code.upper()} already has a player signed to reserve. You must release the current reserve first.")
+
+
             missing_intent = discord.utils.get(ctx.guild.roles, name="Missing Intent Form")
             if missing_intent in user.roles:
                 return await ctx.respond(f"{user.mention} has not completed the intent form and cannot be signed to roster.")
@@ -271,9 +277,6 @@ class Transactions(commands.Cog):
                 if not player_entry.get("rank_info"):
                     return await ctx.respond(f"{user.mention} does not have rank game data and cannot be signed.")
                 
-                # Calculate the current team salary
-                current_team_salary = await self.calculate_team_salary(team_code.upper())
-
                 # Retrieve player's salary
                 player_salary = player_entry.get("salary", 0)
                 manual_player_salary = player_entry.get("manual_salary", 0)
@@ -415,6 +418,11 @@ class Transactions(commands.Cog):
                     return await ctx.respond(f"{user.mention} is already on a team and cannot be signed.")
                 
             
+            # Ensure team is not already filled (5 active roster spots)
+            team_roster_count = dbInfo.player_collection.count_documents({"team":team_code, "active_roster":True})
+            if team_roster_count >= 5:
+                return await ctx.respond(f"{team_code.upper()} already has 5 players signed to active roster. You must release a player before another can be signed.")
+
             if not player_entry.get("rank_info"):
                 return await ctx.respond(f"{user.mention} does not have rank game data and cannot be signed.")
             
