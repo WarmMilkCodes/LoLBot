@@ -17,6 +17,13 @@ class Transactions(commands.Cog):
         self.bot = bot
 
     # Helper functions
+        
+    async def update_rosters(self):
+        roster_cog = self.bot.get_cog("Roster")
+        if roster_cog:
+            await roster_cog._print_rosters()
+        else:
+            logger.error("Roster cog not found.")
 
     async def calculate_team_salary(self, team_code: str):
         players_on_team = dbInfo.player_collection.find({"team": team_code, "active_roster": True})
@@ -298,6 +305,7 @@ class Transactions(commands.Cog):
                 dbInfo.player_collection.update_one({"discord_id": user.id}, {"$set": {"reserve_player": True, "active_roster": True}})
                 await self.update_nickname(user, team_code.upper())
                 await ctx.respond(f"{user.mention} has been signed as a reserve to {team_code.upper()}")
+                await self.update_rosters()
 
         except Exception as e:
             await ctx.respond(f"Error signing reserve {user.mention} to {team_code.upper()}:\n{e}")
@@ -371,6 +379,7 @@ class Transactions(commands.Cog):
             await self.update_nickname(user, 'FA')
             dbInfo.player_collection.update_one({"discord_id": user.id}, {"$set": {"active_roster": False, "reserve_player": False}})
             await ctx.respond(f"{user.mention} has been released from {team_code.upper()} to free agency")
+            await self.update_rosters()
 
         except Exception as e:
             await ctx.respond(f"Error releasing {user.name}:\n{e}")
@@ -460,6 +469,7 @@ class Transactions(commands.Cog):
             dbInfo.player_collection.update_one({"discord_id": user.id}, {"$set": {"active_roster": True}})
             await self.update_nickname(user, team_code.upper())
             await ctx.respond(f"{user.mention} has been signed to {team_code.upper()}")
+            await self.update_rosters()
 
         except Exception as e:
             await ctx.respond(f"Error signing {user.mention} to {team_code.upper()}:\n{e}")
@@ -557,6 +567,7 @@ class Transactions(commands.Cog):
             await self.update_nickname(user, 'FA')
             dbInfo.player_collection.update_one({"discord_id": user.id}, {"$set": {"active_roster": False}})
             await ctx.respond(f"{user.mention} has been released from {team_code.upper()} to free agency")
+            await self.update_rosters()
 
         except Exception as e:
             await ctx.respond(f"Error releasing {user.name}:\n{e}")
