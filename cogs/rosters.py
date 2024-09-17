@@ -25,16 +25,18 @@ class Roster(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.slash_command(guild_ids=[config.lol_server], description="Prints roster embeds")
-    @commands.has_role("Bot Guy")
-    async def print_rosters(self, ctx):
-        await ctx.defer()
+    async def _print_rosters(self):
 
         # Get roster channel
-        roster_channel = ctx.guild.get_channel(config.rosters_channel)
+        roster_channel = self.bot.get_channel(config.rosters_channel)
 
         if not roster_channel:
-            return await ctx.respond("Roster channel not found", ephemeral=True)
+            logger.error("Roster channel not found.")
+            return
+        
+        # Clear all messages in roster channel before reposting
+        async for message in roster_channel.history(limit=10):
+            await message.delete()
 
         # Fetch all teams from team collection with logos (active teams)
         teams = dbInfo.team_collection.find({"logo": {"$exists": True}}).sort("team_name", 1)
@@ -111,7 +113,12 @@ class Roster(commands.Cog):
             # Send embed to the roster channel
             await roster_channel.send(embed=embed)
 
-        await ctx.respond("Roster has been posted.", ephemeral=True)
+    @commands.slash_command(guild_ids=[config.lol_server], description="Manually print rosters")
+    @commands.has_role("Bot Guy")
+    async def print_rosters(self, ctx):
+        await ctx.defer()
+        await self._print_rosters()
+        await ctx.respond("Rosters have been posted", ephemeral=True)
 
 def setup(bot):
     bot.add_cog(Roster(bot))
