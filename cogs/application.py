@@ -214,6 +214,7 @@ class ApplicationButton(discord.ui.View):
         try:
             # Determine the prefix based on roles
             prefix = ""
+            suffix = ""
             franchise_governor_role = discord.utils.get(user.guild.roles, name="Franchise Owner")
             
             if franchise_governor_role in user.roles:
@@ -223,6 +224,7 @@ class ApplicationButton(discord.ui.View):
                     team_code = dbInfo.team_collection.find_one({"team_id": team_role.id}).get("team_code")
                     if team_code:
                         prefix = team_code
+                suffix = ""
             else:
                 if discord.utils.get(user.roles, name="Free Agents"):
                     prefix = "FA"
