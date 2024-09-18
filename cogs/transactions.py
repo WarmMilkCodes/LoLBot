@@ -249,6 +249,7 @@ class Transactions(commands.Cog):
                 return
             
             # Ensure team is not already filled (5 active roster spots)
+            logger.info(f"Checking database for reserve players on {team_code.upper()}")
             team_roster_count = dbInfo.player_collection.count_documents({"team":team_code.upper(), "reserve_player":True})
             if team_roster_count > 0:
                 logger.warning(f"{team_code.upper()} already has a reserve signed to their roster.")
