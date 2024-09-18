@@ -163,6 +163,5 @@ class ReplaysCog(commands.Cog):
         await ctx.respond(embed=embed, ephemeral=True)
 
 
-
 def setup(bot):
     bot.add_cog(ReplaysCog(bot))
