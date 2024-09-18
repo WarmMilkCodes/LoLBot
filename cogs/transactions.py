@@ -346,7 +346,7 @@ class Transactions(commands.Cog):
                 return await ctx.respond(f"Unable to find player: {user.name} in the database.", ephemeral=True)
 
             # Check if player is a reserve
-            if player_entry['reserve_player': False]:
+            if not player_entry.get('reserve_player', False):
                 return await ctx.respond(f"{user.name} is not signed as a reserve to any team.")
 
             # Check if the player is a Free Agent already
