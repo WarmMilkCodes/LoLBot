@@ -431,8 +431,7 @@ class Transactions(commands.Cog):
                 
                 if gm_role not in user.roles:
                     return await ctx.respond(f"{user.mention} is already on a team and cannot be signed.")
-                
-            
+
             # Ensure team is not already filled (5 active roster spots)
             team_roster_count = dbInfo.player_collection.count_documents({"team":team_code.upper(), "active_roster":True})
             if team_roster_count >= 5:
@@ -525,6 +524,10 @@ class Transactions(commands.Cog):
             # Check if the user is actually signed to the team in the command
             if not ctx.guild.get_role(team_role_id) in user.roles:
                 return await ctx.respond(f"{user.name} is not signed to {team_code.upper()}'s active roster.")
+
+            # Ensure player is not a reserve
+            if player_entry.get("reserve_player"):
+                return await ctx.respond(f"{user.mention} is signed as a reserve player.\nUse the '/release_reserve' command to release reserve players from a roster.")
 
             # Fetch the player's salary from the database
             player_salary = player_entry.get("salary", 0)
