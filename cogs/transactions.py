@@ -263,7 +263,7 @@ class Transactions(commands.Cog):
                 logger.warning(f"{user} cannot be signed - has invalid Riot ID")
                 return await ctx.respond(f"{user.mention} has an invalid Riot ID and cannot be signed to roster.")
             
-             # Ensure team doesn't have reserve player already
+            # Ensure team doesn't have reserve player already
             logger.info(f"Checking database for reserve players on {team_code.upper()}")
             team_roster_count = dbInfo.player_collection.count_documents({"team":team_code.upper(), "reserve_player":True})
             if team_roster_count > 0:
@@ -434,7 +434,7 @@ class Transactions(commands.Cog):
                 
             
             # Ensure team is not already filled (5 active roster spots)
-            team_roster_count = dbInfo.player_collection.count_documents({"team":team_code, "active_roster":True})
+            team_roster_count = dbInfo.player_collection.count_documents({"team":team_code.upper(), "active_roster":True})
             if team_roster_count >= 5:
                 return await ctx.respond(f"{team_code.upper()} already has 5 players signed to active roster. You must release a player before another can be signed.")
 
