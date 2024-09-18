@@ -278,11 +278,8 @@ class Transactions(commands.Cog):
                     return await ctx.respond(f"{user.mention} does not have rank game data and cannot be signed.")
                 
                 # Retrieve player's salary
-                player_salary = player_entry.get("salary", 0)
-                manual_player_salary = player_entry.get("manual_salary", 0)
-                if manual_player_salary:
-                    player_salary = manual_player_salary
-                    if player_salary == 0:
+                player_salary = player_entry.get("salary")
+                if not player_salary:
                         return await ctx.respond(f"{user.mention} does not have a salary and cannot be signed.")
                     
                 # Fetch team role
