@@ -26,7 +26,7 @@ class Transactions(commands.Cog):
             logger.error("Roster cog not found.")
 
     async def calculate_team_salary(self, team_code: str):
-        players_on_team = dbInfo.player_collection.find({"team": team_code, "active_roster": True})
+        players_on_team = dbInfo.player_collection.find({"team": team_code.upper(), "active_roster": True})
         total_salary = 0
 
         for player in players_on_team:
@@ -63,14 +63,14 @@ class Transactions(commands.Cog):
 
     async def get_gm_id(self, team_code: str) -> int:
         """Retrieve GM ID from the database."""
-        team = dbInfo.team_collection.find_one({"team_code": team_code})
+        team = dbInfo.team_collection.find_one({"team_code": team_code.upper()})
         if team:
             return team.get("gm_id")
         return None
     
     async def get_team_role(self, team_code: str) -> int:
         """Retrieve team role ID from the database."""
-        team = dbInfo.team_collection.find_one({"team_code": team_code})
+        team = dbInfo.team_collection.find_one({"team_code": team_code.upper()})
         if team:
             return team.get("team_id")
         return None
@@ -247,14 +247,6 @@ class Transactions(commands.Cog):
             if not await self.validate_command_channel(ctx):
                 logger.warning("Sign reserve command ran in wrong channel.")
                 return
-            
-            # Ensure team is not already filled (5 active roster spots)
-            logger.info(f"Checking database for reserve players on {team_code.upper()}")
-            team_roster_count = dbInfo.player_collection.count_documents({"team":team_code.upper(), "reserve_player":True})
-            if team_roster_count > 0:
-                logger.warning(f"{team_code.upper()} already has a reserve signed to their roster.")
-                return await ctx.respond(f"{team_code.upper()} already has a player signed to reserve. You must release the current reserve first.")
-
 
             missing_intent = discord.utils.get(ctx.guild.roles, name="Missing Intent Form")
             if missing_intent in user.roles:
@@ -271,6 +263,14 @@ class Transactions(commands.Cog):
                 logger.warning(f"{user} cannot be signed - has invalid Riot ID")
                 return await ctx.respond(f"{user.mention} has an invalid Riot ID and cannot be signed to roster.")
             
+             # Ensure team doesn't have reserve player already
+            logger.info(f"Checking database for reserve players on {team_code.upper()}")
+            team_roster_count = dbInfo.player_collection.count_documents({"team":team_code.upper(), "reserve_player":True})
+            if team_roster_count > 0:
+                logger.warning(f"{team_code.upper()} already has a reserve signed to their roster.")
+                return await ctx.respond(f"{team_code.upper()} already has a player signed to reserve. You must release the current reserve first.")
+
+
             player_entry = await self.get_player_info(user.id)
             if not player_entry or player_entry.get("team") not in ['FA', None]:
                 # check if player is GM for the team
