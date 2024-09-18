@@ -245,24 +245,29 @@ class Transactions(commands.Cog):
         await ctx.defer()
         try:
             if not await self.validate_command_channel(ctx):
+                logger.warning("Sign reserve command ran in wrong channel.")
                 return
             
             # Ensure team is not already filled (5 active roster spots)
             team_roster_count = dbInfo.player_collection.count_documents({"team":team_code, "reserve_player":True})
             if team_roster_count:
+                logger.warning(f"{team_code.upper()} already has a reserve signed to their roster.")
                 return await ctx.respond(f"{team_code.upper()} already has a player signed to reserve. You must release the current reserve first.")
 
 
             missing_intent = discord.utils.get(ctx.guild.roles, name="Missing Intent Form")
             if missing_intent in user.roles:
+                logger.warning(f"{user} cannot be signed - has not completed intent form")
                 return await ctx.respond(f"{user.mention} has not completed the intent form and cannot be signed to roster.")
             
             spectator = discord.utils.get(ctx.guild.roles, name = "Spectator")
             if spectator in user.roles:
+                logger.warning(f"{user} cannot be signed - has spectator role.")
                 return await ctx.respond(f"{user.mention} is a spectator and cannot be signed.")
 
             not_eligible = discord.utils.get(ctx.guild.roles, name="Not Eligible")
             if not_eligible in user.roles:
+                logger.warning(f"{user} cannot be signed - has invalid Riot ID")
                 return await ctx.respond(f"{user.mention} has an invalid Riot ID and cannot be signed to roster.")
             
             player_entry = await self.get_player_info(user.id)
@@ -272,27 +277,33 @@ class Transactions(commands.Cog):
                 gm_role = ctx.guild.get_role(gm_role_id)
                 
                 if gm_role not in user.roles:
+                    logger.warning(f"{user} cannot be signed - is already on a team.")
                     return await ctx.respond(f"{user.mention} is already on a team and cannot be signed.")
                 
                 if not player_entry.get("rank_info"):
+                    logger.warning(f"{user} cannot be signed - does not have ranked game data")
                     return await ctx.respond(f"{user.mention} does not have rank game data and cannot be signed.")
                 
                 # Retrieve player's salary
                 player_salary = player_entry.get("salary")
                 if not player_salary:
+                        logger.warning(f"{user} cannot be signed - does not have a salary assigned to them.")
                         return await ctx.respond(f"{user.mention} does not have a salary and cannot be signed.")
                     
                 # Fetch team role
                 team_role_id = await self.get_team_role(team_code.upper())
                 if not team_role_id:
+                    logger.warning("Invalid team code passed.")
                     return await ctx.respond(f"Invalid team code passed: {team_code.upper()}")
                 
                 # Add player to team's role and KEEP Free Agents role
                 await self.add_role_to_member(user, ctx.guild.get_role(team_role_id), f"Player signed as reserve to {team_code.upper()}")
+                logger.info(f"Added team role to {user}")
 
                 # Update the GM mention for notification(s)
                 gm_role_id = await self.get_gm_id(team_code.upper())
                 if not gm_role_id:
+                    logger.warning(f"No GM role found for {team_code.upper()}")
                     return await ctx.respond(f"No GM role found for team: {team_code.upper()}")
                 GM = ctx.guild.get_role(gm_role_id)
 
@@ -301,13 +312,19 @@ class Transactions(commands.Cog):
                 channel = self.bot.get_channel(config.posted_transactions_channel)
                 await channel.send(message)
 
+                logger.info("Updating user's team in database")
                 await self.update_team_in_database(user.id, team_code.upper())
+                logger.info("Setting user to reserve_player: True")
                 dbInfo.player_collection.update_one({"discord_id": user.id}, {"$set": {"reserve_player": True, "active_roster": True}})
+                logger.info("Updating user's nickname")
                 await self.update_nickname(user, team_code.upper())
                 await ctx.respond(f"{user.mention} has been signed as a reserve to {team_code.upper()}")
+                logger.info("Updating roster embeds")
                 await self.update_rosters()
+                logger.info("Sign Reserve Completed")
 
         except Exception as e:
+            logger.error(f"Error signing reserve: {e}")
             await ctx.respond(f"Error signing reserve {user.mention} to {team_code.upper()}:\n{e}")
 
 
