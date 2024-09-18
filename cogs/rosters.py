@@ -57,39 +57,22 @@ class Roster(commands.Cog):
             # Convert local path to URL or fall back to none
             team_logo_url = f"{base_logo_url}{team_logo_path}" if team_logo_path else ''
 
-            # Fetch active roster players for this team
-            roster_list = dbInfo.player_collection.find({"team": team_code, "active_roster": True})
+            # Fetch active roster players for this team (exclude reserves)
+            roster_list = dbInfo.player_collection.find({"team": team_code, "active_roster": True, "reserve_player": {"$ne": True}})
 
             player_slots = ['A', 'B', 'C', 'D', 'E']
-            reserve_slot = 'R'
 
             # Tabulate the roster with 'Slots' header
             roster_table = []
-            regular_players = []
-            reserve_players = []
 
-            # Separate regular and reserve players
-            for player in roster_list:
+            # Only add non-reserve players
+            for index, player in enumerate(roster_list):
                 # Truncate long player names
                 player_name = player['nickname'].replace(f"{team_code} | ", "")[:20]  # Truncate after 20 characters
                 player_salary = player.get("salary", "TBD")
 
-                # Check if the player is a reserve
-                if player.get("reserve_player", False):  # Default to False if "reserve_player" is not present
-                    reserve_players.append([reserve_slot, player_name, player_salary])
-                else:
-                    regular_players.append([player_name, player_salary])
-
-            # Assign slots to regular players
-            for index, player in enumerate(regular_players):
                 slot = player_slots[index] if index < len(player_slots) else "N/A"  # Assign A-E, else N/A if more players
-                roster_table.append([slot] + player)  # Add slot to the player entry
-
-            # Add reserves at the end
-            roster_table.extend(reserve_players)
-
-            # Sort the roster table by Slot (A-E followed by R)
-            roster_table.sort(key=lambda x: x[0])
+                roster_table.append([slot, player_name, player_salary])
 
             # Create tabulated roster display
             roster_display = tabulate(roster_table, headers=["Slot", "Player", "Salary"], tablefmt="plain") if roster_table else "No players on roster"
