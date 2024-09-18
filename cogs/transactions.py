@@ -250,7 +250,7 @@ class Transactions(commands.Cog):
             
             # Ensure team is not already filled (5 active roster spots)
             team_roster_count = dbInfo.player_collection.count_documents({"team":team_code, "reserve_player":True})
-            if team_roster_count:
+            if team_roster_count > 0:
                 logger.warning(f"{team_code.upper()} already has a reserve signed to their roster.")
                 return await ctx.respond(f"{team_code.upper()} already has a player signed to reserve. You must release the current reserve first.")
 
