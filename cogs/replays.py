@@ -7,7 +7,7 @@ from discord.ext import commands
 import app.config as config
 import app.dbInfo as dbInfo
 
-logger = logging.getLogger('lol_log')
+logger = logging.getLogger('replay_log')
 
 class PlayerStats:
     def __init__(self, name, uuid, win, kills, deaths, assists, position, team_id):
@@ -39,6 +39,7 @@ class ReplaysCog(commands.Cog):
     @commands.slash_command(guild_ids=[config.lol_server],description="Submit UR League of Legends match replay")
     async def submit_replay(self, ctx, replay: discord.Attachment):
         await ctx.defer()
+        logger.info("Attempting to parse replay")
         match_metadata, players, match_id = await self.parse_replay(ctx, replay)
         if players:
             await self.send_replay_summary(ctx, match_metadata, players, match_id)
