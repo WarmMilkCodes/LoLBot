@@ -299,7 +299,7 @@ class Transactions(commands.Cog):
                 
                 # Add player to team's role and remove Free Agents role
                 await self.add_role_to_member(user, ctx.guild.get_role(team_role_id), f"Player signed as reserve to {team_code.upper()}")
-                await self.remove_role_from_member(user, FA, f"Player signed to {team_code.upper()}")
+                await self.remove_role_from_member(user, ctx.guild.get_role(name='Free Agents'), f"Player signed to {team_code.upper()}")
                 logger.info(f"Added team role to {user}")
 
                 # Update the GM mention for notification(s)
