@@ -6,7 +6,7 @@ from discord.ext import commands
 from discord.commands import Option
 from discord.ext.commands import MissingAnyRole, CommandInvokeError, CommandError
 
-logger = logging.getLogger('lol_log')
+logger = logging.getLogger('transaction_log')
 
 GUILD_ID = config.lol_server
 SALARY_CAP = 610
