@@ -166,7 +166,7 @@ class ReplaysCog(commands.Cog):
         embed.add_field(name="\u200b", value='\u200b', inline=False)
 
         # Field for Team 200
-        for plyaer in team_200_players:
+        for player in team_200_players:
             embed.add_field(
                 name=f"{player.name if player.name else 'Unknown'}",
                 value=(
