@@ -155,7 +155,7 @@ class ReplaysCog(commands.Cog):
                 name=f"{player.name if player.name else 'Unknown'}",
                 value=(
                     f"**Team:** {player.team_id}\n"
-                    f"**W/L:** {'W' if player.win else 'L'}\n"
+                    f"**W/L:** {'W' if player.win == 'WIN' else 'L'}\n"
                     f"**K/D/A:** {player.kills}/{player.deaths}/{player.assists}\n"
                     f"**Pos:** {player.position}"
                 ),
@@ -171,7 +171,7 @@ class ReplaysCog(commands.Cog):
                 name=f"{player.name if player.name else 'Unknown'}",
                 value=(
                     f"**Team:** {player.team_id}\n"
-                    f"**W/L:** {'W' if player.win else 'L'}\n"
+                    f"**W/L:** {'W' if player.win == 'WIN' else 'L'}\n"
                     f"**K/D/A:** {player.kills}/{player.deaths}/{player.assists}\n"
                     f"**Pos:** {player.position}"
                 ),
