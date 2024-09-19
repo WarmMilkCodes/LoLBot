@@ -152,7 +152,7 @@ class ReplaysCog(commands.Cog):
                 value=(
                     f"**Team:** {player.team_id}\n"
                     f"**W/L:** {'W' if player.win else 'L'}\n"
-                    f"**K/D//A:** {player.kills}//{player.deaths}/{player.assists}\n"
+                    f"**K/D/A:** {player.kills}/{player.deaths}/{player.assists}\n"
                     f"**Pos:** {player.position}"
                 ),
                 inline=True  # This allows multiple fields to be on the same line
