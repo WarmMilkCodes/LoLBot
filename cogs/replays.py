@@ -145,10 +145,14 @@ class ReplaysCog(commands.Cog):
             color=discord.Color.blue()
         )
         
-        for player in players:
-            player_name = player.name if player.name else "Unknown"
+        # Group by team
+        team_100_players = [player for player in players if player.team_id == 100]
+        team_200_players = [player for player in players if player.team_id == 200]
+
+        # Add field for Team 100
+        for player in team_100_players:
             embed.add_field(
-                name=f"{player_name}",
+                name=f"{player.name if player.name else 'Unknown'}",
                 value=(
                     f"**Team:** {player.team_id}\n"
                     f"**W/L:** {'W' if player.win else 'L'}\n"
@@ -156,6 +160,22 @@ class ReplaysCog(commands.Cog):
                     f"**Pos:** {player.position}"
                 ),
                 inline=True  # This allows multiple fields to be on the same line
+            )
+
+        # Add blank to separate teams
+        embed.add_field(name="\u200b", value='\u200b', inline=False)
+
+        # Field for Team 200
+        for plyaer in team_200_players:
+            embed.add_field(
+                name=f"{player.name if player.name else 'Unknown'}",
+                value=(
+                    f"**Team:** {player.team_id}\n"
+                    f"**W/L:** {'W' if player.win else 'L'}\n"
+                    f"**K/D/A:** {player.kills}/{player.deaths}/{player.assists}\n"
+                    f"**Pos:** {player.position}"
+                ),
+                inline=True
             )
 
         await ctx.respond(embed=embed, ephemeral=True)
