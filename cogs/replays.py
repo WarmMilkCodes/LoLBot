@@ -148,14 +148,12 @@ class ReplaysCog(commands.Cog):
         for player in players:
             player_name = player.name if player.name else "Unknown"
             embed.add_field(
-                name=f"Player {player_name}",
+                name=f"{player_name}",
                 value=(
-                    f"**Team ID:** {player.team_id}\n"
-                    f"**Win/Loss:** {player.win}\n"
-                    f"**Kills:** {player.kills}\n"
-                    f"**Deaths:** {player.deaths}\n"
-                    f"**Assists:** {player.assists}\n"
-                    f"**Position:** {player.position}"
+                    f"**Team:** {player.team_id}\n"
+                    f"**W/L:** {'W' if player.win else 'L'}\n"
+                    f"**K/D//A:** {player.kills}//{player.deaths}/{player.assists}\n"
+                    f"**Pos:** {player.position}"
                 ),
                 inline=True  # This allows multiple fields to be on the same line
             )
