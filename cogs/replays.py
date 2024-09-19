@@ -146,8 +146,8 @@ class ReplaysCog(commands.Cog):
         )
         
         # Group by team
-        team_100_players = [player for player in players if player.team_id == 100]
-        team_200_players = [player for player in players if player.team_id == 200]
+        team_100_players = [player for player in players if player.team_id == '100']
+        team_200_players = [player for player in players if player.team_id == '200']
 
         # Add field for Team 100
         for player in team_100_players:
