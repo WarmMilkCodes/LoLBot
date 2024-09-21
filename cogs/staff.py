@@ -5,6 +5,7 @@ from discord.commands import Option
 import app.dbInfo as dbInfo
 import app.config as config
 from tabulate import tabulate
+from cogs.utils import update_nickname
 
 logger = logging.getLogger(__name__)
 
@@ -62,23 +63,13 @@ class StaffCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def update_nickname(self, member, prefix):
-        """Update member's nickname with given prefix, or restore original if no prefix."""
-        try:
-            # Remove any existing prefix
-            new_nickname = re.sub(r"^(FA \| |S \| |TBD \| |[A-Z]{2,3} \| )", "", member.display_name)
-            # Add new prefix if applicable
-            if prefix:
-                new_nickname = f"{prefix} | {new_nickname}"
-            await member.edit(nick=new_nickname)
-            logger.info(f"Updated nickname for {member.name} to {new_nickname}")
-        except Exception as e:
-            logger.error(f"Error updating nickname for {member.name}: {e}")
-
     @commands.slash_command(guild_ids=[config.lol_server], description="Change a player to spectator")
     @commands.has_any_role("League Ops", "Bot Guy")
     async def force_spectator(self, ctx, user: Option(discord.Member)):
         await ctx.defer(ephemeral=True)
+        
+        fa_role = ctx.guild.get_role("Free Agents")
+        spect_role = ctx.guild.get_role("Spectator")
 
         user_info = dbInfo.intent_collection.find_one({"ID": user.id})
         try:
@@ -88,7 +79,8 @@ class StaffCog(commands.Cog):
                         {"ID": user.id},
                         {"$set": {"Playing": "No"}}
                     )
-                    await self.update_nickname(user, "S")
+                    
+                    await update_nickname(user, "S", user_info)
                     logger.info(f"{ctx.author.name} forced {user} to spectator.")
                     await ctx.respond(f"Succesfully forced {user.mention} to spectator.")
         except Exception as e:
