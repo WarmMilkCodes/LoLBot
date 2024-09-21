@@ -370,9 +370,10 @@ class Transactions(commands.Cog):
             if player_salary == 0:
                 return await ctx.respond(f"{user.mention} does not have a salary assigned.")
 
-            # Check if user is a General Manager
+            # Check if user is a General Manager or Owner
             general_manager_role = discord.utils.get(ctx.guild.roles, name="General Managers")
-            if general_manager_role and general_manager_role in user.roles:
+            owner_role = discord.utils.get(ctx.guild.roles, name="Franchise Owner")
+            if general_manager_role in user.roles or owner_role in user.roles:
                 # GM-specific release: Mark as non-playing GM, return salary to team's cap
                 team_entry = dbInfo.team_collection.find_one({"team_code": team_code.upper()})
                 if team_entry is None:
