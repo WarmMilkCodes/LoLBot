@@ -68,8 +68,8 @@ class StaffCog(commands.Cog):
     async def force_spectator(self, ctx, user: Option(discord.Member)):
         await ctx.defer(ephemeral=True)
         
-        fa_role = ctx.guild.get_role("Free Agents")
-        spect_role = ctx.guild.get_role("Spectator")
+        fa_role = discord.utils.get(ctx.guild.roles, name="Free Agents")
+        spect_role = discord.utils.get(ctx.guild.roles, name="Spectator")
 
         user_info = dbInfo.intent_collection.find_one({"ID": user.id})
         try:
@@ -79,8 +79,13 @@ class StaffCog(commands.Cog):
                         {"ID": user.id},
                         {"$set": {"Playing": "No"}}
                     )
+
+                    if fa_role in user.roles:
+                        await user.remove_roles(fa_role)
+                    await user.add_roles(spect_role)
                     
                     await update_nickname(user, "S", user_info)
+                    
                     logger.info(f"{ctx.author.name} forced {user} to spectator.")
                     await ctx.respond(f"Succesfully forced {user.mention} to spectator.")
         except Exception as e:
