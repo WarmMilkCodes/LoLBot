@@ -75,8 +75,25 @@ class StaffCog(commands.Cog):
         except Exception as e:
             logger.error(f"Error updating nickname for {member.name}: {e}")
 
-    
+    @commands.slash_command(guild_ids=[config.lol_server], description="Change a player to spectator")
+    @commands.has_any_role("League Ops", "Bot Guy")
+    async def force_spectator(self, ctx, user; Option(discord.Member)):
+        await ctx.defer(ephemeral=True)
 
+        user_info = dbInfo.intent_collection.find_one({"ID": user.id})
+        try:
+            if user_info:
+                if user_info.get("Playing") == "Yes":
+                    dbInfo.intent_collection.update_one(
+                        {"ID": user.id},
+                        {"$set": {"Playing": "No"}}
+                    )
+                    logger.info(f"{ctx.author.name} forced {user} to spectator.")
+                    await ctx.respond(f"Succesfully forced {user.mention} to spectator.")
+        except Exception as e:
+            logger.error(f"Unable to force change {user}'s intent form to spectator: {e}")
+            await ctx.respond(f"Error forcing {user} to spectator: {e}")
+        
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Update avatar URLs for all existing members in the database.")
     @commands.has_role("Bot Guy")
