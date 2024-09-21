@@ -84,8 +84,8 @@ class StaffCog(commands.Cog):
                         await user.remove_roles(fa_role)
                     await user.add_roles(spect_role)
                     
-                    await update_nickname(user, "S", user_info)
-                    
+                    await update_nickname(user, "S")
+
                     logger.info(f"{ctx.author.name} forced {user} to spectator.")
                     await ctx.respond(f"Succesfully forced {user.mention} to spectator.")
         except Exception as e:

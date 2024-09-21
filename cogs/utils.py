@@ -4,7 +4,7 @@ import discord
 
 logger = logging.getLogger(__name__)
 
-async def update_nickname(member: discord.Member, prefix: str, dbInfo):
+async def update_nickname(member: discord.Member, prefix: str):
     """Update the member's nickname with the given prefix and append salary as suffix if Free Agent or Restricted Free Agent, unless Franchise Owner."""
     try:
         # Remove any existing prefix or suffix
