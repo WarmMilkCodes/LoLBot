@@ -77,7 +77,7 @@ class StaffCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Change a player to spectator")
     @commands.has_any_role("League Ops", "Bot Guy")
-    async def force_spectator(self, ctx, user; Option(discord.Member)):
+    async def force_spectator(self, ctx, user: Option(discord.Member)):
         await ctx.defer(ephemeral=True)
 
         user_info = dbInfo.intent_collection.find_one({"ID": user.id})
@@ -88,6 +88,7 @@ class StaffCog(commands.Cog):
                         {"ID": user.id},
                         {"$set": {"Playing": "No"}}
                     )
+                    await self.update_nickname(user, "S")
                     logger.info(f"{ctx.author.name} forced {user} to spectator.")
                     await ctx.respond(f"Succesfully forced {user.mention} to spectator.")
         except Exception as e:
