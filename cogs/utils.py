@@ -1,6 +1,7 @@
 import re
 import logging
 import discord
+import app.dbInfo as dbInfo
 
 logger = logging.getLogger(__name__)
 
