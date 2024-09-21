@@ -82,7 +82,7 @@ class Audit(commands.Cog):
                     prefix = team_code
 
                 # Call the update_nickname function with the determined prefix
-                await update_nickname(member, prefix, player_info)
+                await update_nickname(member, prefix)
                 
                 logger.info(f"Nickname updated for {member.display_name}")
 
