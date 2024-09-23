@@ -45,15 +45,16 @@ class ReplaysCog(commands.Cog):
             "thread": thread.id,
             "replays": []
         }
+        await ctx.respond("Your thread has been created.", ephemeral=True)
         await thread.send(f"{ctx.author.mention}, you can now submit your replays using /replays command.")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Get ready to submit replays")
     async def replays(self, ctx):
         submission = self.submissions.get(ctx.author.id)
         if submission and ctx.channel.id == submission["thread"]:
-            await ctx.send("You can start uploading your replays now.")
+            await ctx.respond("You can start uploading your replays now.")
         else:
-            await ctx.send("Please start a submission first with /start_submission.")
+            await ctx.respond("Please start a submission first with /start_submission.")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Submit UR League of Legends match replay")
     async def submit_replay(self, ctx, replay: discord.Attachment):
@@ -62,9 +63,9 @@ class ReplaysCog(commands.Cog):
             match_metadata, players, match_id = await self.parse_replay(ctx, replay)
             if players:
                 submission["replays"].append((match_metadata, players, match_id))
-            await ctx.send("Replay uploaded successfully!")
+            await ctx.respond("Replay uploaded successfully!")
         else:
-            await ctx.send("Please start a submission first with /start_submission.")
+            await ctx.respond("Please start a submission first with /start_submission.")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Finish uploading replays")
     async def finish(self, ctx):
@@ -72,7 +73,7 @@ class ReplaysCog(commands.Cog):
         if submission and ctx.channel.id == submission["thread"]:
             await self.send_series_summary(ctx, submission["replays"])
         else:
-            await ctx.send("Please start a submission first with /start_submission.")
+            await ctx.respond("Please start a submission first with /start_submission.")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Complete the submission process")
     async def complete_submission(self, ctx):
@@ -80,10 +81,10 @@ class ReplaysCog(commands.Cog):
         if submission and ctx.channel.id == submission["thread"]:
             thread = await ctx.guild.fetch_channel(submission["thread"])
             await thread.edit(locked=True)
-            await ctx.send("Submission completed and thread locked.")
+            await ctx.respond("Submission completed and thread locked.")
             del self.submissions[ctx.author.id]
         else:
-            await ctx.send("No active submission found.")
+            await ctx.respond("No active submission found.")
 
     @staticmethod
     async def parse_replay(ctx, replay: discord.Attachment):
@@ -106,7 +107,7 @@ class ReplaysCog(commands.Cog):
 
             # Check if replay already exists in the database
             if dbInfo.replays_collection.find_one({"match_id": match_id}):
-                await ctx.send("This replay has already been uploaded.")
+                await ctx.respond("This replay has already been uploaded.")
                 return None, None, None
 
             # Extract replay data
