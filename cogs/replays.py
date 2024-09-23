@@ -45,7 +45,8 @@ class ReplaysCog(commands.Cog):
             "thread": thread.id,
             "replays": []
         }
-        await thread.respond(f"{ctx.author.mention}, you can now start uploading your replays in this thread.")
+        await ctx.respond("Your replay thread has been created.", ephemeral=True)
+        await thread.send(f"{ctx.author.mention}, you can now start uploading your replays in this thread.")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Finish uploading replays")
     async def finish(self, ctx):
