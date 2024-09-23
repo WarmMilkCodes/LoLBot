@@ -26,10 +26,10 @@ def contains_special_chars(s):
 
 class ConfirmAltView(View):
     def __init__(self, game_name, tag_line, ctx, bot):
-        super().__init__(timeout=60)  # Buttons will timeout after 60 seconds
+        super().__init__(timeout=60)
         self.game_name = game_name
         self.tag_line = tag_line
-        self.ctx = ctx  # Store ctx to use interaction details
+        self.ctx = ctx 
         self.bot = bot
 
     @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green)
@@ -38,16 +38,16 @@ class ConfirmAltView(View):
         alt_account = {"game_name": self.game_name, "tag_line": self.tag_line}
 
         dbInfo.player_collection.update_one(
-            {"discord_id": self.ctx.author.id},  # Get user ID from ctx
-            {"$push": {"alt_accounts": alt_account}}  # Push the alt account to the array
+            {"discord_id": self.ctx.author.id}, 
+            {"$push": {"alt_accounts": alt_account}}  
         )
 
-        # Log the alt account report in a designated log channel
+        # Log the alt account report in channel
         alt_log_channel = self.bot.get_channel(config.riot_id_log_channel)
         if alt_log_channel:
             await alt_log_channel.send(f"{self.ctx.author.mention} reported a new alt account: {self.game_name}#{self.tag_line}")
 
-        # Remove embed and buttons after confirmation and make it ephemeral
+        # Remove embed and buttons after confirmation
         await interaction.response.edit_message(content=f"Alt account {self.game_name}#{self.tag_line} has been added.", embed=None, view=None)
 
     @discord.ui.button(label="Click dismiss below.", style=discord.ButtonStyle.red)
