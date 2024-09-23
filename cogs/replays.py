@@ -171,10 +171,12 @@ class ReplaysCog(commands.Cog):
         team_players = {"100": [], "200": []}
 
         for match_metadata, players, match_id in replays:
-            team_100_players = [p for p in players if p.team_id == 100]
-            team_200_players = [p for p in players if p.team_id == 200]
+            team_100_players = [p for p in players if str(p.team_id) == "100"]
+            team_200_players = [p for p in players if str(p.team_id) == "200"]
 
-            # Convert team ID to string to access the dictionary
+            # Debug: Check how many players are detected for each team
+            print(f"Match ID: {match_id}, Team 100 Players: {len(team_100_players)}, Team 200 Players: {len(team_200_players)}")
+
             if match_metadata['teams']["100"]['win'] == 'Win':
                 team_wins["100"] += 1
             else:
@@ -212,6 +214,7 @@ class ReplaysCog(commands.Cog):
         )
 
         await ctx.send(embed=embed)
+
 
 
     @commands.Cog.listener()
