@@ -167,39 +167,40 @@ class ReplaysCog(commands.Cog):
             color=discord.Color.blue()
         )
 
-        team_wins = {100: 0, 200: 0}
-        team_players = {100: [], 200: []}
+        team_wins = {"100": 0, "200": 0}
+        team_players = {"100": [], "200": []}
 
         for match_metadata, players, match_id in replays:
             team_100_players = [p for p in players if p.team_id == 100]
             team_200_players = [p for p in players if p.team_id == 200]
 
-            if match_metadata['teams'][100]['win'] == 'Win':
-                team_wins[100] += 1
+            # Convert team ID to string to access the dictionary
+            if match_metadata['teams']["100"]['win'] == 'Win':
+                team_wins["100"] += 1
             else:
-                team_wins[200] += 1
+                team_wins["200"] += 1
 
             for player in team_100_players:
-                team_players[100].append(f"{player.name} (KDA: {player.kills}/{player.deaths}/{player.assists})")
+                team_players["100"].append(f"{player.name} (KDA: {player.kills}/{player.deaths}/{player.assists})")
 
             for player in team_200_players:
-                team_players[200].append(f"{player.name} (KDA: {player.kills}/{player.deaths}/{player.assists})")
+                team_players["200"].append(f"{player.name} (KDA: {player.kills}/{player.deaths}/{player.assists})")
 
         embed.add_field(
             name="Team 100 (Blue Side)",
-            value="\n".join(team_players[100]) or "No players",
+            value="\n".join(team_players["100"]) or "No players",
             inline=False
         )
         embed.add_field(
             name="Team 200 (Red Side)",
-            value="\n".join(team_players[200]) or "No players",
+            value="\n".join(team_players["200"]) or "No players",
             inline=False
         )
 
         # Determine series winner
-        if team_wins[100] > team_wins[200]:
+        if team_wins["100"] > team_wins["200"]:
             winner = "Team 100 (Blue Side) wins the series!"
-        elif team_wins[200] > team_wins[100]:
+        elif team_wins["200"] > team_wins["100"]:
             winner = "Team 200 (Red Side) wins the series!"
         else:
             winner = "The series is tied!"
@@ -211,6 +212,7 @@ class ReplaysCog(commands.Cog):
         )
 
         await ctx.send(embed=embed, ephemeral=True)
+
 
     @commands.Cog.listener()
     async def on_message(self, message):
