@@ -211,7 +211,7 @@ class ReplaysCog(commands.Cog):
             inline=False
         )
 
-        await ctx.send(embed=embed, ephemeral=True)
+        await ctx.send(embed=embed)
 
 
     @commands.Cog.listener()
