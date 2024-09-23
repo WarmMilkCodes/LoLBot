@@ -53,7 +53,7 @@ class ReplaysCog(commands.Cog):
         if submission and ctx.channel.id == submission["thread"]:
             await ctx.send("You can start uploading your replays now.")
         else:
-            await ctx.send("Please start a submission first with /start_submission.", ephemeral=True)
+            await ctx.send("Please start a submission first with /start_submission.")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Submit UR League of Legends match replay")
     async def submit_replay(self, ctx, replay: discord.Attachment):
@@ -62,9 +62,9 @@ class ReplaysCog(commands.Cog):
             match_metadata, players, match_id = await self.parse_replay(ctx, replay)
             if players:
                 submission["replays"].append((match_metadata, players, match_id))
-            await ctx.send("Replay uploaded successfully!", ephemeral=True)
+            await ctx.send("Replay uploaded successfully!")
         else:
-            await ctx.send("Please start a submission first with /start_submission.", ephemeral=True)
+            await ctx.send("Please start a submission first with /start_submission.")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Finish uploading replays")
     async def finish(self, ctx):
@@ -72,7 +72,7 @@ class ReplaysCog(commands.Cog):
         if submission and ctx.channel.id == submission["thread"]:
             await self.send_series_summary(ctx, submission["replays"])
         else:
-            await ctx.send("Please start a submission first with /start_submission.", ephemeral=True)
+            await ctx.send("Please start a submission first with /start_submission.")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Complete the submission process")
     async def complete_submission(self, ctx):
@@ -83,13 +83,13 @@ class ReplaysCog(commands.Cog):
             await ctx.send("Submission completed and thread locked.")
             del self.submissions[ctx.author.id]
         else:
-            await ctx.send("No active submission found.", ephemeral=True)
+            await ctx.send("No active submission found.")
 
     @staticmethod
     async def parse_replay(ctx, replay: discord.Attachment):
         try:
             if not replay.filename.endswith('.rofl'):
-                await ctx.send("An error occurred. Please ensure the provided file is a valid .rofl file", ephemeral=True)
+                await ctx.send("An error occurred. Please ensure the provided file is a valid .rofl file")
                 return None, None, None
 
             raw_bytes = await replay.read()
@@ -98,7 +98,7 @@ class ReplaysCog(commands.Cog):
             # Validate magic bytes
             magic = buffer.read(4)
             if magic != b'RIOT':
-                await ctx.send("An error occurred. Please ensure the provided file is a valid .rofl file", ephemeral=True)
+                await ctx.send("An error occurred. Please ensure the provided file is a valid .rofl file",)
                 return None, None, None
 
             # Extract match ID from the file name
@@ -106,7 +106,7 @@ class ReplaysCog(commands.Cog):
 
             # Check if replay already exists in the database
             if dbInfo.replays_collection.find_one({"match_id": match_id}):
-                await ctx.send("This replay has already been uploaded.", ephemeral=True)
+                await ctx.send("This replay has already been uploaded.")
                 return None, None, None
 
             # Extract replay data
@@ -175,7 +175,7 @@ class ReplaysCog(commands.Cog):
             return match_metadata, players, match_id
         except Exception as e:
             logger.error(e)
-            await ctx.send("An unknown error occurred and has been logged. Please try again.", ephemeral=True)
+            await ctx.send("An unknown error occurred and has been logged. Please try again.")
             return None, None, None
 
     async def send_series_summary(self, ctx, replays):
@@ -192,7 +192,7 @@ class ReplaysCog(commands.Cog):
                 inline=False
             )
 
-        await ctx.send(embed=embed, ephemeral=True)
+        await ctx.send(embed=embed)
 
 def setup(bot):
     bot.add_cog(ReplaysCog(bot))
