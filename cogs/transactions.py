@@ -447,8 +447,8 @@ class Transactions(commands.Cog):
                 return
             
             player_entry = await self.get_player_info(user.id)
-            if not player_entry or player_entry.get("team") not in ['FA', team_code.upper()]:
-                return await ctx.respond(f"{user.mention} is not a free agent or is signed to a different team and cannot be signed to {team_code.upper()}")
+            if not player_entry or player_entry.get("team") not in [team_code.upper()]:
+                return await ctx.respond(f"{user.mention} is not signed to {team_code.upper()} and cannot be designated as captain.")
             
             team_role_id = await self.get_team_role(team_code.upper())
             if not team_role_id:
