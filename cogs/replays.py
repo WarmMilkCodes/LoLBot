@@ -35,21 +35,61 @@ class PlayerStats:
 class ReplaysCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.submissions = {}  # Store submission states
 
-    @commands.slash_command(guild_ids=[config.lol_server],description="Submit UR League of Legends match replay")
+    @commands.slash_command(guild_ids=[config.lol_server], description="Start a replay submission")
+    async def start_submission(self, ctx):
+        # Create a thread for the user to submit replays
+        thread = await ctx.channel.create_thread(name=f"Replay Submission by {ctx.author.name}")
+        self.submissions[ctx.author.id] = {
+            "thread": thread.id,
+            "replays": []
+        }
+        await thread.send(f"{ctx.author.mention}, you can now submit your replays using /replays command.")
+
+    @commands.slash_command(guild_ids=[config.lol_server], description="Get ready to submit replays")
+    async def replays(self, ctx):
+        submission = self.submissions.get(ctx.author.id)
+        if submission and ctx.channel.id == submission["thread"]:
+            await ctx.send("You can start uploading your replays now.")
+        else:
+            await ctx.send("Please start a submission first with /start_submission.", ephemeral=True)
+
+    @commands.slash_command(guild_ids=[config.lol_server], description="Submit UR League of Legends match replay")
     async def submit_replay(self, ctx, replay: discord.Attachment):
-        await ctx.defer()
-        logger.info("Attempting to parse replay")
-        match_metadata, players, match_id = await self.parse_replay(ctx, replay)
-        if players:
-            await self.send_replay_summary(ctx, match_metadata, players, match_id)
-        await ctx.followup.send("Replay submitted successfully!", ephemeral=True)
+        submission = self.submissions.get(ctx.author.id)
+        if submission and ctx.channel.id == submission["thread"]:
+            match_metadata, players, match_id = await self.parse_replay(ctx, replay)
+            if players:
+                submission["replays"].append((match_metadata, players, match_id))
+            await ctx.send("Replay uploaded successfully!", ephemeral=True)
+        else:
+            await ctx.send("Please start a submission first with /start_submission.", ephemeral=True)
+
+    @commands.slash_command(guild_ids=[config.lol_server], description="Finish uploading replays")
+    async def finish(self, ctx):
+        submission = self.submissions.get(ctx.author.id)
+        if submission and ctx.channel.id == submission["thread"]:
+            await self.send_series_summary(ctx, submission["replays"])
+        else:
+            await ctx.send("Please start a submission first with /start_submission.", ephemeral=True)
+
+    @commands.slash_command(guild_ids=[config.lol_server], description="Complete the submission process")
+    async def complete_submission(self, ctx):
+        submission = self.submissions.get(ctx.author.id)
+        if submission and ctx.channel.id == submission["thread"]:
+            thread = await ctx.guild.fetch_channel(submission["thread"])
+            await thread.edit(locked=True)
+            await ctx.send("Submission completed and thread locked.")
+            del self.submissions[ctx.author.id]
+        else:
+            await ctx.send("No active submission found.", ephemeral=True)
 
     @staticmethod
     async def parse_replay(ctx, replay: discord.Attachment):
         try:
             if not replay.filename.endswith('.rofl'):
-                await ctx.respond("An error occurred. Please ensure the provided file is a valid .rofl file", ephemeral=True)
+                await ctx.send("An error occurred. Please ensure the provided file is a valid .rofl file", ephemeral=True)
                 return None, None, None
 
             raw_bytes = await replay.read()
@@ -58,7 +98,7 @@ class ReplaysCog(commands.Cog):
             # Validate magic bytes
             magic = buffer.read(4)
             if magic != b'RIOT':
-                await ctx.respond("An error occurred. Please ensure the provided file is a valid .rofl file", ephemeral=True)
+                await ctx.send("An error occurred. Please ensure the provided file is a valid .rofl file", ephemeral=True)
                 return None, None, None
 
             # Extract match ID from the file name
@@ -66,7 +106,7 @@ class ReplaysCog(commands.Cog):
 
             # Check if replay already exists in the database
             if dbInfo.replays_collection.find_one({"match_id": match_id}):
-                await ctx.respond("This replay has already been uploaded.", ephemeral=True)
+                await ctx.send("This replay has already been uploaded.", ephemeral=True)
                 return None, None, None
 
             # Extract replay data
@@ -135,51 +175,24 @@ class ReplaysCog(commands.Cog):
             return match_metadata, players, match_id
         except Exception as e:
             logger.error(e)
-            await ctx.respond("An unknown error occurred and has been logged. Please try again.", ephemeral=True)
+            await ctx.send("An unknown error occurred and has been logged. Please try again.", ephemeral=True)
             return None, None, None
 
-    async def send_replay_summary(self, ctx, match_metadata, players, match_id):
+    async def send_series_summary(self, ctx, replays):
         embed = discord.Embed(
-            title="Replay Summary", 
-            description=f"Match ID: {match_id}", 
+            title="Series Summary", 
+            description="Summary of all submitted replays", 
             color=discord.Color.blue()
         )
-        
-        # Group by team
-        team_100_players = [player for player in players if player.team_id == '100']
-        team_200_players = [player for player in players if player.team_id == '200']
 
-        # Add field for Team 100
-        for player in team_100_players:
+        for match_metadata, players, match_id in replays:
             embed.add_field(
-                name=f"{player.name if player.name else 'Unknown'}",
-                value=(
-                    f"**Team:** {player.team_id}\n"
-                    f"**W/L:** {'W' if player.win == 'Win' else 'L'}\n"
-                    f"**K/D/A:** {player.kills}/{player.deaths}/{player.assists}\n"
-                    f"**Pos:** {player.position}"
-                ),
-                inline=True  # This allows multiple fields to be on the same line
+                name=f"Match ID: {match_id}",
+                value=f"Duration: {match_metadata['game_duration']} - {len(players)} Players",
+                inline=False
             )
 
-        # Add blank to separate teams
-        embed.add_field(name="\u200b", value='\u200b', inline=False)
-
-        # Field for Team 200
-        for player in team_200_players:
-            embed.add_field(
-                name=f"{player.name if player.name else 'Unknown'}",
-                value=(
-                    f"**Team:** {player.team_id}\n"
-                    f"**W/L:** {'W' if player.win == 'Win' else 'L'}\n"
-                    f"**K/D/A:** {player.kills}/{player.deaths}/{player.assists}\n"
-                    f"**Pos:** {player.position}"
-                ),
-                inline=True
-            )
-
-        await ctx.respond(embed=embed, ephemeral=True)
-
+        await ctx.send(embed=embed, ephemeral=True)
 
 def setup(bot):
     bot.add_cog(ReplaysCog(bot))
