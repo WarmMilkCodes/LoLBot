@@ -163,6 +163,13 @@ class StaffCog(commands.Cog):
         manual_salary = player_info.get('manual_salary')
         salary = manual_salary if manual_salary else player_info.get('salary', 'N/A')
 
+        # Fetch alt accounts (if any)
+        alt_accounts = player_info.get("alt_accounts", [])
+        if alt_accounts:
+            alt_accounts_list = "\n".join([f"{alt.get('game_name', 'N/A')}#{alt.get('tag_line', 'N/A')}" for alt in alt_accounts])
+        else:
+            alt_accounts_list = "None"
+
         # Construct player info list
         player_info_list = [
             f"**Username**: {user.name}",
@@ -171,7 +178,8 @@ class StaffCog(commands.Cog):
             f"**Status**: {player_status_embed}",
             f"**Eligibility**:  {'Eligible' if player_info.get('eligible_for_split') == True else 'Not Eligible'}",
             f"**Current Games**: {split_games}\n"
-            f"**Peak Rank**:\n{peak_rank}"  # Display peak rank here
+            f"**Peak Rank**:\n{peak_rank}"
+            f"**Alt Account(s)**\n{alt_accounts_list}"
         ]
 
         # Embed creation
