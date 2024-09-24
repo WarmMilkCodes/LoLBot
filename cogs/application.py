@@ -5,6 +5,7 @@ import pytz
 from app import config, dbInfo
 import logging
 import asyncio, re
+from utils import update_nickname
 
 logger = logging.getLogger('lol_log')
 
@@ -104,6 +105,9 @@ class ApplicationButton(discord.ui.View):
                 await interaction.user.send("You took too long to respond. Please try again.")
                 logger.warning("Timeout occurred while waiting for the Riot Tag Line.")
                 return
+            
+            # Update prefix to FA
+            await update_nickname(interaction.user, "FA")
 
         # Final message after form submission
         embed = discord.Embed(title="Intent Form Complete", description=lol_description, color=discord.Color.blue())
@@ -137,10 +141,10 @@ class ApplicationButton(discord.ui.View):
             await interaction.user.add_roles(spectator_role, member_role)
             if free_agent_role in interaction.user.roles:
                 await interaction.user.remove_roles(free_agent_role)
+            
+            await update_nickname(interaction.user, "S")
 
         logger.info(f"Roles updated for {interaction.user.name}: Playing - {responses[0]}")
-
-        await self.update_nickname(interaction.user)
         
         # Set time for database entry                        
         dateTimeObj = datetime.now()
@@ -207,53 +211,6 @@ class ApplicationButton(discord.ui.View):
         riot_id_log_channel = self.bot.get_channel(config.riot_id_log_channel)
         if riot_id_log_channel:
             await riot_id_log_channel.send(f"{interaction.user.mention} updated their Riot ID: {riot_game_name}#{riot_tag_line}")
-
-
-    async def update_nickname(self, user):
-        """Update member's nickname based on their roles"""
-        try:
-            # Determine the prefix based on roles
-            prefix = ""
-            suffix = ""
-            franchise_governor_role = discord.utils.get(user.guild.roles, name="Franchise Owner")
-            
-            if franchise_governor_role in user.roles:
-                # Check for a team role and use the team code as the prefix
-                team_role = next((role for role in user.roles if dbInfo.team_collection.find_one({"team_id": role.id})), None)
-                if team_role:
-                    team_code = dbInfo.team_collection.find_one({"team_id": team_role.id}).get("team_code")
-                    if team_code:
-                        prefix = team_code
-                suffix = ""
-            else:
-                if discord.utils.get(user.roles, name="Free Agents"):
-                    prefix = "FA"
-
-                    # If player is Free Agent, retrieve salary to append to nickname
-                    player_entry = dbInfo.player_collection.find_one({"discord_id":user.id})
-                    if player_entry:
-                        player_salary = player_entry.get("salary", "TBD")
-                        suffix = f"{player_salary}"
-                    else:
-                        suffix = "| TBD"
-                elif discord.utils.get(user.roles, name="Spectator"):
-                    prefix = "S"
-                    suffix = ""
-
-            # Remove any existing prefix or salary suffix
-            new_nickname = re.sub(r"^(FA \| |S \| |TBD \| |[A-Z]{2,3} \| )", "", user.display_name)
-            new_nickname = re.sub(r" \| \d+$", "", new_nickname)
-
-            # Add new prefix if applicable and append suffix for FA
-            if prefix:
-                new_nickname = f"{prefix} | {new_nickname}"
-            new_nickname = f"{new_nickname} | {suffix}"
-            
-            await user.edit(nick=new_nickname)
-            logger.info(f"Updated nickname for {user.name} to {new_nickname}")
-        except Exception as e:
-            logger.error(f"Error updating nickname for {user.name}: {e}")
-
 
 class ButtonOptions(discord.ui.View):
     def __init__(self):
