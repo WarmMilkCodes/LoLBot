@@ -28,7 +28,7 @@ async def update_nickname(member: discord.Member, prefix: str):
         
         # Add the new prefix if applicable
         if prefix:
-            new_nickname = f"{prefix} | {new_nickname}"
+            new_nickname = f"{prefix} | {new_nickname}".strip()
 
         # If the player has the "Free Agents" or "Restricted Free Agents" role, append salary as suffix, but skip this for Franchise Owners
         fa_role = discord.utils.get(member.roles, name="Free Agents")
