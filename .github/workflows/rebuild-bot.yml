@@ -1,0 +1,43 @@
+name: Rebuild Discord Bot
+
+on:
+  push:
+    branches:
+      - main  # Change this to your main branch
+  pull_request:
+    branches:
+      - main  # Optional: Rebuild on pull requests to main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'  # Specify your Python version
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          # Add any tests you want to run before deployment
+          pytest
+
+      - name: Build and Deploy Docker Image
+        run: |
+          docker build -t your-bot-image .
+          docker stop your-bot-container || true
+          docker rm your-bot-container || true
+          docker run -d --name your-bot-container your-bot-image
+
+      - name: Post deployment cleanup
+        run: |
+          docker system prune -f
