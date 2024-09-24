@@ -178,7 +178,7 @@ class StaffCog(commands.Cog):
             f"**Status**: {player_status_embed}",
             f"**Eligibility**:  {'Eligible' if player_info.get('eligible_for_split') == True else 'Not Eligible'}",
             f"**Current Games**: {split_games}\n"
-            f"**Peak Rank**:\n{peak_rank}"
+            f"**Peak Rank**:\n{peak_rank}\n"
             f"**Alt Account(s)**\n{alt_accounts_list}"
         ]
 
