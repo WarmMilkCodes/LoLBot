@@ -49,13 +49,14 @@ class ConfirmAltView(View):
 
         # Remove embed and buttons after confirmation
         await interaction.response.edit_message(content=f"Alt account {self.game_name}#{self.tag_line} has been added.", embed=None, view=None)
+        await interaction.response.delete()
 
-    @discord.ui.button(label="Click dismiss below.", style=discord.ButtonStyle.red)
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
             # Try to delete the message
             if interaction.message:
-                await interaction.message.delete()
+                await interaction.response.delete()
                 logger.info(f"Deleted message for {interaction.user.name}")
         except Exception as e:
             logger.error(f"Failed to delete the message: {e}")
