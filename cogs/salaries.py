@@ -3,7 +3,7 @@ from discord.ext import commands
 import app.dbInfo as dbInfo
 import app.config as config
 import logging
-from utils import update_nickname
+from cogs.utils import update_nickname
 
 logger = logging.getLogger('salary_log')
 
