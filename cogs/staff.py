@@ -61,7 +61,7 @@ def get_peak_rank(player_info):
 
 class StaffCog(commands.Cog):
     def __init__(self, bot):
-        self.bot = bot
+        self.bot = bot         
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Change a player to spectator")
     @commands.has_any_role("League Ops", "Bot Guy")

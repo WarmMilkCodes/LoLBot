@@ -3,6 +3,7 @@ from discord.ext import commands
 import app.dbInfo as dbInfo
 import app.config as config
 import logging
+from utils import update_nickname
 
 logger = logging.getLogger('salary_log')
 
@@ -98,8 +99,18 @@ class SalaryCog(commands.Cog):
 
                 salary_report.append(f"**{player_name}**: {highest_rank} {highest_division} - Salary: {salary}")
                 total_salary += salary
+
+                # Update user's nickname to reflect salary
+                member = ctx.guild.get_member(player['discord_id'])
+                if member:
+                    prefix = 'FA' if player.get('team') in ['FA', None, 'Unassigned'] else 'RFA'
+                    await update_nickname(member, prefix=prefix)
+
             else:
-                salary_report.append(f"**{player_name}**: No rank data - Salary: N/A")
+                continue
+            
+        if not salary_report:
+            await ctx.respond("No new salaries were calculated.", ephemeral=True)
 
         # Split the report into multiple embeds if the content exceeds the 4096-character limit
         max_length = 4096
