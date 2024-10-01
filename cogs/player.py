@@ -91,26 +91,32 @@ class PlayerCog(commands.Cog):
                 continue
 
             logger.info(f"Processing player: {player_record['name']}")
-            puuid = None
+            puuid = player_record.get('puuid')
 
-            # Check if game_name and tag_line are set
-            if not player_record.get('game_name') or not player_record.get('tag_line'):
-                logger.warning(f"Missing game_name or tag_line for {player_record['name']}. Skipping rank and eligibility update.")
-                if riot_id_log_channel:
-                    await riot_id_log_channel.send(
-                        f"Missing Riot ID info for {player_record['name']} ({player_record['discord_id']}). Please ensure their game_name and tag_line are set."
-                    )
-                continue
-
-            # Get and store PUUID
-            puuid = await self.get_puuid(player_record['game_name'], player_record['tag_line'])
+            # If no PUUID is stored, fetch and store it
             if not puuid:
-                logger.warning(f"Failed to retrieve PUUID for {player_record['name']}. Skipping rank and eligibility update.")
-                if riot_id_log_channel:
-                    await riot_id_log_channel.send(
-                        f"Failed to retrieve PUUID for {player_record['name']} ({player_record['discord_id']}) - {player_record['game_name']}#{player_record['tag_line']}"
+                if not player_record.get('game_name') or not player_record.get('tag_line'):
+                    logger.warning(f"Missing game_name or tag_line for {player_record['name']}. Skipping rank and eligibility update.")
+                    if riot_id_log_channel:
+                        await riot_id_log_channel.send(
+                            f"Missing Riot ID info for {player_record['name']} ({player_record['discord_id']}). Please ensure their game_name and tag_line are set."
+                        )
+                    continue
+
+                # Get and store PUUID
+                puuid = await self.get_puuid(player_record['game_name'], player_record['tag_line'])
+                if not puuid:
+                    logger.warning(f"Failed to retrieve PUUID for {player_record['name']}. Skipping rank and eligibility update.")
+                    if riot_id_log_channel:
+                        await riot_id_log_channel.send(
+                            f"Failed to retrieve PUUID for {player_record['name']} ({player_record['discord_id']}) - {player_record['game_name']}#{player_record['tag_line']}"
+                        )
+                    continue
+                else:
+                    dbInfo.player_collection.update_one(
+                        {"discord_id": player_record['discord_id']},
+                        {"$set": {"puuid": puuid}}
                     )
-                continue
 
             # Get match history (match IDs)
             match_history = await self.get_match_history(puuid)
