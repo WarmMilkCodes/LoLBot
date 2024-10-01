@@ -85,11 +85,6 @@ class PlayerCog(commands.Cog):
             fall_split_game_count = player_record.get('fall_split_game_count', 0)
             total_game_count = summer_split_game_count + fall_split_game_count
 
-            # Skip the player if they have already met the minimum game requirement (30 games)
-            if total_game_count >= REQUIRED_GAME_COUNT:
-                logger.info(f"Player {player_record['name']} has already met the required {REQUIRED_GAME_COUNT} games. Skipping eligibility check.")
-                continue
-
             logger.info(f"Processing player: {player_record['name']}")
             puuid = player_record.get('puuid')
 
@@ -118,75 +113,76 @@ class PlayerCog(commands.Cog):
                         {"$set": {"puuid": puuid}}
                     )
 
-            # Get match history (match IDs)
-            match_history = await self.get_match_history(puuid)
-            if match_history is None:
-                logger.error(f"Failed to retrieve match history for {player_record['name']}")
-                continue
+            # Get match history (match IDs) if player has not met the game count requirement
+            if total_game_count < REQUIRED_GAME_COUNT:
+                match_history = await self.get_match_history(puuid)
+                if match_history is None:
+                    logger.error(f"Failed to retrieve match history for {player_record['name']}")
+                    continue
 
-            # Get the start and end dates for the Summer and Fall splits
-            summer_split_start = SPLITS[1]["start"]
-            summer_split_end = SPLITS[1]["end"]
-            fall_split_start = SPLITS[2]["start"]
+                # Get the start and end dates for the Summer and Fall splits
+                summer_split_start = SPLITS[1]["start"]
+                summer_split_end = SPLITS[1]["end"]
+                fall_split_start = SPLITS[2]["start"]
 
-            logger.info(f"Summer Split Start: {summer_split_start}, Fall Split Start: {fall_split_start}")
+                logger.info(f"Summer Split Start: {summer_split_start}, Fall Split Start: {fall_split_start}")
 
-            # Initialize counts for new games
-            new_summer_split_games = 0
-            new_fall_split_games = 0
+                # Initialize counts for new games
+                new_summer_split_games = 0
+                new_fall_split_games = 0
 
-            # Fetch match details for each match ID and categorize them into splits
-            for match_id in match_history:
-                if total_game_count >= REQUIRED_GAME_COUNT:
-                    logger.info(f"Player {player_record['name']} has reached the required {REQUIRED_GAME_COUNT} games. Stopping further checks.")
-                    break  # Stop fetching more games if the required number has been reached
+                # Fetch match details for each match ID and categorize them into splits
+                for match_id in match_history:
+                    if total_game_count >= REQUIRED_GAME_COUNT:
+                        logger.info(f"Player {player_record['name']} has reached the required {REQUIRED_GAME_COUNT} games. Stopping further checks.")
+                        break  # Stop fetching more games if the required number has been reached
 
-                match_details = await self.get_match_details(match_id)
-                if not match_details:
-                    continue  # Skip if there was an error retrieving match details
+                    match_details = await self.get_match_details(match_id)
+                    if not match_details:
+                        continue  # Skip if there was an error retrieving match details
 
-                # Get the game creation timestamp
-                game_timestamp = match_details['info']['gameCreation'] / 1000  # Convert from milliseconds to seconds
-                game_date = datetime.fromtimestamp(game_timestamp, timezone.utc)
+                    # Get the game creation timestamp
+                    game_timestamp = match_details['info']['gameCreation'] / 1000  # Convert from milliseconds to seconds
+                    game_date = datetime.fromtimestamp(game_timestamp, timezone.utc)
 
-                logger.info(f"Match {match_id} timestamp: {game_date}")
+                    logger.info(f"Match {match_id} timestamp: {game_date}")
 
-                # Count games for the Summer Split
-                if summer_split_start <= game_date <= summer_split_end:
-                    new_summer_split_games += 1
+                    # Count games for the Summer Split
+                    if summer_split_start <= game_date <= summer_split_end:
+                        new_summer_split_games += 1
 
-                # Count games for the Fall Split
-                if game_date >= fall_split_start:
-                    new_fall_split_games += 1
+                    # Count games for the Fall Split
+                    if game_date >= fall_split_start:
+                        new_fall_split_games += 1
 
-                # Update total game count
-                total_game_count = summer_split_game_count + new_summer_split_games + fall_split_game_count + new_fall_split_games
+                    # Update total game count
+                    total_game_count = summer_split_game_count + new_summer_split_games + fall_split_game_count + new_fall_split_games
 
-            logger.info(f"Player: {player_record['name']}, Summer Split Games: {new_summer_split_games}, Fall Split Games: {new_fall_split_games}")
+                logger.info(f"Player: {player_record['name']}, Summer Split Games: {new_summer_split_games}, Fall Split Games: {new_fall_split_games}")
 
-            # Update the split game counts in the database
-            dbInfo.player_collection.update_one(
-                {"discord_id": player_record['discord_id']},
-                {"$set": {
-                    "summer_split_game_count": summer_split_game_count + new_summer_split_games,
-                    "fall_split_game_count": fall_split_game_count + new_fall_split_games
-                }}
-            )
+                # Update the split game counts in the database
+                dbInfo.player_collection.update_one(
+                    {"discord_id": player_record['discord_id']},
+                    {"$set": {
+                        "summer_split_game_count": summer_split_game_count + new_summer_split_games,
+                        "fall_split_game_count": fall_split_game_count + new_fall_split_games
+                    }}
+                )
 
-            # Calculate eligibility based on total games
-            is_eligible = total_game_count >= REQUIRED_GAME_COUNT
+                # Calculate eligibility based on total games
+                is_eligible = total_game_count >= REQUIRED_GAME_COUNT
 
-            # Update eligibility status
-            dbInfo.player_collection.update_one(
-                {"discord_id": player_record['discord_id']},
-                {"$set": {
-                    "eligible_for_split": is_eligible,
-                    "last_eligibility_check": datetime.now(pytz.utc),
-                    "current_split_game_count": fall_split_game_count + new_fall_split_games
-                }}
-            )
+                # Update eligibility status
+                dbInfo.player_collection.update_one(
+                    {"discord_id": player_record['discord_id']},
+                    {"$set": {
+                        "eligible_for_split": is_eligible,
+                        "last_eligibility_check": datetime.now(pytz.utc),
+                        "current_split_game_count": fall_split_game_count + new_fall_split_games
+                    }}
+                )
 
-            # Fetch Ranks
+            # Rank check and update will ALWAYS run, even if eligibility is already met
             summoner_id = player_record.get('summoner_id')
             if not summoner_id:
                 # Fetch summoner ID if not available
@@ -220,6 +216,7 @@ class PlayerCog(commands.Cog):
                     logger.info(f"Updated rank information for player {player_record['name']} and set last updated.")
 
         logger.info("Completed rank and eligibility check for all players.")
+
 
 
     async def get_match_history(self, puuid):

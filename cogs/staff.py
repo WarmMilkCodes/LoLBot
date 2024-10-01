@@ -122,7 +122,7 @@ class StaffCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Return player info embed")
     @commands.has_any_role("Bot Guy", "League Ops")
-    async def player_info(self, ctx, user: discord.Option(discord.Member)):
+    async def player_info(self, ctx, user: Option(discord.Member)):
         await ctx.defer()
         guild = ctx.guild
         player_profile_url = f"https://lol-web-app.onrender.com/player/{user.id}"
@@ -140,23 +140,23 @@ class StaffCog(commands.Cog):
             if team_role:
                 team_info = team_role.mention
 
-        # Fetch player intent and player info from DB
+        # Fetch player intent and info from DB
         player_intent = dbInfo.intent_collection.find_one({"ID": user.id})
         player_info = dbInfo.player_collection.find_one({"discord_id": user.id}, {"_id": 0})
 
-        player_status = player_intent.get('Playing', 'N/A')
-        if player_status == 'Yes':
-            player_status_embed = 'Playing'
-        elif player_status == 'No':
-            player_status_embed = 'Spectator'
-        else:
-            player_status_embed = 'N/A'
+        player_status = player_intent.get('Playing')
+        if player_intent:
+            if player_status == 'Yes':
+                player_status_embed = 'Playing'
+            elif player_status == 'No':
+                player_status_embed = 'Spectator'
+            else:
+                player_status_embed = 'N/A'
 
-        # Pull the split game counts from the DB
-        summer_split_games = player_info.get('summer_split_game_count', 0)
-        fall_split_games = player_info.get('fall_split_game_count', 0)
+        # Fetch number of games in split
+        split_games = player_info.get('current_split_game_count', 'N/A')
 
-        # Calculate peak rank (assuming there's a helper function to get peak rank)
+        # Calculate peak rank (pass the entire player_info to get_peak_rank function)
         peak_rank = get_peak_rank(player_info)
 
         # Determine salary, prioritize manual salary if available
@@ -176,14 +176,13 @@ class StaffCog(commands.Cog):
             f"**Riot ID**: {player_info.get('game_name', 'N/A')}#{player_info.get('tag_line', 'N/A')}",
             f"**Salary**: {salary}",
             f"**Status**: {player_status_embed}",
-            f"**Eligibility**:  {'Eligible' if player_info.get('eligible_for_split') else 'Not Eligible'}",
-            f"**Previous Split Games (Summer)**: {summer_split_games}",
-            f"**Current Split Games (Fall)**: {fall_split_games}",
-            f"**Peak Rank**:\n{peak_rank}\n",
+            f"**Eligibility**:  {'Eligible' if player_info.get('eligible_for_split') == True else 'Not Eligible'}",
+            f"**Current Games**: {split_games}\n"
+            f"**Peak Rank**:\n{peak_rank}\n"
             f"**Alt Account(s)**\n{alt_accounts_list}"
         ]
 
-        # Create the embed for player info
+        # Embed creation
         embed = discord.Embed(title=f"Player Info for {user.display_name}", color=discord.Color.blue())
         embed.set_thumbnail(url=user.avatar.url)
         embed.add_field(name="Player Profile", value=f"[Click here to view profile]({player_profile_url})", inline=False)
@@ -194,7 +193,7 @@ class StaffCog(commands.Cog):
         if user_roles:
             embed.add_field(name="User Roles", value=user_roles)
 
-        # Add intent info to embed if available
+        # Mapping the intent fields to display in the embed
         if player_intent:
             intent_info = '\n'.join([
                 f"**Playing**: {player_intent.get('Playing', 'N/A')}",
@@ -208,7 +207,6 @@ class StaffCog(commands.Cog):
 
         # Respond with the embed
         await ctx.respond(embed=embed)
-
 
         
 
