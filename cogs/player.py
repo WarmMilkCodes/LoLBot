@@ -21,10 +21,11 @@ SPLITS = [
 # Define required game count for eligibility
 REQUIRED_GAME_COUNT = 30
 
-def is_game_in_split(game_date, split):
-    """Check if a game falls within the given split."""
+def is_game_in_split(game_timestamp, split):
+    """Check if a game timestamp falls within the given split."""
     start = split["start"]
     end = split["end"] or datetime.now(timezone.utc)
+    game_date = datetime.fromtimestamp(game_timestamp / 1000, timezone.utc)  # Riot timestamps are in milliseconds
     return start <= game_date <= end
 
 class PlayerCog(commands.Cog):
@@ -114,14 +115,16 @@ class PlayerCog(commands.Cog):
                 logger.error(f"Failed to retrieve match history for {player_record['name']}")
                 continue
 
-            # Count games for current split
-            current_split = SPLITS[-1]
-            current_split_games = [match for match in match_history if is_game_in_split(match["timestamp"], current_split)]
+            # Get the start dates for the current and last split
+            current_split_start = SPLITS[-1]["start"]
+            last_split_start = SPLITS[-2]["start"]
+
+            # Count games for the current split
+            current_split_games = [match for match in match_history if datetime.fromtimestamp(match["timestamp"] / 1000, timezone.utc) >= current_split_start]
             current_split_game_count = len(current_split_games)
 
-            # Count games for last split (previous split)
-            last_split = SPLITS[-2]
-            last_split_games = [match for match in match_history if is_game_in_split(match["timestamp"], last_split)]
+            # Count games for the last split
+            last_split_games = [match for match in match_history if last_split_start <= datetime.fromtimestamp(match["timestamp"] / 1000, timezone.utc) < current_split_start]
             last_split_game_count = len(last_split_games)
 
             # Calculate total game count across current and last splits
@@ -145,7 +148,7 @@ class PlayerCog(commands.Cog):
                     )
                 continue
 
-            # Get and store player rank
+            # Update rank information and eligibility
             rank_info = await self.get_player_rank(summoner_id)
             if rank_info:
                 date_str = datetime.now(pytz.utc).strftime('%m-%d-%Y')
@@ -183,24 +186,21 @@ class PlayerCog(commands.Cog):
         """Get match history for the current and last split."""
         url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids"
         headers = {'X-Riot-Token': config.RIOT_API}
-        start_time = int(self.get_last_split_start().timestamp())
+        last_split_start = int(self.get_last_split_start().timestamp())
         params = {
-            "startTime": start_time,
+            "startTime": last_split_start,  # Get matches starting from the last split
             "type": "ranked",
-            "count": 100
+            "count": 100  # Retrieve more matches if necessary
         }
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers, params=params) as response:
                 if response.status == 200:
-                    return await response.json()
+                    match_ids = await response.json()
+                    logger.info(f"Retrieved match IDs for PUUID {puuid}: {match_ids}")
+                    return match_ids
                 else:
                     logger.error(f"Error fetching match history for PUUID {puuid}: {await response.text()}")
                     return []
-
-    def get_current_split_start(self):
-        """Retrieve the start date for the current split."""
-        current_split = next((split for split in SPLITS if split['start'] <= datetime.now(timezone.utc) and (split['end'] is None or split['end'] >= datetime.now(timezone.utc))), None)
-        return current_split['start'] if current_split else None
 
     def get_last_split_start(self):
         """Retrieve the start date of the last split."""
@@ -211,10 +211,8 @@ class PlayerCog(commands.Cog):
         """Fetch the PUUID for a given Riot game name and tag line."""
         encoded_game_name = urllib.parse.quote(game_name)
         encoded_tag_line = urllib.parse.quote(tag_line)
-            
         url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{encoded_game_name}/{encoded_tag_line}"
         headers = {'X-Riot-Token': config.RIOT_API}
-        
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
                 if response.status == 200:
