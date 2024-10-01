@@ -69,7 +69,7 @@ class SalaryCog(commands.Cog):
         return highest_rank, highest_division
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Calculate and display salaries for all players based on their highest rank")
-    @commands.has_role("Bot Guy", "League Ops")
+    @commands.has_any_role("Bot Guy", "League Ops")
     async def calculate_all_salaries(self, ctx):
         await ctx.defer()
 
