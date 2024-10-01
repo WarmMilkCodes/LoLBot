@@ -148,12 +148,12 @@ class StaffCog(commands.Cog):
         player_status = player_intent.get('Playing', 'N/A') if player_intent else 'N/A'
         player_status_embed = 'Playing' if player_status == 'Yes' else 'Spectator' if player_status == 'No' else 'N/A'
 
-        # Fetch current and last split games from DB
-        current_split_games = player_info.get('current_split_game_count', 'N/A')
-        last_split_games = player_info.get('last_split_game_count', 0)
+        # Fetch Fall and Summer 2024 split counts
+        summer_split_games = player_info.get('summer_split_game_count', 0)
+        fall_split_games = player_info.get('fall_split_game_count', 0)
 
         # Calculate total split games
-        total_games = current_split_games + last_split_games if isinstance(current_split_games, int) and isinstance(last_split_games, int) else 'N/A'
+        total_games = summer_split_games + fall_split_games if isinstance(summer_split_games, int) and isinstance(fall_split_games, int) else 'N/A'
 
         # Determine eligibility based on combined games from current and last split
         is_eligible = total_games >= 30 if isinstance(total_games, int) else False
@@ -178,8 +178,8 @@ class StaffCog(commands.Cog):
             f"**Status**: {player_status_embed}",
             f"**Eligibility**: {eligibility_status}",
             f"**Total Games (Last + Current Split)**: {total_games}",
-            f"**Current Split Games**: {current_split_games}",
-            f"**Last Split Games**: {last_split_games}",
+            f"**Summer Split**: {summer_split_games}",
+            f"**Fall Split**: {fall_split_games}",
             f"**Peak Rank**:\n{peak_rank}",
             f"**Alt Account(s)**:\n{alt_accounts_list}"
         ]

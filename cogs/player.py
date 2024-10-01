@@ -84,6 +84,7 @@ class PlayerCog(commands.Cog):
             summer_split_game_count = player_record.get('summer_split_game_count', 0)
             fall_split_game_count = player_record.get('fall_split_game_count', 0)
             total_game_count = summer_split_game_count + fall_split_game_count
+            
 
             logger.info(f"Processing player: {player_record['name']}")
             puuid = player_record.get('puuid')
