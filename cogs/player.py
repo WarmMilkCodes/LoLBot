@@ -7,11 +7,9 @@ from datetime import datetime, timezone
 import app.config as config
 import app.dbInfo as dbInfo
 from discord.ext import commands, tasks
-from discord.ui import Button, View
 import urllib.parse
-import unicodedata
 
-logger = logging.getLogger('lol_log')
+logger = logging.getLogger('__name__')
 
 # Split dates for 2024
 SPLITS = [
@@ -24,14 +22,10 @@ SPLITS = [
 REQUIRED_GAME_COUNT = 30
 
 def is_game_in_split(game_date, split):
-    """Check if game falls within given split"""
+    """Check if a game falls within the given split."""
     start = split["start"]
     end = split["end"] or datetime.now(timezone.utc)
     return start <= game_date <= end
-
-def contains_special_chars(s):
-    return any(ord(char) > 127 for char in s)
-
 
 class PlayerCog(commands.Cog):
     def __init__(self, bot):
@@ -104,7 +98,7 @@ class PlayerCog(commands.Cog):
                     )
                 continue
 
-            # Update Rank
+            # Get and store PUUID
             puuid = await self.get_puuid(player_record['game_name'], player_record['tag_line'])
             if not puuid:
                 logger.warning(f"Failed to retrieve PUUID for {player_record['name']}. Skipping rank and eligibility update.")
@@ -134,6 +128,7 @@ class PlayerCog(commands.Cog):
             total_game_count = current_split_game_count + last_split_game_count
             is_eligible = total_game_count >= REQUIRED_GAME_COUNT
 
+            # Store Summoner ID
             summoner_id = await self.get_summoner_id(puuid)
             if summoner_id:
                 if not player_record.get('summoner_id') or player_record.get('summoner_id') != summoner_id:
@@ -150,6 +145,7 @@ class PlayerCog(commands.Cog):
                     )
                 continue
 
+            # Get and store player rank
             rank_info = await self.get_player_rank(summoner_id)
             if rank_info:
                 date_str = datetime.now(pytz.utc).strftime('%m-%d-%Y')
@@ -184,14 +180,14 @@ class PlayerCog(commands.Cog):
         logger.info("Completed rank and eligibility check for all players.")
 
     async def get_match_history(self, puuid):
-        """Get match history for the current split only"""
+        """Get match history for the current and last split."""
         url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids"
         headers = {'X-Riot-Token': config.RIOT_API}
-        start_time = int(self.get_current_split_start().timestamp())
+        start_time = int(self.get_last_split_start().timestamp())
         params = {
             "startTime": start_time,
             "type": "ranked",
-            "count": 30
+            "count": 100
         }
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers, params=params) as response:
@@ -202,18 +198,19 @@ class PlayerCog(commands.Cog):
                     return []
 
     def get_current_split_start(self):
-        """Retrieve the start date for the current split"""
+        """Retrieve the start date for the current split."""
         current_split = next((split for split in SPLITS if split['start'] <= datetime.now(timezone.utc) and (split['end'] is None or split['end'] >= datetime.now(timezone.utc))), None)
         return current_split['start'] if current_split else None
 
+    def get_last_split_start(self):
+        """Retrieve the start date of the last split."""
+        last_split = SPLITS[-2]  # Assuming splits are ordered
+        return last_split['start']
+
     async def get_puuid(self, game_name, tag_line):
-        """Fetch the PUUID for a given Riot game name and tag line"""
-        if contains_special_chars(game_name) or contains_special_chars(tag_line):
-            encoded_game_name = urllib.parse.quote(game_name)
-            encoded_tag_line = urllib.parse.quote(tag_line)
-        else:
-            encoded_game_name = game_name
-            encoded_tag_line = tag_line
+        """Fetch the PUUID for a given Riot game name and tag line."""
+        encoded_game_name = urllib.parse.quote(game_name)
+        encoded_tag_line = urllib.parse.quote(tag_line)
             
         url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{encoded_game_name}/{encoded_tag_line}"
         headers = {'X-Riot-Token': config.RIOT_API}
@@ -228,7 +225,7 @@ class PlayerCog(commands.Cog):
                     return None
 
     async def get_summoner_id(self, puuid):
-        """Get summoner ID from PUUID"""
+        """Get summoner ID from PUUID."""
         url = f"https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
         headers = {'X-Riot-Token': config.RIOT_API}
         async with aiohttp.ClientSession() as session:
@@ -241,7 +238,7 @@ class PlayerCog(commands.Cog):
                     return None
 
     async def get_player_rank(self, summoner_id):
-        """Fetch player's rank information"""
+        """Fetch player's rank information."""
         url = f"https://na1.api.riotgames.com/lol/league/v4/entries/by-summoner/{summoner_id}"
         headers = {'X-Riot-Token': config.RIOT_API}
         async with aiohttp.ClientSession() as session:
