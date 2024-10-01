@@ -186,6 +186,39 @@ class PlayerCog(commands.Cog):
                 }}
             )
 
+            # Fetch Ranks
+            summoner_id = player_record.get('summoner_id')
+            if not summoner_id:
+                # Fetch summoner ID if not available
+                summoner_id = await self.get_summoner_id(puuid)
+                if summoner_id:
+                    dbInfo.player_collection.update_one(
+                        {"discord_id": player_record['discord_id']},
+                        {"$set": {"summoner_id": summoner_id}}
+                    )
+                    logger.info(f"Stored Summoner ID for player {player_record['name']}")
+                else:
+                    logger.warning(f"Failed to retrieve Summoner ID for {player_record['name']}. Skipping rank update.")
+                    continue
+
+            # Fetch and store rank info
+            rank_info = await self.get_player_rank(summoner_id)
+            if rank_info:
+                date_str = datetime.now(pytz.utc).strftime('%m-%d-%Y')
+                historical_rank_info = player_record.get('historical_rank_info', {})
+
+                if not player_record.get('rank_info') or player_record['rank_info'] != rank_info:
+                    historical_rank_info[date_str] = rank_info
+                    dbInfo.player_collection.update_one(
+                        {"discord_id": player_record['discord_id']},
+                        {"$set": {
+                            "rank_info": rank_info,
+                            "last_updated": datetime.now(pytz.utc).strftime('%m-%d-%Y'),
+                            "historical_rank_info": historical_rank_info
+                        }}
+                    )
+                    logger.info(f"Updated rank information for player {player_record['name']} and set last updated.")
+
         logger.info("Completed rank and eligibility check for all players.")
 
 
