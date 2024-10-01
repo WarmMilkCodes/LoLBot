@@ -205,6 +205,26 @@ class PlayerCog(commands.Cog):
 
         logger.info("Completed rank and eligibility check for all players.")
 
+    async def get_match_history(self, puuid):
+        """Get match history for the current and last split."""
+        url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids"
+        headers = {'X-Riot-Token': config.RIOT_API}
+        summer_split_start = int(self.get_summer_split_start().timestamp())
+        params = {
+            "startTime": summer_split_start,  # Get matches starting from the Summer Split
+            "type": "ranked",
+            "count": 100  # Retrieve more matches if necessary
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers, params=params) as response:
+                if response.status == 200:
+                    match_ids = await response.json()
+                    logger.info(f"Retrieved match IDs for PUUID {puuid}: {match_ids}")
+                    return match_ids
+                else:
+                    logger.error(f"Error fetching match history for PUUID {puuid}: {await response.text()}")
+                    return []
+
 
     async def get_match_details(self, match_id):
         """Get the details of a specific match by match ID."""
