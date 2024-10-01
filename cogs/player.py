@@ -117,9 +117,14 @@ class PlayerCog(commands.Cog):
             # Initialize counts for games
             summer_split_game_count = 0
             fall_split_game_count = 0
+            total_game_count = 0  # Combined total
 
             # Fetch match details for each match ID and categorize them into splits
             for match_id in match_history:
+                if total_game_count >= REQUIRED_GAME_COUNT:
+                    logger.info(f"Player {player_record['name']} has reached the required {REQUIRED_GAME_COUNT} games. Stopping further checks.")
+                    break  # Stop fetching more games if the required number has been reached
+
                 match_details = await self.get_match_details(match_id)
                 if not match_details:
                     continue  # Skip if there was an error retrieving match details
@@ -138,10 +143,11 @@ class PlayerCog(commands.Cog):
                 if game_date >= fall_split_start:
                     fall_split_game_count += 1
 
+                total_game_count = summer_split_game_count + fall_split_game_count
+
             logger.info(f"Player: {player_record['name']}, Summer Split Games: {summer_split_game_count}, Fall Split Games: {fall_split_game_count}")
 
             # Calculate total game count across Summer and Fall splits
-            total_game_count = summer_split_game_count + fall_split_game_count
             is_eligible = total_game_count >= REQUIRED_GAME_COUNT
 
             logger.info(f"Player: {player_record['name']}, Total Game Count: {total_game_count}, Eligible: {is_eligible}")
@@ -182,14 +188,14 @@ class PlayerCog(commands.Cog):
                     logger.info(f"Updated rank information for player {player_record['name']} and set last updated.")
 
             # Update eligibility after updating rank
-            if player_record.get("eligible_for_split") != is_eligible or player_record.get("current_split_game_count") != total_game_count:
-                logger.info(f"Updating eligibility for {player_record['name']}: Eligible: {is_eligible}, Games: {total_game_count}")
+            if player_record.get("eligible_for_split") != is_eligible or player_record.get("current_split_game_count") != summer_split_game_count:
+                logger.info(f"Updating eligibility for {player_record['name']}: Eligible: {is_eligible}, Summer Split Games: {summer_split_game_count}")
                 dbInfo.player_collection.update_one(
                     {"discord_id": player_record['discord_id']},
                     {"$set": {
                         "eligible_for_split": is_eligible,
                         "last_eligibility_check": datetime.now(pytz.utc),
-                        "current_split_game_count": total_game_count
+                        "current_split_game_count": summer_split_game_count  # Store only the current split game count
                     }}
                 )
             else:
