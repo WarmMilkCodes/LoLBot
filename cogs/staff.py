@@ -140,26 +140,23 @@ class StaffCog(commands.Cog):
             if team_role:
                 team_info = team_role.mention
 
-        # Fetch player intent and info from DB
+        # Fetch player intent and player info from DB
         player_intent = dbInfo.intent_collection.find_one({"ID": user.id})
         player_info = dbInfo.player_collection.find_one({"discord_id": user.id}, {"_id": 0})
 
-        # Fetch player status from intent
-        player_status = player_intent.get('Playing', 'N/A') if player_intent else 'N/A'
-        player_status_embed = 'Playing' if player_status == 'Yes' else 'Spectator' if player_status == 'No' else 'N/A'
+        player_status = player_intent.get('Playing', 'N/A')
+        if player_status == 'Yes':
+            player_status_embed = 'Playing'
+        elif player_status == 'No':
+            player_status_embed = 'Spectator'
+        else:
+            player_status_embed = 'N/A'
 
-        # Fetch current and last split games from DB
-        current_split_games = player_info.get('current_split_game_count', 'N/A')
-        last_split_games = player_info.get('last_split_game_count', 0)
+        # Pull the split game counts from the DB
+        summer_split_games = player_info.get('summer_split_game_count', 0)
+        fall_split_games = player_info.get('fall_split_game_count', 0)
 
-        # Calculate total split games
-        total_games = current_split_games + last_split_games if isinstance(current_split_games, int) and isinstance(last_split_games, int) else 'N/A'
-
-        # Determine eligibility based on combined games from current and last split
-        is_eligible = total_games >= 30 if isinstance(total_games, int) else False
-        eligibility_status = 'Eligible' if is_eligible else 'Not Eligible'
-
-        # Calculate peak rank (pass the entire player_info to get_peak_rank function)
+        # Calculate peak rank (assuming there's a helper function to get peak rank)
         peak_rank = get_peak_rank(player_info)
 
         # Determine salary, prioritize manual salary if available
@@ -168,7 +165,10 @@ class StaffCog(commands.Cog):
 
         # Fetch alt accounts (if any)
         alt_accounts = player_info.get("alt_accounts", [])
-        alt_accounts_list = "\n".join([f"{alt.get('game_name', 'N/A')}#{alt.get('tag_line', 'N/A')}" for alt in alt_accounts]) if alt_accounts else "None"
+        if alt_accounts:
+            alt_accounts_list = "\n".join([f"{alt.get('game_name', 'N/A')}#{alt.get('tag_line', 'N/A')}" for alt in alt_accounts])
+        else:
+            alt_accounts_list = "None"
 
         # Construct player info list
         player_info_list = [
@@ -176,15 +176,14 @@ class StaffCog(commands.Cog):
             f"**Riot ID**: {player_info.get('game_name', 'N/A')}#{player_info.get('tag_line', 'N/A')}",
             f"**Salary**: {salary}",
             f"**Status**: {player_status_embed}",
-            f"**Eligibility**: {eligibility_status}",
-            f"**Total Games (Last + Current Split)**: {total_games}",
-            f"**Current Split Games**: {current_split_games}",
-            f"**Last Split Games**: {last_split_games}",
-            f"**Peak Rank**:\n{peak_rank}",
-            f"**Alt Account(s)**:\n{alt_accounts_list}"
+            f"**Eligibility**:  {'Eligible' if player_info.get('eligible_for_split') else 'Not Eligible'}",
+            f"**Previous Split Games (Summer)**: {summer_split_games}",
+            f"**Current Split Games (Fall)**: {fall_split_games}",
+            f"**Peak Rank**:\n{peak_rank}\n",
+            f"**Alt Account(s)**\n{alt_accounts_list}"
         ]
 
-        # Embed creation
+        # Create the embed for player info
         embed = discord.Embed(title=f"Player Info for {user.display_name}", color=discord.Color.blue())
         embed.set_thumbnail(url=user.avatar.url)
         embed.add_field(name="Player Profile", value=f"[Click here to view profile]({player_profile_url})", inline=False)
@@ -195,7 +194,7 @@ class StaffCog(commands.Cog):
         if user_roles:
             embed.add_field(name="User Roles", value=user_roles)
 
-        # Mapping the intent fields to display in the embed
+        # Add intent info to embed if available
         if player_intent:
             intent_info = '\n'.join([
                 f"**Playing**: {player_intent.get('Playing', 'N/A')}",
@@ -209,6 +208,7 @@ class StaffCog(commands.Cog):
 
         # Respond with the embed
         await ctx.respond(embed=embed)
+
 
         
 
