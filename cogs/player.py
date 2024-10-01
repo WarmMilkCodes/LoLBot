@@ -89,6 +89,11 @@ class PlayerCog(commands.Cog):
                 logger.info(f"Skipping player {discord_id} because not found or left server.")
                 continue
 
+            # Reset split game counts for this player
+            summer_split_game_count = 0
+            fall_split_game_count = 0
+            total_game_count = 0
+
             # Fetch the split game counts from the database
             summer_split_game_count = player_record.get('summer_split_game_count', 0)
             fall_split_game_count = player_record.get('fall_split_game_count', 0)
