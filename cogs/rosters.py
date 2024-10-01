@@ -69,7 +69,7 @@ class Roster(commands.Cog):
             for index, player in enumerate(roster_list):
                 # Truncate long player names
                 player_name = player['nickname'].replace(f"{team_code} | ", "")[:20]  # Truncate after 20 characters
-                player_salary = player.get("salary", "TBD")
+                player_salary = player.get("manual_salary", player.get("salary", "TBD"))  # Use manual_salary if available, else salary
 
                 slot = player_slots[index] if index < len(player_slots) else "N/A"  # Assign A-E, else N/A if more players
                 roster_table.append([slot, player_name, player_salary])
