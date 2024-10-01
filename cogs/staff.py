@@ -122,7 +122,7 @@ class StaffCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Return player info embed")
     @commands.has_any_role("Bot Guy", "League Ops")
-    async def player_info(self, ctx, user: Option(discord.Member)):
+    async def player_info(self, ctx, user: discord.Option(discord.Member)):
         await ctx.defer()
         guild = ctx.guild
         player_profile_url = f"https://lol-web-app.onrender.com/player/{user.id}"
@@ -144,17 +144,20 @@ class StaffCog(commands.Cog):
         player_intent = dbInfo.intent_collection.find_one({"ID": user.id})
         player_info = dbInfo.player_collection.find_one({"discord_id": user.id}, {"_id": 0})
 
-        player_status = player_intent.get('Playing')
-        if player_intent:
-            if player_status == 'Yes':
-                player_status_embed = 'Playing'
-            elif player_status == 'No':
-                player_status_embed = 'Spectator'
-            else:
-                player_status_embed = 'N/A'
+        # Fetch player status from intent
+        player_status = player_intent.get('Playing', 'N/A') if player_intent else 'N/A'
+        player_status_embed = 'Playing' if player_status == 'Yes' else 'Spectator' if player_status == 'No' else 'N/A'
 
-        # Fetch number of games in split
-        split_games = player_info.get('current_split_game_count', 'N/A')
+        # Fetch current and last split games from DB
+        current_split_games = player_info.get('current_split_game_count', 'N/A')
+        last_split_games = player_info.get('last_split_game_count', 0)
+
+        # Calculate total split games
+        total_games = current_split_games + last_split_games if isinstance(current_split_games, int) and isinstance(last_split_games, int) else 'N/A'
+
+        # Determine eligibility based on combined games from current and last split
+        is_eligible = total_games >= 30 if isinstance(total_games, int) else False
+        eligibility_status = 'Eligible' if is_eligible else 'Not Eligible'
 
         # Calculate peak rank (pass the entire player_info to get_peak_rank function)
         peak_rank = get_peak_rank(player_info)
@@ -165,10 +168,7 @@ class StaffCog(commands.Cog):
 
         # Fetch alt accounts (if any)
         alt_accounts = player_info.get("alt_accounts", [])
-        if alt_accounts:
-            alt_accounts_list = "\n".join([f"{alt.get('game_name', 'N/A')}#{alt.get('tag_line', 'N/A')}" for alt in alt_accounts])
-        else:
-            alt_accounts_list = "None"
+        alt_accounts_list = "\n".join([f"{alt.get('game_name', 'N/A')}#{alt.get('tag_line', 'N/A')}" for alt in alt_accounts]) if alt_accounts else "None"
 
         # Construct player info list
         player_info_list = [
@@ -176,10 +176,12 @@ class StaffCog(commands.Cog):
             f"**Riot ID**: {player_info.get('game_name', 'N/A')}#{player_info.get('tag_line', 'N/A')}",
             f"**Salary**: {salary}",
             f"**Status**: {player_status_embed}",
-            f"**Eligibility**:  {'Eligible' if player_info.get('eligible_for_split') == True else 'Not Eligible'}",
-            f"**Current Games**: {split_games}\n"
-            f"**Peak Rank**:\n{peak_rank}\n"
-            f"**Alt Account(s)**\n{alt_accounts_list}"
+            f"**Eligibility**: {eligibility_status}",
+            f"**Total Games (Last + Current Split)**: {total_games}",
+            f"**Current Split Games**: {current_split_games}",
+            f"**Last Split Games**: {last_split_games}",
+            f"**Peak Rank**:\n{peak_rank}",
+            f"**Alt Account(s)**:\n{alt_accounts_list}"
         ]
 
         # Embed creation
