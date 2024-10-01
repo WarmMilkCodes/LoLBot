@@ -115,21 +115,33 @@ class PlayerCog(commands.Cog):
                 logger.error(f"Failed to retrieve match history for {player_record['name']}")
                 continue
 
-            # Get the start dates for the current and last split
-            current_split_start = SPLITS[-1]["start"]
-            last_split_start = SPLITS[-2]["start"]
+            # Get the start and end dates for the Summer and Fall splits
+            summer_split_start = SPLITS[1]["start"]
+            summer_split_end = SPLITS[1]["end"]
+            fall_split_start = SPLITS[2]["start"]
 
-            # Count games for the current split
-            current_split_games = [match for match in match_history if datetime.fromtimestamp(match["timestamp"] / 1000, timezone.utc) >= current_split_start]
-            current_split_game_count = len(current_split_games)
+            logger.info(f"Summer Split Start: {summer_split_start}, Fall Split Start: {fall_split_start}")
 
-            # Count games for the last split
-            last_split_games = [match for match in match_history if last_split_start <= datetime.fromtimestamp(match["timestamp"] / 1000, timezone.utc) < current_split_start]
-            last_split_game_count = len(last_split_games)
+            # Debugging: Log each match's timestamp to verify splits
+            for match in match_history:
+                game_timestamp = datetime.fromtimestamp(match["timestamp"] / 1000, timezone.utc)
+                logger.info(f"Match timestamp: {game_timestamp}")
 
-            # Calculate total game count across current and last splits
-            total_game_count = current_split_game_count + last_split_game_count
+            # Count games for the Summer Split
+            summer_split_games = [match for match in match_history if summer_split_start <= datetime.fromtimestamp(match["timestamp"] / 1000, timezone.utc) <= summer_split_end]
+            summer_split_game_count = len(summer_split_games)
+
+            # Count games for the Fall Split
+            fall_split_games = [match for match in match_history if datetime.fromtimestamp(match["timestamp"] / 1000, timezone.utc) >= fall_split_start]
+            fall_split_game_count = len(fall_split_games)
+
+            logger.info(f"Player: {player_record['name']}, Summer Split Games: {summer_split_game_count}, Fall Split Games: {fall_split_game_count}")
+
+            # Calculate total game count across Summer and Fall splits
+            total_game_count = summer_split_game_count + fall_split_game_count
             is_eligible = total_game_count >= REQUIRED_GAME_COUNT
+
+            logger.info(f"Player: {player_record['name']}, Total Game Count: {total_game_count}, Eligible: {is_eligible}")
 
             # Store Summoner ID
             summoner_id = await self.get_summoner_id(puuid)
@@ -183,12 +195,12 @@ class PlayerCog(commands.Cog):
         logger.info("Completed rank and eligibility check for all players.")
 
     async def get_match_history(self, puuid):
-        """Get match history for the current and last split."""
+        """Get match history for the Summer and Fall split."""
         url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids"
         headers = {'X-Riot-Token': config.RIOT_API}
-        last_split_start = int(self.get_last_split_start().timestamp())
+        summer_split_start = int(self.get_summer_split_start().timestamp())
         params = {
-            "startTime": last_split_start,  # Get matches starting from the last split
+            "startTime": summer_split_start,  # Get matches starting from the Summer Split
             "type": "ranked",
             "count": 100  # Retrieve more matches if necessary
         }
@@ -202,10 +214,11 @@ class PlayerCog(commands.Cog):
                     logger.error(f"Error fetching match history for PUUID {puuid}: {await response.text()}")
                     return []
 
-    def get_last_split_start(self):
-        """Retrieve the start date of the last split."""
-        last_split = SPLITS[-2]  # Assuming splits are ordered
-        return last_split['start']
+
+    def get_summer_split_start(self):
+        """Retrieve the start date of the Summer Split."""
+        summer_split = SPLITS[1]  # Summer Split is the second in the list
+        return summer_split['start']
 
     async def get_puuid(self, game_name, tag_line):
         """Fetch the PUUID for a given Riot game name and tag line."""
