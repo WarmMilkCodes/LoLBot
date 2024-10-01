@@ -142,6 +142,11 @@ class PlayerCog(commands.Cog):
                     if not match_details:
                         continue  # Skip if there was an error retrieving match details
 
+                    # Only check Solo/Duo games
+                    if match_details['info']['queueId'] != 420:
+                        logger.info(f"Skipping match {match_id} as it is not a Solo/Duo game.")
+                        continue
+
                     # Get the game creation timestamp
                     game_timestamp = match_details['info']['gameCreation'] / 1000  # Convert from milliseconds to seconds
                     game_date = datetime.fromtimestamp(game_timestamp, timezone.utc)
