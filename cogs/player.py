@@ -69,6 +69,7 @@ class PlayerCog(commands.Cog):
         logger.info("Updating ranks and checking eligibility for all players.")
         riot_id_log_channel = self.bot.get_channel(config.failure_log_channel)
 
+        # Fetch all players currently playing
         players = dbInfo.intent_collection.find({"Playing": "Yes"})
 
         for player in players:
@@ -77,6 +78,16 @@ class PlayerCog(commands.Cog):
             
             if not player_record:
                 logger.info(f"Skipping player {discord_id} because not found or left server.")
+                continue
+
+            # Fetch the split game counts from the database
+            summer_split_game_count = player_record.get('summer_split_game_count', 0)
+            fall_split_game_count = player_record.get('fall_split_game_count', 0)
+            total_game_count = summer_split_game_count + fall_split_game_count
+
+            # Skip the player if they have already met the minimum game requirement (30 games)
+            if total_game_count >= REQUIRED_GAME_COUNT:
+                logger.info(f"Player {player_record['name']} has already met the required {REQUIRED_GAME_COUNT} games. Skipping eligibility check.")
                 continue
 
             logger.info(f"Processing player: {player_record['name']}")
@@ -114,10 +125,9 @@ class PlayerCog(commands.Cog):
 
             logger.info(f"Summer Split Start: {summer_split_start}, Fall Split Start: {fall_split_start}")
 
-            # Initialize counts for games
-            summer_split_game_count = 0
-            fall_split_game_count = 0
-            total_game_count = 0  # Combined total
+            # Initialize counts for new games
+            new_summer_split_games = 0
+            new_fall_split_games = 0
 
             # Fetch match details for each match ID and categorize them into splits
             for match_id in match_history:
@@ -137,71 +147,41 @@ class PlayerCog(commands.Cog):
 
                 # Count games for the Summer Split
                 if summer_split_start <= game_date <= summer_split_end:
-                    summer_split_game_count += 1
+                    new_summer_split_games += 1
 
                 # Count games for the Fall Split
                 if game_date >= fall_split_start:
-                    fall_split_game_count += 1
+                    new_fall_split_games += 1
 
-                total_game_count = summer_split_game_count + fall_split_game_count
+                # Update total game count
+                total_game_count = summer_split_game_count + new_summer_split_games + fall_split_game_count + new_fall_split_games
 
-            logger.info(f"Player: {player_record['name']}, Summer Split Games: {summer_split_game_count}, Fall Split Games: {fall_split_game_count}")
+            logger.info(f"Player: {player_record['name']}, Summer Split Games: {new_summer_split_games}, Fall Split Games: {new_fall_split_games}")
 
-            # Calculate total game count across Summer and Fall splits
+            # Update the split game counts in the database
+            dbInfo.player_collection.update_one(
+                {"discord_id": player_record['discord_id']},
+                {"$set": {
+                    "summer_split_game_count": summer_split_game_count + new_summer_split_games,
+                    "fall_split_game_count": fall_split_game_count + new_fall_split_games
+                }}
+            )
+
+            # Calculate eligibility based on total games
             is_eligible = total_game_count >= REQUIRED_GAME_COUNT
 
-            logger.info(f"Player: {player_record['name']}, Total Game Count: {total_game_count}, Eligible: {is_eligible}")
-
-            # Store Summoner ID
-            summoner_id = await self.get_summoner_id(puuid)
-            if summoner_id:
-                if not player_record.get('summoner_id') or player_record.get('summoner_id') != summoner_id:
-                    dbInfo.player_collection.update_one(
-                        {"discord_id": player_record['discord_id']},
-                        {"$set": {"summoner_id": summoner_id}}
-                    )
-                    logger.info(f"Stored Summoner ID for player {player_record['name']}")
-            else:
-                logger.warning(f"Failed to retrieve Summoner ID for {player_record['name']}. Skipping rank and eligibility update.")
-                if riot_id_log_channel:
-                    await riot_id_log_channel.send(
-                        f"Failed to retrieve Summoner ID for {player_record['name']} ({player_record['discord_id']}) - PUUID: {puuid}"
-                    )
-                continue
-
-            # Update rank information and eligibility
-            rank_info = await self.get_player_rank(summoner_id)
-            if rank_info:
-                date_str = datetime.now(pytz.utc).strftime('%m-%d-%Y')
-                historical_rank_info = player_record.get('historical_rank_info', {})
-
-                if not player_record.get('rank_info') or player_record['rank_info'] != rank_info:
-                    historical_rank_info[date_str] = rank_info
-                    dbInfo.player_collection.update_one(
-                        {"discord_id": player_record['discord_id']},
-                        {"$set": {
-                            "rank_info": rank_info,
-                            "last_updated": datetime.now(pytz.utc).strftime('%m-%d-%Y'),
-                            "historical_rank_info": historical_rank_info
-                        }}
-                    )
-                    logger.info(f"Updated rank information for player {player_record['name']} and set last updated.")
-
-            # Update eligibility after updating rank
-            if player_record.get("eligible_for_split") != is_eligible or player_record.get("current_split_game_count") != summer_split_game_count:
-                logger.info(f"Updating eligibility for {player_record['name']}: Eligible: {is_eligible}, Summer Split Games: {summer_split_game_count}")
-                dbInfo.player_collection.update_one(
-                    {"discord_id": player_record['discord_id']},
-                    {"$set": {
-                        "eligible_for_split": is_eligible,
-                        "last_eligibility_check": datetime.now(pytz.utc),
-                        "current_split_game_count": summer_split_game_count  # Store only the current split game count
-                    }}
-                )
-            else:
-                logger.info(f"No change in eligibility for {player_record['name']}")
+            # Update eligibility status
+            dbInfo.player_collection.update_one(
+                {"discord_id": player_record['discord_id']},
+                {"$set": {
+                    "eligible_for_split": is_eligible,
+                    "last_eligibility_check": datetime.now(pytz.utc),
+                    "current_split_game_count": fall_split_game_count + new_fall_split_games
+                }}
+            )
 
         logger.info("Completed rank and eligibility check for all players.")
+
 
     async def get_match_history(self, puuid):
         """Get match history for the current and last split."""
