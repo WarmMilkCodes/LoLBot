@@ -109,7 +109,7 @@ class PlayerCog(commands.Cog):
                     )
                 continue
 
-            # Get match history and filter by split dates
+            # Get match history (match IDs)
             match_history = await self.get_match_history(puuid)
             if match_history is None:
                 logger.error(f"Failed to retrieve match history for {player_record['name']}")
@@ -122,18 +122,29 @@ class PlayerCog(commands.Cog):
 
             logger.info(f"Summer Split Start: {summer_split_start}, Fall Split Start: {fall_split_start}")
 
-            # Debugging: Log each match's timestamp to verify splits
-            for match in match_history:
-                game_timestamp = datetime.fromtimestamp(match["timestamp"] / 1000, timezone.utc)
-                logger.info(f"Match timestamp: {game_timestamp}")
+            # Initialize counts for games
+            summer_split_game_count = 0
+            fall_split_game_count = 0
 
-            # Count games for the Summer Split
-            summer_split_games = [match for match in match_history if summer_split_start <= datetime.fromtimestamp(match["timestamp"] / 1000, timezone.utc) <= summer_split_end]
-            summer_split_game_count = len(summer_split_games)
+            # Fetch match details for each match ID and categorize them into splits
+            for match_id in match_history:
+                match_details = await self.get_match_details(match_id)
+                if not match_details:
+                    continue  # Skip if there was an error retrieving match details
 
-            # Count games for the Fall Split
-            fall_split_games = [match for match in match_history if datetime.fromtimestamp(match["timestamp"] / 1000, timezone.utc) >= fall_split_start]
-            fall_split_game_count = len(fall_split_games)
+                # Get the game creation timestamp
+                game_timestamp = match_details['info']['gameCreation'] / 1000  # Convert from milliseconds to seconds
+                game_date = datetime.fromtimestamp(game_timestamp, timezone.utc)
+
+                logger.info(f"Match {match_id} timestamp: {game_date}")
+
+                # Count games for the Summer Split
+                if summer_split_start <= game_date <= summer_split_end:
+                    summer_split_game_count += 1
+
+                # Count games for the Fall Split
+                if game_date >= fall_split_start:
+                    fall_split_game_count += 1
 
             logger.info(f"Player: {player_record['name']}, Summer Split Games: {summer_split_game_count}, Fall Split Games: {fall_split_game_count}")
 
@@ -194,25 +205,21 @@ class PlayerCog(commands.Cog):
 
         logger.info("Completed rank and eligibility check for all players.")
 
-    async def get_match_history(self, puuid):
-        """Get match history for the Summer and Fall split."""
-        url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids"
+
+    async def get_match_details(self, match_id):
+        """Get the details of a specific match by match ID."""
+        url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{match_id}"
         headers = {'X-Riot-Token': config.RIOT_API}
-        summer_split_start = int(self.get_summer_split_start().timestamp())
-        params = {
-            "startTime": summer_split_start,  # Get matches starting from the Summer Split
-            "type": "ranked",
-            "count": 100  # Retrieve more matches if necessary
-        }
+        
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers, params=params) as response:
+            async with session.get(url, headers=headers) as response:
                 if response.status == 200:
-                    match_ids = await response.json()
-                    logger.info(f"Retrieved match IDs for PUUID {puuid}: {match_ids}")
-                    return match_ids
+                    match_details = await response.json()
+                    return match_details
                 else:
-                    logger.error(f"Error fetching match history for PUUID {puuid}: {await response.text()}")
-                    return []
+                    logger.error(f"Error fetching match details for match ID {match_id}: {await response.text()}")
+                    return None
+
 
 
     def get_summer_split_start(self):
