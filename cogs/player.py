@@ -231,6 +231,20 @@ class PlayerCog(commands.Cog):
                     logger.error(f"Error fetching match details for match ID {match_id}: {await response.text()}")
                     return None
 
+    async def get_puuid(self, game_name, tag_line):
+        """Get PUUID for the given game_name and tag_line."""
+        url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
+        headers = {'X-Riot-Token': config.RIOT_API}
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    account_info = await response.json()
+                    return account_info.get('puuid')
+                else:
+                    logger.error(f"Error fetching PUUID for {game_name}#{tag_line}: {await response.text()}")
+                    return None
+
     def get_summer_split_start(self):
         """Retrieve the start date of the Summer Split."""
         summer_split = SPLITS[1]  # Summer Split is the second in the list
