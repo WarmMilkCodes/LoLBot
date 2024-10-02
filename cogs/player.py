@@ -240,24 +240,43 @@ class PlayerCog(commands.Cog):
 
 
     async def get_match_history(self, puuid):
-        """Get match history for the current and last split."""
+        """Get match history for the current and last split with retry."""
         url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids"
         headers = {'X-Riot-Token': config.RIOT_API}
         summer_split_start = int(self.get_summer_split_start().timestamp())
+        
         params = {
             "startTime": summer_split_start,  # Get matches starting from the Summer Split
             "type": "ranked",
             "count": 100  # Retrieve more matches if necessary
         }
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers, params=params) as response:
-                if response.status == 200:
-                    match_ids = await response.json()
-                    logger.info(f"Retrieved match IDs for PUUID {puuid}: {match_ids}")
-                    return match_ids
-                else:
-                    logger.error(f"Error fetching match history for PUUID {puuid}: {await response.text()}")
-                    return []
+
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, headers=headers, params=params) as response:
+                        if response.status == 200:
+                            match_ids = await response.json()
+                            if not match_ids:
+                                logger.info(f"No matches found for PUUID {puuid} in the specified period.")
+                            logger.info(f"Retrieved match IDs for PUUID {puuid}: {match_ids}")
+                            return match_ids
+                        else:
+                            error_message = await response.text()
+                            if response.status == 429:
+                                logger.error(f"Rate limited while fetching match history for {puuid}, attempt {attempt + 1}: {error_message}")
+                            else:
+                                logger.error(f"Error fetching match history for PUUID {puuid}, attempt {attempt + 1}: {error_message}")
+                            
+                            # Add delay if rate-limited or error encountered
+                            await asyncio.sleep(2 ** attempt)
+            except Exception as e:
+                logger.error(f"Exception occurred while fetching match history for PUUID {puuid}, attempt {attempt + 1}: {e}")
+
+        logger.error(f"Failed to retrieve match history for PUUID {puuid} after {max_retries} attempts.")
+        return []
+
 
     async def get_match_details(self, match_id):
         """Get the details of a specific match by match ID."""
