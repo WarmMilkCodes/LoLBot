@@ -3,8 +3,17 @@ import app.dbInfo as dbInfo
 import discord, logging
 from discord.ext import commands
 from discord.commands import Option
+import aiohttp
+from datetime import datetime, timezone
 
 logger = logging.getLogger('dev_cmd_log')
+
+# Split dates for 2024
+SPLITS = [
+    {"start": datetime(2024, 1, 10, tzinfo=timezone.utc), "end": datetime(2024, 5, 14, tzinfo=timezone.utc), "name": "Spring Split"},
+    {"start": datetime(2024, 5, 15, tzinfo=timezone.utc), "end": datetime(2024, 9, 25, tzinfo=timezone.utc), "name": "Summer Split"},
+    {"start": datetime(2024, 9, 25, tzinfo=timezone.utc), "end": None, "name": "Fall Split"},  # End date unknown
+]
 
 class DevCommands(commands.Cog):
     def __init__(self, bot):
@@ -129,6 +138,56 @@ class DevCommands(commands.Cog):
                         f"Summer Split Games: {new_summer_split_games}, Fall Split Games: {new_fall_split_games}.",
                         ephemeral=True)
 
+    # Helper function to fetch PUUID
+    async def get_puuid(self, game_name, tag_line):
+        """Get PUUID for the given game_name and tag_line."""
+        url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
+        headers = {'X-Riot-Token': config.RIOT_API}
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    account_info = await response.json()
+                    return account_info.get('puuid')
+                else:
+                    logger.error(f"Error fetching PUUID for {game_name}#{tag_line}: {await response.text()}")
+                    return None
+
+    # Helper function to fetch match history
+    async def get_match_history(self, puuid):
+        """Get match history for the current and last split."""
+        url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids"
+        headers = {'X-Riot-Token': config.RIOT_API}
+        summer_split_start = int(SPLITS[1]["start"].timestamp())
+        params = {
+            "startTime": summer_split_start,  # Get matches starting from the Summer Split
+            "type": "ranked",
+            "count": 100  # Retrieve more matches if necessary
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers, params=params) as response:
+                if response.status == 200:
+                    match_ids = await response.json()
+                    logger.info(f"Retrieved match IDs for PUUID {puuid}: {match_ids}")
+                    return match_ids
+                else:
+                    logger.error(f"Error fetching match history for PUUID {puuid}: {await response.text()}")
+                    return None
+
+    # Helper function to fetch match details
+    async def get_match_details(self, match_id):
+        """Get the details of a specific match by match ID."""
+        url = f"https://americas.api.riotgames.com/lol/match/v5/matches/{match_id}"
+        headers = {'X-Riot-Token': config.RIOT_API}
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    match_details = await response.json()
+                    return match_details
+                else:
+                    logger.error(f"Error fetching match details for match ID {match_id}: {await response.text()}")
+                    return None
 
 def setup(bot):
     bot.add_cog(DevCommands(bot))
