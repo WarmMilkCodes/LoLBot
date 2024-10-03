@@ -72,15 +72,6 @@ class PlayerCog(commands.Cog):
         # Fetch all players currently playing
         players = dbInfo.intent_collection.find({"Playing": "Yes"})
 
-        # **Reset all split counts for all players to ensure accurate rechecking**
-        dbInfo.player_collection.update_many(
-            {"Playing": "Yes"},
-            {"$set": {
-                "summer_split_game_count": 0,
-                "fall_split_game_count": 0
-            }}
-        )
-
         for player in players:
             discord_id = player.get('ID')
             player_record = dbInfo.player_collection.find_one({"discord_id": discord_id, "left_at": None})
@@ -88,11 +79,6 @@ class PlayerCog(commands.Cog):
             if not player_record:
                 logger.info(f"Skipping player {discord_id} because not found or left server.")
                 continue
-
-            # Reset split game counts for this player
-            summer_split_game_count = 0
-            fall_split_game_count = 0
-            total_game_count = 0
 
             # Fetch the split game counts from the database
             summer_split_game_count = player_record.get('summer_split_game_count', 0)
