@@ -1,9 +1,10 @@
+import asyncio
 import discord
 import logging
-import app.config as config
-import app.dbInfo as dbInfo
 from discord.ext import commands
 from discord.commands import Option
+import app.config as config
+import app.dbInfo as dbInfo
 
 logger = logging.getLogger('alt_report')
 
@@ -25,43 +26,53 @@ class AltReport(commands.Cog):
             if not await self.validate_command_channel(ctx):
                 return
             
-            reported_account = f"{game_name}#{tag_line}"
             embed = discord.Embed(
                 title="Confirm Alt Account",
-                description=f"You are reporting the following account: '{reported_account}'.\nIf it looks correct, confirm the report.",
+                description=f"You are reporting the following account: '{game_name}#{tag_line}'.\nIf it looks correct, confirm the report.",
                 color=discord.Color.orange()
             )
 
-            view = ReportConfirmationView(ctx, reported_account)
-            await ctx.respond(embed=embed, view=view)
+            view = ReportConfirmationView(ctx, game_name, tag_line)
+            await ctx.respond(embed=embed, view=view, ephemeral=True)
         
         except Exception as e:
             await ctx.respond(f"There was an error submitting your alt account: {e}", ephemeral=True)
 
 class ReportConfirmationView(discord.ui.View):
-    def __init__(self, ctx, reported_account):
+    def __init__(self, ctx, game_name, tag_line):
         super().__init__(timeout=60)
         self.ctx = ctx
-        self.reported_account = reported_account
+        self.game_name = game_name
+        self.tag_line = tag_line
 
     @discord.ui.button(label="Confirm", style=discord.ButtonStyle.green)
-    async def confirm(self, button: discord.Button, interaction: discord.Interaction):
-        dbInfo.player_collection.update_one(
-            {"discord_id": self.ctx.author.id},
-            {"$push": {
-                "alt_accounts": self.reported_account
-            }},
-            upsert=True
-        )
+    async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
+        try:
+            # Store the alt account as an object with game_name and tag_line
+            alt_account = {
+                "game_name": self.game_name,
+                "tag_line": self.tag_line
+            }
 
-        await interaction.response.edit_message(content=f"Report for `{self.reported_account}` has been confirmed.", embed=None, view=None)
-        logger.info(f"User {self.ctx.author} reported alt account: {self.reported_account}")
+            dbInfo.player_collection.update_one(
+                {"discord_id": self.ctx.author.id},
+                {"$push": {
+                    "alt_accounts": alt_account  # Append the alt account object
+                }},
+                upsert=True  # Create the document if it doesn't exist
+            )
 
-    
+            await interaction.response.send_message(f"Report for `{self.game_name}#{self.tag_line}` has been confirmed.", ephemeral=True)
+            logger.info(f"User {self.ctx.author} reported alt account: {self.game_name}#{self.tag_line}")
+        
+        except Exception as e:
+            await interaction.response.send_message(f"Failed to confirm report due to: {e}", ephemeral=True)
+            logger.error(f"Error updating database for alt report: {e}")
+
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
     async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
-        # If the cancellation is clicked
-        await interaction.response.edit_message(content=f"Report for `{self.reported_account}` has been cancelled.", embed=None, view=None)
+        await interaction.response.send_message(f"Report for `{self.game_name}#{self.tag_line}` has been cancelled.", ephemeral=True)
+        logger.info(f"User {self.ctx.author} cancelled alt report for: {self.game_name}#{self.tag_line}")
 
 # Adding the Cog to the bot
 def setup(bot):
