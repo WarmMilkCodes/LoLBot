@@ -97,7 +97,7 @@ class Roster(commands.Cog):
             await roster_channel.send(embed=embed)
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Manually print rosters")
-    @commands.has_role("Bot Guy", "League Ops")
+    @commands.has_any_role("Bot Guy", "League Ops")
     async def print_rosters(self, ctx):
         await ctx.defer()
         await self._print_rosters()
