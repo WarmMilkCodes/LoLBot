@@ -168,7 +168,8 @@ class StaffCog(commands.Cog):
 
         # Fetch alt accounts (if any)
         alt_accounts = player_info.get("alt_accounts", [])
-        alt_accounts_list = "\n".join([f"{alt.get('game_name', 'N/A')}#{alt.get('tag_line', 'N/A')}" for alt in alt_accounts]) if alt_accounts else "None"
+        alt_accounts_list = "\n".join([f"{alt['game_name']}#{alt['tag_line']}" for alt in alt_accounts]) if alt_accounts else "None"
+
 
         # Construct player info list
         player_info_list = [
