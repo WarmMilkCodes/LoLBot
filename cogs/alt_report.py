@@ -1,12 +1,9 @@
-import asyncio
-import aiohttp
 import discord
 import logging
-import pytz
-from datetime import datetime, timezone
 import app.config as config
 import app.dbInfo as dbInfo
-from discord.ext import commands, tasks
+from discord.ext import commands
+from discord.commands import Option
 
 logger = logging.getLogger('alt_report')
 
