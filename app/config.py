@@ -25,6 +25,7 @@ posted_transactions_channel = 1171263861987475482
 submission_log_channel = 1271698169721393193
 failure_log_channel = 1171263860716601368
 rosters_channel = 1285089150898409522
+alt_channel = 1282456960800788542
 
 admin_channels = bot_admin_channel, bot_testing_channel, transaction_bot_channel, submission_log_channel, failure_log_channel
 
