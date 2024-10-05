@@ -48,9 +48,10 @@ class ReportConfirmationView(discord.ui.View):
     async def confirm(self, button: discord.Button, interaction: discord.Interaction):
         dbInfo.player_collection.update_one(
             {"discord_id": self.ctx.author.id},
-            {"$set": {
+            {"$push": {
                 "alt_accounts": self.reported_account
-            }}
+            }},
+            upsert=True
         )
 
         await interaction.response.edit_message(content=f"Report for `{self.reported_account}` has been confirmed.", embed=None, view=None)
