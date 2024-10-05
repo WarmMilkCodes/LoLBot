@@ -9,6 +9,7 @@ import app.dbInfo as dbInfo
 
 logger = logging.getLogger('replay_log')
 
+
 class PlayerStats:
     def __init__(self,
                  assists=None,
@@ -45,6 +46,7 @@ class PlayerStats:
                  sight_wards_bought_in_game=None,
                  skin=None,
                  team_id=None,
+                 team_code=None,
                  team_objective=None,
                  team_position=None,
                  time_ccing_others=None,
@@ -98,6 +100,7 @@ class PlayerStats:
         self.sight_wards_bought_in_game = sight_wards_bought_in_game
         self.skin = skin
         self.team_id = team_id
+        self.team_code = team_code
         self.team_objective = team_objective
         self.team_position = team_position
         self.time_ccing_others = time_ccing_others
@@ -154,6 +157,7 @@ class PlayerStats:
             'sight_wards_bought_in_game': self.sight_wards_bought_in_game,
             'skin': self.skin,
             'team_id': self.team_id,
+            'team_code': self.team_code,
             'team_objective': self.team_objective,
             'team_position': self.team_position,
             'time_ccing_others': self.time_ccing_others,
@@ -188,7 +192,9 @@ class ReplaysCog(commands.Cog):
         thread = await ctx.channel.create_thread(name=f"Replay Submission by {ctx.author.name}")
         self.submissions[ctx.author.id] = {
             "thread": thread.id,
-            "replays": []
+            "replays": [],
+            "winner": "",
+            "loser": ""
         }
         await ctx.respond("Your replay thread has been created.", ephemeral=True)
         await thread.send(f"{ctx.author.mention}, you can now start uploading your replays in this thread.")
@@ -318,7 +324,7 @@ class ReplaysCog(commands.Cog):
     async def finish(self, ctx):
         submission = self.submissions.get(ctx.author.id)
         if submission and ctx.channel.id == submission["thread"]:
-            await self.send_series_summary(ctx, submission["replays"])
+            await self.send_series_summary(ctx, submission)
         else:
             await ctx.respond("Please start a submission first with /start_submission.", ephemeral=True)
 
@@ -330,7 +336,10 @@ class ReplaysCog(commands.Cog):
             # save down the replays to the database
             for replay_data in submission["replays"]:
                 dbInfo.replays_collection.insert_one(replay_data)
-
+            if await self.add_win(submission['winner']) is False:
+                await ctx.respond("An error occurred issuing a win")
+            if await self.add_loss(submission['loser']) is False:
+                await ctx.respond("An error occurred issuing a loss")
             thread = await ctx.guild.fetch_channel(submission["thread"])
             await thread.edit(locked=True)
             await ctx.respond("Submission completed and thread locked.")
@@ -339,12 +348,46 @@ class ReplaysCog(commands.Cog):
             await ctx.respond("No active submission found.", ephemeral=True)
 
     @staticmethod
-    async def determine_team(player: PlayerStats):
-        criteria = {'raw_puuid': f"{player.puuid}"}
+    async def determine_team(puuid):
+        criteria = {'raw_puuid': puuid}
         player_info = dbInfo.player_collection.find_one(criteria)
         if player_info is None:
             return None
         return player_info['team']
+
+    @staticmethod
+    async def add_win(team_code):
+        criteria = {'team_code': team_code}
+        team_info = dbInfo.team_collection.find_one(criteria)
+        if team_info is None:
+            return False
+        if 'wins' in team_info:
+            dbInfo.team_collection.update_one(criteria, {"$inc": {"wins": 1}})
+        else:
+            new_win = {"$set": {"wins": 1}}
+            dbInfo.team_collection.update_one(criteria, new_win)
+        return True
+
+    @staticmethod
+    async def add_loss(team_code):
+        criteria = {'team_code': team_code}
+        team_info = dbInfo.team_collection.find_one(criteria)
+        if team_info is None:
+            return False
+        if 'losses' in team_info:
+            dbInfo.team_collection.update_one(criteria, {"$inc": {"losses": 1}})
+        else:
+            new_win = {"$set": {"losses": 1}}
+            dbInfo.team_collection.update_one(criteria, new_win)
+        return True
+
+    @staticmethod
+    async def determine_player_name(puuid):
+        criteria = {'raw_puuid': puuid}
+        player_info = dbInfo.player_collection.find_one(criteria)
+        if player_info is None:
+            return None
+        return player_info['name']
 
     @staticmethod
     async def parse_replay(message, replay: discord.Attachment):
@@ -451,6 +494,7 @@ class ReplaysCog(commands.Cog):
                     sight_wards_bought_in_game=p.get('SIGHT_WARDS_BOUGHT_IN_GAME'),
                     skin=p.get('SKIN'),
                     team_id=p.get('TEAM'),
+                    team_code="",
                     team_objective=p.get('TEAM_OBJECTIVE'),
                     team_position=p.get('TEAM_POSITION'),
                     time_ccing_others=p.get('TIME_CCING_OTHERS'),
@@ -475,16 +519,18 @@ class ReplaysCog(commands.Cog):
 
             # Extract teams from players
             for p in players:
-                team_info = {
-                    "team": p.team_id,
-                    "win": p.win
-                }
-                team = await ReplaysCog.determine_team(p)
+                team = await ReplaysCog.determine_team(p.puuid)
                 if team is None:
-                    await message.channel.send(f"An error occurred retrieving player data for {p.name}")
+                    await message.channel.send(f"An error occurred retrieving player data for {p.name}({p.skin})")
                     return None
-                team_exists = any(t.get('team') == team for t in match_metadata.get('teams'))
+                p.team_code = team
+                team_exists = (any(t.get('team') == team for t in match_metadata.get('teams')) and team is not "FA")
                 if not team_exists:
+                    team_info = {
+                        "team": team,
+                        "team_code": p.team_id,
+                        "win": p.win
+                    }
                     match_metadata["teams"].append(team_info)
 
             replay_data = {
@@ -502,12 +548,18 @@ class ReplaysCog(commands.Cog):
             await message.channel.send("An unknown error occurred and has been logged. Please try again.")
             return None
 
-    async def send_series_summary(self, ctx, replays):
+    async def send_series_summary(self, ctx, submission):
         embed = discord.Embed(
             title="Series Summary", 
-            description="Summary of all submitted replays", 
+            description="If the series summary is correct, submit the /complete_submission command to finalize the series. Otherwise, ping staff for any issues.",
             color=discord.Color.blue()
         )
+
+        replays = submission["replays"]
+
+        if not replays:
+            await ctx.respond('please upload some replays')
+            return
 
         team_wins = {"100": 0, "200": 0}
         team_players = {"100": [], "200": []}
@@ -519,34 +571,59 @@ class ReplaysCog(commands.Cog):
             # Debug: Check how many players are detected for each team
             print(f"Match ID: {replay_data['match_id']}, Team 100 Players: {len(team_100_players)}, Team 200 Players: {len(team_200_players)}")
 
-            team_100 = next(team for team in replay_data['match_metadata']['teams'] if team['team'] == "100")
+            team_100 = next(team for team in replay_data['match_metadata']['teams'] if team['team_code'] == "100")
             if team_100['win'] == 'Win':
                 team_wins["100"] += 1
             else:
                 team_wins["200"] += 1
 
             for player in team_100_players:
-                team_players["100"].append(f"{player['name']} (KDA: {player['champions_killed']}/{player['num_deaths']}/{player['assists']})")
+                player_name = await self.determine_player_name(player['puuid'])
+                team_players["100"].append(f"{player_name} (KDA: {player['champions_killed']}/{player['num_deaths']}/{player['assists']})")
 
             for player in team_200_players:
-                team_players["200"].append(f"{player['name']} (KDA: {player['champions_killed']}/{player['num_deaths']}/{player['assists']})")
+                player_name = await self.determine_player_name(player['puuid'])
+                team_players["200"].append(f"{player_name} (KDA: {player['champions_killed']}/{player['num_deaths']}/{player['assists']})")
+
+        team_100_name = "FA"
+        team_200_name = "FA"
+
+        for player in team_100_players:
+            team_100_name = await self.determine_team(player['puuid'])
+            if team_100_name != "FA":
+                break
+        if team_100_name == "FA":
+            await ctx.respond('Error: Unable to determine team 100 name')
+            return
+
+        for player in team_200_players:
+            team_200_name = await self.determine_team(player['puuid'])
+            if team_200_name != "FA":
+                break
+        if team_200_name == "FA":
+            await ctx.respond('Error: Unable to determine team 200 name')
+            return
 
         embed.add_field(
-            name="Team 100 (Blue Side)",
+            name=f"{team_100_name} (Blue Side)",
             value="\n".join(team_players["100"]) or "No players",
             inline=False
         )
         embed.add_field(
-            name="Team 200 (Red Side)",
+            name=f"{team_200_name} (Red Side)",
             value="\n".join(team_players["200"]) or "No players",
             inline=False
         )
 
         # Determine series winner
         if team_wins["100"] > team_wins["200"]:
-            winner = "Team 100 (Blue Side) wins the series!"
+            submission["winner"] = team_100_name
+            submission["loser"] = team_200_name
+            winner = f"{team_100_name} (Blue Side) wins the series!"
         elif team_wins["200"] > team_wins["100"]:
-            winner = "Team 200 (Red Side) wins the series!"
+            submission["winner"] = team_200_name
+            submission["loser"] = team_100_name
+            winner = f"{team_200_name} (Red Side) wins the series!"
         else:
             winner = "The series is tied!"
 
