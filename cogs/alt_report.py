@@ -49,7 +49,7 @@ class ReportConfirmationView(discord.ui.View):
         dbInfo.player_collection.update_one(
             {"discord_id": self.ctx.author.id},
             {"$set": {
-                "alt_account": self.reported_account
+                "alt_accounts": self.reported_account
             }}
         )
 
