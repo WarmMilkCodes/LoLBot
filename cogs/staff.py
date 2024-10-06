@@ -120,6 +120,47 @@ class StaffCog(commands.Cog):
         await ctx.respond(f"Avatar URLs updated for {updated_count} members.", ephemeral=True)
 
 
+    @commands.slash_command(guild_ids=[config.lol_server], description="Return player K/D/A stats")
+    @commands.has_any_role("Bot Guy", "League Ops")
+    async def player_kda(self, ctx, user: discord.Option(discord.Member)):
+        await ctx.defer()
+
+        # Fetch the player document based on the Discord user ID
+        player = dbInfo.players_collection.find_one({"discord_id": user.id})
+
+        if not player:
+            await ctx.respond(f"Player with Discord ID {user.id} not found in the players collection.")
+            return
+
+        # Get the player's PUUID
+        player_puuid = player.get("raw_puuid")
+        if not player_puuid:
+            await ctx.respond(f"Player does not have a PUUID associated.")
+            return
+
+        # Fetch replays where the player participated
+        replays = dbInfo.replays_collection.find({"players.puuid": player_puuid})
+
+        # Initialize total stats
+        total_kills = 0
+        total_deaths = 0
+        total_assists = 0
+
+        # Sum up K/D/A stats from each replay
+        for replay in replays:
+            # Find the player's stats from the replay by matching the PUUID
+            player_stats = next((p for p in replay["players"] if p["puuid"] == player_puuid), None)
+
+            if player_stats:
+                total_kills += int(player_stats.get("champions_killed", 0))
+                total_deaths += int(player_stats.get("num_deaths", 0))
+                total_assists += int(player_stats.get("assists", 0))
+
+        # Respond with the total K/D/A
+        await ctx.respond(f"Player K/D/A for {user.display_name}: {total_kills}/{total_deaths}/{total_assists}")
+
+
+
     @commands.slash_command(guild_ids=[config.lol_server], description="Return player info embed")
     @commands.has_any_role("Bot Guy", "League Ops")
     async def player_info(self, ctx, user: discord.Option(discord.Member)):
