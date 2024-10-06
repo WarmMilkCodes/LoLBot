@@ -103,7 +103,7 @@ class EventsCog(commands.Cog):
         left_date = datetime.now(pytz.utc).strftime('%m-%d-%Y')
         dbInfo.player_collection.update_one(
             {"discord_id": member.id},
-            {"$set": {"left_at": left_date}},
+            {"$set": {"left_at": left_date, "team": None}},
             upsert=True
         )
 
