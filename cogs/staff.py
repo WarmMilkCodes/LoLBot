@@ -122,11 +122,11 @@ class StaffCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Return player K/D/A stats")
     @commands.has_any_role("Bot Guy", "League Ops")
-    async def player_kda(self, ctx, user: discord.Option(discord.Member)):
+    async def player_stats(self, ctx, user: discord.Option(discord.Member)):
         await ctx.defer()
 
         # Fetch the player document based on the Discord user ID
-        player = dbInfo.players_collection.find_one({"discord_id": user.id})
+        player = dbInfo.player_collection.find_one({"discord_id": user.id})
 
         if not player:
             await ctx.respond(f"Player with Discord ID {user.id} not found in the players collection.")
