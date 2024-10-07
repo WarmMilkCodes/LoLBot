@@ -63,6 +63,33 @@ class StaffCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot         
 
+    @commands.slash_command(guild_ids=[config.lol_server], description="Process series as FF")
+    @commands.has_any_role("League Ops", "Bot Guy")
+    async def admn_ff_series(self, ctx, ff_team: Option(str, "Enter 3-digit code of forfeiting team (ex. SDA)"), win_team: Option(str, "Enter 3-digit code of winning team (ex. SDA)")):
+        try:
+            await ctx.defer()
+            
+            # Ensure team codes entered correctly
+            winning_team = dbInfo.team_collection.find_one({"team_code": win_team.upper()})
+            ffing_team = dbInfo.team_collection.find_one({"team_code": ff_team.upper()})
+
+            if winning_team and ffing_team:
+                # Update winner record
+                dbInfo.team_collection.update_one({"team_code": win_team.upper()}, {"$inc": {"wins": 1}})
+                # Update loser record
+                dbInfo.team_collection.update_one({"team_code": ff_team.upper()}, {"$inc": {"losses": 1}})
+
+                await ctx.respond(f"Forfeit processed succesfully. {ff_team.upper()} forfeited to {win_team.upper()}.")
+                logger.info(f"{ctx.author.display_name} processed FF of {ff_team.upper()} to {win_team.upper()}")
+
+            else:
+                await ctx.respond(f"One or both team codes were not found. Please ensure the correct abbreviations are used.")
+        
+        except Exception as e:
+            await ctx.respond(f"There was an error processing the FF: {e}")
+            logger.error(f"There was an error processing FF submission: {e}")
+
+
     @commands.slash_command(guild_ids=[config.lol_server], description="Change a player to spectator")
     @commands.has_any_role("League Ops", "Bot Guy")
     async def admn_force_spectator(self, ctx, user: Option(discord.Member)):
