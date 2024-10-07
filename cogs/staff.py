@@ -211,7 +211,7 @@ class StaffCog(commands.Cog):
 
         # Buld op.gg link
         if player_info.get('game_name') and player_info.get('tag_line'):
-            opgg_base_url = f"https://www.op.gg/summoners/na/{player_info.get('game_name')-{player_info.get('tag_line')}}"
+            opgg_base_url = f"https://www.op.gg/summoners/na/{player_info.get('game_name')}-{player_info.get('tag_line')}"
         else:
             opgg_base_url = "N/A"
 
