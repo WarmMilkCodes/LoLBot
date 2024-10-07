@@ -222,12 +222,12 @@ class StaffCog(commands.Cog):
         hash_tag = '#'
 
         if game_name == "None" and tag_line == "None":
-            game_name = ''
+            game_name = 'N/A'
             tag_line = ''
             hash_tag = ''
 
         if not game_name and not tag_line:
-            game_name = ''
+            game_name = 'N/A'
             tag_line = ''
             hash_tag = ''
 
