@@ -70,8 +70,8 @@ class TournamentCog(commands.Cog):
             await ctx.respond("Failed to create tournament. Please check the logs for details.")
 
     @commands.slash_command(guild_ids=[GUILD_ID], description="Generate tournament codes")
-    @commands.has_any_role("Bot Guy", "Commissioner", "Owner", "League Ops")
-    async def generate_tournament_codes(self, ctx, count: int):
+    @commands.has_any_role("Bot Guy", "League Ops")
+    async def generate_tournament_codes(self, ctx, count: int = 3):  # Default count to 3
         tournament_id = dbInfo.get_tournament_id()
         logger.debug(f"Passing tournament ID: {tournament_id}")
 
@@ -82,7 +82,7 @@ class TournamentCog(commands.Cog):
             "teamSize": 5,
             "metadata": "UR LoL Match"
         }
-        
+
         try:
             response = requests.post(
                 f"https://americas.api.riotgames.com/lol/tournament/v5/codes?tournamentId={tournament_id}&count={count}",
@@ -94,8 +94,9 @@ class TournamentCog(commands.Cog):
             tournament_codes = response.json()
 
             dbInfo.save_tournament_codes(tournament_id, tournament_codes)  # Save these codes in your database
-            
-            await ctx.respond(f"Tournament codes generated: {', '.join(tournament_codes)}")
+
+            formatted_codes = '\n'.join(f"Game {i + 1}: {code}" for i, code in enumerate(tournament_codes))
+            await ctx.respond(f"Tournament codes generated:\n{formatted_codes}")
             logger.info(f"Tournament codes generated: {tournament_codes}")
         except requests.exceptions.HTTPError as err:
             error_message = err.response.json().get('message', 'Unknown error')
@@ -103,6 +104,7 @@ class TournamentCog(commands.Cog):
             logger.debug(f"Payload: {code_payload}")
             logger.debug(f"Response: {err.response.text}")
             await ctx.respond(f"Failed to generate tournament codes: {err} - {error_message}", ephemeral=True)
+
     
     
     @commands.slash_command(guild_ids=[GUILD_ID], description="Fetch match details and lobby events")
