@@ -32,6 +32,36 @@ class PlayerCog(commands.Cog):
             self.rank_and_eligibility_task.cancel()
             logger.info("PlayerCog unloaded and task cancelled.")
 
+    @commands.slash_command(guild_ids=[config.lol_server], description="Check your reported alt accounts")
+    async def alt_account_check(self, ctx):
+        await ctx.defer(ephemeral=True)
+
+        try:
+            player_info = dbInfo.player_collection.find_one({"discord_id": ctx.author.id})
+
+            if not player_info:
+                return await ctx.respond(f"There is no record of your found in the database, open a modmail ticket.", ephemeral=True)
+            
+            # Get alt accounts list
+            alt_accounts = player_info.get("alt_accounts", [])
+
+            if not alt_accounts:
+                return await ctx.respond(f"You have no reported alt accounts.", ephemeral=True)
+            else:
+                # Format list of alt accounts
+                alt_list = "\n".join(f"- {alt}" for alt in alt_accounts),
+                embed = discord.Embed(
+                    title=f"Alt Accounts Reported by {ctx.author.display_name}",
+                    description=alt_list,
+                    color=discord.Color.blue()
+                )
+
+                await ctx.respond(embed=embed, ephemeral=True)
+        
+        except Exception as e:
+            logger.error(f"There was an error returning alt accounts for {ctx.author.display_name}: {e}")
+            return await ctx.respond("There was an error returning your alt accounts. Open a modmail ticket.", ephemeral=True)
+
     @commands.slash_command(guild_ids=[config.lol_server], description="Start the rank and eligibility check task")
     @commands.has_role("Bot Guy")
     async def start_check_task(self, ctx):
@@ -222,8 +252,6 @@ class PlayerCog(commands.Cog):
                     logger.info(f"Updated rank information for player {player_record['name']} and set last updated.")
 
         logger.info("Completed rank and eligibility check for all players.")
-
-
 
     async def get_match_history(self, puuid):
         """Get match history for the current and last split with retry."""
