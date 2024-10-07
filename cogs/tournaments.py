@@ -71,7 +71,7 @@ class TournamentCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[GUILD_ID], description="Generate tournament codes")
     @commands.has_any_role("Bot Guy", "League Ops")
-    async def generate_tournament_codes(self, ctx, count: int = 3):  # Default count to 3
+    async def generate_tournament_codes(self, ctx, count: int = 3, team1_channel: discord.TextChannel = None, team2_channel: discord.TextChannel = None):
         tournament_id = dbInfo.get_tournament_id()
         logger.debug(f"Passing tournament ID: {tournament_id}")
 
@@ -96,8 +96,17 @@ class TournamentCog(commands.Cog):
             dbInfo.save_tournament_codes(tournament_id, tournament_codes)  # Save these codes in your database
 
             formatted_codes = '\n'.join(f"Game {i + 1}: {code}" for i, code in enumerate(tournament_codes))
+
+            # Send codes to the provided team channels if specified
+            if team1_channel:
+                await team1_channel.send(f"Here are your tournament codes:\n{formatted_codes}")
+            if team2_channel:
+                await team2_channel.send(f"Here are your tournament codes:\n{formatted_codes}")
+
+            # Respond in the original channel as well
             await ctx.respond(f"Tournament codes generated:\n{formatted_codes}")
             logger.info(f"Tournament codes generated: {tournament_codes}")
+
         except requests.exceptions.HTTPError as err:
             error_message = err.response.json().get('message', 'Unknown error')
             logger.error(f"Failed to generate tournament codes: {err} - {error_message}")
