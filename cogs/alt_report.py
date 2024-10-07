@@ -19,8 +19,12 @@ class AltReport(commands.Cog):
             await ctx.respond(f"This command can only be used in {alt_report_channel.mention}", ephemeral=True)
             return False
         return True
+    
+    @commands.slash_command(guild_ids=[config.lol_server], description="Manage alt accounts")
+    async def alt(self, ctx):
+        pass
 
-    @commands.slash_command(guild_ids=[config.lol_server], description="Report alt account")
+    @alt.sub_command(description="Report alt account")
     async def report_alt(self, ctx, game_name: Option(str, "Enter game name - do not include discriminator"), tag_line: Option(str, "Enter tag line (numbers only)")):
         try:
             if not await self.validate_command_channel(ctx):
@@ -37,6 +41,36 @@ class AltReport(commands.Cog):
         
         except Exception as e:
             await ctx.respond(f"There was an error submitting your alt account: {e}", ephemeral=True)
+
+    @alt.sub_command(description="Check your reported alt accounts")
+    async def alt_check(self, ctx):
+        await ctx.defer(ephemeral=True)
+
+        try:
+            player_info = dbInfo.player_collection.find_one({"discord_id": ctx.author.id})
+
+            if not player_info:
+                return await ctx.respond(f"There is no record of your found in the database, open a modmail ticket.", ephemeral=True)
+            
+            # Get alt accounts list
+            alt_accounts = player_info.get("alt_accounts", [])
+
+            if not alt_accounts:
+                return await ctx.respond(f"You have no reported alt accounts.", ephemeral=True)
+            else:
+                # Properly format the alt accounts list (assuming they are dictionaries with 'game_name' and 'tag_line')
+                alt_list = "\n".join([f"- {alt['game_name']}#{alt['tag_line']}" for alt in alt_accounts])
+
+                embed = discord.Embed(
+                    title=f"Alt Accounts Reported by {ctx.author.display_name}",
+                    description=alt_list if alt_list else "No alt accounts reported.",
+                    color=discord.Color.blue()
+                )
+                await ctx.respond(embed=embed)
+        
+        except Exception as e:
+            logger.error(f"There was an error returning alt accounts for {ctx.author.display_name}: {e}")
+            return await ctx.respond("There was an error returning your alt accounts. Open a modmail ticket.", ephemeral=True)
 
 class ReportConfirmationView(discord.ui.View):
     def __init__(self, ctx, game_name, tag_line):
