@@ -98,7 +98,7 @@ class Roster(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Manually print rosters")
     @commands.has_any_role("Bot Guy", "League Ops")
-    async def print_rosters(self, ctx):
+    async def rosters_print(self, ctx):
         await ctx.defer()
         await self._print_rosters()
         await ctx.respond("Rosters have been posted", ephemeral=True)
