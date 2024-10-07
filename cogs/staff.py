@@ -213,12 +213,22 @@ class StaffCog(commands.Cog):
         if player_info.get('game_name') and player_info.get('tag_line'):
             opgg_base_url = f"https://www.op.gg/summoners/na/{player_info.get('game_name')}-{player_info.get('tag_line')}"
         else:
-            opgg_base_url = "N/A"
+            opgg_base_url = "No OP.GG link for this player."
+
+        # Build Riot ID
+        game_name = player_info.get('game_name', '')
+        tag_line = player_info.get('tag_line', '')
+        hash_tag = '#'
+
+        if game_name == "None" and tag_line == "None":
+            game_name = ''
+            tag_line = ''
+            hash_tag = ''
 
         # Construct player info list
         player_info_list = [
             f"**Username**: {user.name}",
-            f"**Riot ID**: {player_info.get('game_name', 'N/A')}#{player_info.get('tag_line', 'N/A')}",
+            f"**Riot ID**: {game_name}{hash_tag}{tag_line}",
             f"**Salary**: {salary}",
             f"**Status**: {player_status_embed}",
             f"**Eligibility**: {eligibility_status}",
