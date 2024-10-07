@@ -20,12 +20,8 @@ class AltReport(commands.Cog):
             return False
         return True
     
-    @commands.slash_command(guild_ids=[config.lol_server], description="Manage alt accounts")
-    async def alt(self, ctx):
-        pass
-
-    @alt.sub_command(description="Report alt account")
-    async def report_alt(self, ctx, game_name: Option(str, "Enter game name - do not include discriminator"), tag_line: Option(str, "Enter tag line (numbers only)")):
+    @commands.slash_command(guild_ids=[config.lol_server], description="Report alt account")
+    async def alt_report(self, ctx, game_name: Option(str, "Enter game name - do not include discriminator"), tag_line: Option(str, "Enter tag line (numbers only)")):
         try:
             if not await self.validate_command_channel(ctx):
                 return
@@ -42,7 +38,7 @@ class AltReport(commands.Cog):
         except Exception as e:
             await ctx.respond(f"There was an error submitting your alt account: {e}", ephemeral=True)
 
-    @alt.sub_command(description="Check your reported alt accounts")
+    @commands.slash_command(guild_ids=[config.lol_server], description="Check your reported alt accounts")
     async def alt_check(self, ctx):
         await ctx.defer(ephemeral=True)
 
