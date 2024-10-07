@@ -48,15 +48,15 @@ class PlayerCog(commands.Cog):
             if not alt_accounts:
                 return await ctx.respond(f"You have no reported alt accounts.", ephemeral=True)
             else:
-                # Format list of alt accounts
-                alt_list = "\n".join(f"- {alt}" for alt in alt_accounts),
+                # Properly format the alt accounts list (assuming they are dictionaries with 'game_name' and 'tag_line')
+                alt_list = "\n".join([f"- **{alt['game_name']}** | Tag: `{alt['tag_line']}`" for alt in alt_accounts])
+
                 embed = discord.Embed(
                     title=f"Alt Accounts Reported by {ctx.author.display_name}",
-                    description=alt_list,
+                    description=alt_list if alt_list else "No alt accounts reported.",
                     color=discord.Color.blue()
                 )
-
-                await ctx.respond(embed=embed, ephemeral=True)
+                await ctx.respond(embed=embed)
         
         except Exception as e:
             logger.error(f"There was an error returning alt accounts for {ctx.author.display_name}: {e}")
