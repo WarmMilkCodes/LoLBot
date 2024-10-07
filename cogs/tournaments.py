@@ -21,7 +21,7 @@ class TournamentCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[GUILD_ID], description="Register a provider")
     @commands.has_any_role("Bot Guy")
-    async def register_provider(self, ctx):
+    async def tournament_register_provider(self, ctx):
         provider_payload = {
             "region": REGION,
             "url": PROVIDER_URL
@@ -46,7 +46,7 @@ class TournamentCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[GUILD_ID], description="Create a new tournament")
     @commands.has_any_role("Bot Guy")
-    async def create_tournament(self, ctx, tournament_name: str):
+    async def tournament_create(self, ctx, tournament_name: str):
         provider_id = dbInfo.get_provider_id()  # Retrieve this from your database
         tournament_payload = {
             "name": tournament_name,
@@ -71,7 +71,7 @@ class TournamentCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[GUILD_ID], description="Generate tournament codes")
     @commands.has_any_role("Bot Guy", "League Ops")
-    async def generate_tournament_codes(self, ctx, count: int = 3, team1_channel: discord.TextChannel = None, team2_channel: discord.TextChannel = None):
+    async def tournament_generate_codes(self, ctx, count: int = 3, team1_channel: discord.TextChannel = None, team2_channel: discord.TextChannel = None):
         tournament_id = dbInfo.get_tournament_id()
         logger.debug(f"Passing tournament ID: {tournament_id}")
 
@@ -118,7 +118,7 @@ class TournamentCog(commands.Cog):
     
     @commands.slash_command(guild_ids=[GUILD_ID], description="Fetch match details and lobby events")
     @commands.has_any_role("Bot Guy", "League Ops", "Commissioner", "Owner")
-    async def fetch_tournament_info(self, ctx, tournament_code: str):
+    async def tournament_fetch_info(self, ctx, tournament_code: str):
         await ctx.defer()
         try:
             # Fetch match details
