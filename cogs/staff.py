@@ -159,8 +159,6 @@ class StaffCog(commands.Cog):
         # Respond with the total K/D/A
         await ctx.respond(f"Player K/D/A for {user.display_name}: {total_kills}/{total_deaths}/{total_assists}")
 
-
-
     @commands.slash_command(guild_ids=[config.lol_server], description="Return player info embed")
     @commands.has_any_role("Bot Guy", "League Ops")
     async def player_info(self, ctx, user: discord.Option(discord.Member)):
@@ -211,6 +209,11 @@ class StaffCog(commands.Cog):
         alt_accounts = player_info.get("alt_accounts", [])
         alt_accounts_list = "\n".join([f"{alt['game_name']}#{alt['tag_line']}" for alt in alt_accounts]) if alt_accounts else "None"
 
+        # Buld op.gg link
+        if player_info.get('game_name') and player_info.get('tag_line'):
+            opgg_base_url = f"https://www.op.gg/summoners/na/{player_info.get('game_name')-{player_info.get('tag_line')}}"
+        else:
+            opgg_base_url = "N/A"
 
         # Construct player info list
         player_info_list = [
@@ -230,6 +233,7 @@ class StaffCog(commands.Cog):
         embed = discord.Embed(title=f"Player Info for {user.display_name}", color=discord.Color.blue())
         embed.set_thumbnail(url=user.avatar.url)
         embed.add_field(name="Player Profile", value=f"[Click here to view profile]({player_profile_url})", inline=False)
+        embed.add_field(name="OP.GG Profile", value=f"[Click here to view OP.GG profile]({opgg_base_url})", inline=False)
         embed.add_field(name="Player Info", value='\n'.join(player_info_list))
 
         # Display user roles excluding default role
