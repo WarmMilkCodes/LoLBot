@@ -60,7 +60,7 @@ class PlayerCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Update player ranks and check eligibility manually")
     @commands.has_role("Bot Guy")
-    async def cdev_check_players(self, ctx):
+    async def dev_check_players(self, ctx):
         await ctx.defer(ephemeral=True)
         await self.update_ranks_and_check()
         await ctx.respond("Updated ranks and checked eligibility for all players.", ephemeral=True)
@@ -108,7 +108,7 @@ class PlayerCog(commands.Cog):
         # Define rank order for comparison (used to determine highest rank)
         rank_order = {
             "IRON": 1, "BRONZE": 2, "SILVER": 3, "GOLD": 4, 
-            "PLATINUM": 5, "DIAMOND": 6, "MASTER": 7, "GRANDMASTER": 8, "CHALLENGER": 9
+            "PLATINUM": 5, "EMERALD": 8, "DIAMOND": 7, "MASTER": 8, "GRANDMASTER": 9, "CHALLENGER": 10
         }
         division_order = {
             'IV': 1, 'III': 2, 'II': 3, 'I': 4
