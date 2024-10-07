@@ -187,7 +187,7 @@ class ReplaysCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Start a replay submission")
     @commands.has_any_role("League Ops", "Bot Guy")  # League Ops only for now
-    async def start_submission(self, ctx):
+    async def replay_start_submission(self, ctx):
         # Create a thread for the user to submit replays
         thread = await ctx.channel.create_thread(name=f"Replay Submission by {ctx.author.name}")
         self.submissions[ctx.author.id] = {
@@ -201,7 +201,7 @@ class ReplaysCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Start a replay submission")
     @commands.has_any_role("League Ops", "Bot Guy")
-    async def associate_puuid(self, ctx, discord_id, puuid):
+    async def replay_associate_puuid(self, ctx, discord_id, puuid):
         try:
             criteria = {'discord_id': int(discord_id)}
             player_info = dbInfo.player_collection.find_one(criteria)
@@ -234,7 +234,7 @@ class ReplaysCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Start a replay submission")
     @commands.has_any_role("League Ops", "Bot Guy")
-    async def extract_puuids(self, ctx, replay: discord.Attachment):
+    async def replay_extract_puuids(self, ctx, replay: discord.Attachment):
         try:
             if not replay.filename.endswith('.rofl'):
                 await ctx.respond("An error occurred. Please ensure the provided file is a valid .rofl file.")
@@ -321,7 +321,7 @@ class ReplaysCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Finish uploading replays")
     @commands.has_any_role("League Ops", "Bot Guy")  # League Ops only for now
-    async def finish(self, ctx):
+    async def replay_finish(self, ctx):
         submission = self.submissions.get(ctx.author.id)
         if submission and ctx.channel.id == submission["thread"]:
             await self.send_series_summary(ctx, submission)
@@ -330,7 +330,7 @@ class ReplaysCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Complete the submission process")
     @commands.has_any_role("League Ops", "Bot Guy")  # League Ops only for now
-    async def complete_submission(self, ctx):
+    async def replay_complete_submission(self, ctx):
         submission = self.submissions.get(ctx.author.id)
         if submission and ctx.channel.id == submission["thread"]:
             # save down the replays to the database
