@@ -49,7 +49,7 @@ class PlayerCog(commands.Cog):
                 return await ctx.respond(f"You have no reported alt accounts.", ephemeral=True)
             else:
                 # Properly format the alt accounts list (assuming they are dictionaries with 'game_name' and 'tag_line')
-                alt_list = "\n".join([f"- **{alt['game_name']}** | Tag: `{alt['tag_line']}`" for alt in alt_accounts])
+                alt_list = "\n".join([f"- {alt['game_name']}#{alt['tag_line']}" for alt in alt_accounts])
 
                 embed = discord.Embed(
                     title=f"Alt Accounts Reported by {ctx.author.display_name}",
