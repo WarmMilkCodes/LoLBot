@@ -5,6 +5,7 @@ import app.config as config
 import app.dbInfo as dbInfo
 import re
 from cogs.utils import update_nickname
+from salaries import SalaryCog
 
 logger = logging.getLogger('lol_log')
 
@@ -63,30 +64,58 @@ class Audit(commands.Cog):
 
                 team_code = player_info.get("team", "Unassigned")
                 is_free_agent = discord.utils.get(member.roles, name="Free Agents") is not None
+                current_salary = player_info.get("salary", 0)
+                manually_adjusted_salary = player_info.get("manual_salary", None)
+                rank_info = player_info.get('rank_info', [])
+                historical_rank_info = player_info.get('historical_rank_info', {})
 
-                # Determine the prefix based on the player's team or role
-                prefix = ""
-                franchise_owner_role = discord.utils.get(member.roles, name="Franchise Owner")
-                spectator_role = discord.utils.get(member.roles, name="Spectator")
-                not_eligible_role = discord.utils.get(member.roles, name="Not Eligible")
+                # Calculate the player's highest rank and salary
+                salary_cog = SalaryCog(self.bot)
+                highest_rank, highest_division = salary_cog.get_highest_rank(rank_info, historical_rank_info)
 
-                if franchise_owner_role:
-                    prefix = team_code if team_code and team_code != "Unassigned" else ""
-                elif is_free_agent:
-                    prefix = "FA"
-                elif spectator_role in member.roles:
-                    prefix = "S"
-                elif not_eligible_role in member.roles and not spectator_role:
-                    prefix = "TBD"
+                if highest_rank and highest_division:
+                    new_salary = salary_cog.calculate_salary(highest_rank, highest_division)
+                else:
+                    logger.warning(f"No valid rank found for {member.name}")
+                    continue
+
+                if is_free_agent:
+                    # Free agent: only update salary if the new one is higher
+                    if new_salary > current_salary:
+                        logger.info(f"Updating salary for free agent {member.name} from {current_salary} to {new_salary}")
+                        dbInfo.player_collection.update_one(
+                            {"discord_id": member.id}, 
+                            {"$set": {"salary": new_salary}}
+                        )
+                    else:
+                        logger.info(f"Free agent {member.name} has a salary of {current_salary}, no update needed.")
+                elif manually_adjusted_salary is not None:
+                    # If salary has been manually adjusted, only update if the new salary is higher
+                    if new_salary > manually_adjusted_salary:
+                        logger.info(f"Updating manually adjusted salary for {member.name} from {manually_adjusted_salary} to {new_salary}")
+                        dbInfo.player_collection.update_one(
+                            {"discord_id": member.id},
+                            {"$set": {"manual_salary": new_salary}}
+                        )
+                    else:
+                        logger.info(f"{member.name} has a manually adjusted salary of {manually_adjusted_salary}, no update needed.")
                 elif team_code and team_code != "Unassigned":
-                    prefix = team_code
+                    # Player is on a team: Notify staff if salary should be updated
+                    if new_salary > current_salary:
+                        notification_message = (
+                            f"{member.name}'s salary has increased to {new_salary} but is signed to {team_code}. "
+                            f"Please manually adjust their salary."
+                        )
+                        await audit_channel.send(notification_message)
+                        logger.info(f"Sent notification: {notification_message}")
 
-                # Call the update_nickname function with the determined prefix
+                # Update user's nickname to reflect salary or role
+                prefix = 'FA' if is_free_agent else (team_code if team_code != "Unassigned" else 'RFA')
                 await update_nickname(member, prefix)
-                
                 logger.info(f"Nickname updated for {member.display_name}")
 
             logger.info("Audit finished. Next audit will occur in 24 hours.")
+
 
     @audit_roles.before_loop
     async def before_audit_roles(self):
