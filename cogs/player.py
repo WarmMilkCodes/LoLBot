@@ -34,7 +34,7 @@ class PlayerCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Start the rank and eligibility check task")
     @commands.has_role("Bot Guy")
-    async def start_check_task(self, ctx):
+    async def dev_start_checks(self, ctx):
         if not self.task_started:
             self.rank_and_eligibility_task.start()
             self.task_started = True
@@ -60,7 +60,7 @@ class PlayerCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Update player ranks and check eligibility manually")
     @commands.has_role("Bot Guy")
-    async def check_ranks_and_eligibility(self, ctx):
+    async def cdev_check_players(self, ctx):
         await ctx.defer(ephemeral=True)
         await self.update_ranks_and_check()
         await ctx.respond("Updated ranks and checked eligibility for all players.", ephemeral=True)

@@ -65,7 +65,7 @@ class StaffCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Change a player to spectator")
     @commands.has_any_role("League Ops", "Bot Guy")
-    async def force_spectator(self, ctx, user: Option(discord.Member)):
+    async def admn_force_spectator(self, ctx, user: Option(discord.Member)):
         await ctx.defer(ephemeral=True)
         
         fa_role = discord.utils.get(ctx.guild.roles, name="Free Agents")
@@ -95,7 +95,7 @@ class StaffCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Update avatar URLs for all existing members in the database.")
     @commands.has_role("Bot Guy")
-    async def update_avatars(self, ctx):
+    async def admn_update_avatars(self, ctx):
         await ctx.defer(ephemeral=True)
 
         # Get the list of all members in the guild
@@ -122,7 +122,7 @@ class StaffCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Return player K/D/A stats")
     @commands.has_any_role("Bot Guy", "League Ops")
-    async def player_stats(self, ctx, user: discord.Option(discord.Member)):
+    async def admn_player_stats(self, ctx, user: discord.Option(discord.Member)):
         await ctx.defer()
 
         # Fetch the player document based on the Discord user ID
@@ -161,7 +161,7 @@ class StaffCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Return player info embed")
     @commands.has_any_role("Bot Guy", "League Ops")
-    async def player_info(self, ctx, user: discord.Option(discord.Member)):
+    async def admn_player_info(self, ctx, user: discord.Option(discord.Member)):
         await ctx.defer()
         guild = ctx.guild
         player_profile_url = f"https://lol-web-app.onrender.com/player/{user.id}"
@@ -276,7 +276,7 @@ class StaffCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Update a user's Riot ID")
     @commands.has_any_role("Bot Guy", "League Ops")
-    async def update_riot_id(self, ctx, user: Option(discord.Member), game_name: Option(str, "Enter user's game name"), tag_line: Option(str, "Enter user's tag line - do not include '#'")):
+    async def admn_update_riotid(self, ctx, user: Option(discord.Member), game_name: Option(str, "Enter user's game name"), tag_line: Option(str, "Enter user's tag line - do not include '#'")):
         await ctx.defer()
         
         player_data = dbInfo.player_collection.find_one({"discord_id": user.id})

@@ -125,7 +125,7 @@ class Transactions(commands.Cog):
     # Commands
     @commands.slash_command(guild_ids=[config.lol_server], description="Designate team Governor")        
     @commands.has_any_role("League Ops", "Bot Guy")
-    async def designate_owner(self, ctx, user: Option(discord.Member), team_code: Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
+    async def trn_designate_owner(self, ctx, user: Option(discord.Member), team_code: Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
         await ctx.defer()
         try:
             if not await self.validate_command_channel(ctx):
@@ -158,7 +158,7 @@ class Transactions(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Designate GM to team")
     @commands.has_any_role("League Ops", "Bot Guy")
-    async def designate_gm(self, ctx, user: Option(discord.Member), team_code: Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada)")):
+    async def trn_designate_gm(self, ctx, user: Option(discord.Member), team_code: Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada)")):
         await ctx.defer()
         try:
             if not await self.validate_command_channel(ctx):
@@ -207,7 +207,7 @@ class Transactions(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Relieve GM of duties")
     @commands.has_any_role("League Ops", "Bot Guy")
-    async def relieve_gm(self, ctx, user: Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
+    async def trn_relieve_gm(self, ctx, user: Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
         await ctx.defer()
         try:
             if not await self.validate_command_channel(ctx):
@@ -241,7 +241,7 @@ class Transactions(commands.Cog):
    
     @commands.slash_command(guild_ids=[config.lol_server], description="Sign player to active roster")
     @commands.has_any_role("League Ops", "Bot Guy")
-    async def sign_player(self, ctx, user: Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
+    async def trn_sign_player(self, ctx, user: Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
         await ctx.defer()
         try:
             if not await self.validate_command_channel(ctx):
@@ -335,7 +335,7 @@ class Transactions(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Release player to free agency")
     @commands.has_any_role("League Ops", "Bot Guy")
-    async def release_player(self, ctx, user: Option(discord.Member), team_code: Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
+    async def trn_release_player(self, ctx, user: Option(discord.Member), team_code: Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
         await ctx.defer()
 
         try:
@@ -439,7 +439,7 @@ class Transactions(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Designate team captain")
     @commands.has_any_role("League Ops", "Bot Guy")
-    async def designate_captain(self, ctx, user:Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
+    async def trn_designate_captain(self, ctx, user:Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
         await ctx.defer()
         
         try:
@@ -479,7 +479,7 @@ class Transactions(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Relieve team captain of duties")
     @commands.has_any_role("League Ops", "Bot Guy")
-    async def relieve_captain(self, ctx, user:Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
+    async def trn_relieve_captain(self, ctx, user:Option(discord.Member), team_code:Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
         await ctx.defer()
         
         try:
