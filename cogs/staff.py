@@ -212,8 +212,9 @@ class StaffCog(commands.Cog):
         # Buld op.gg link
         if player_info.get('game_name') and player_info.get('tag_line'):
             opgg_base_url = f"https://www.op.gg/summoners/na/{player_info.get('game_name')}-{player_info.get('tag_line')}"
+            opgg_embed_value = f"[Click here to view OP.GG profile]({opgg_base_url})"
         else:
-            opgg_base_url = "No OP.GG link for this player."
+            opgg_embed_value = "No OP.GG link for this player."
 
         # Build Riot ID
         game_name = player_info.get('game_name', '')
@@ -221,6 +222,11 @@ class StaffCog(commands.Cog):
         hash_tag = '#'
 
         if game_name == "None" and tag_line == "None":
+            game_name = ''
+            tag_line = ''
+            hash_tag = ''
+
+        if not game_name and not tag_line:
             game_name = ''
             tag_line = ''
             hash_tag = ''
@@ -243,7 +249,7 @@ class StaffCog(commands.Cog):
         embed = discord.Embed(title=f"Player Info for {user.display_name}", color=discord.Color.blue())
         embed.set_thumbnail(url=user.avatar.url)
         embed.add_field(name="Player Profile", value=f"[Click here to view profile]({player_profile_url})", inline=False)
-        embed.add_field(name="OP.GG Profile", value=f"[Click here to view OP.GG profile]({opgg_base_url})", inline=False)
+        embed.add_field(name="OP.GG Profile", value=f{opgg_embed_value}, inline=False)
         embed.add_field(name="Player Info", value='\n'.join(player_info_list))
 
         # Display user roles excluding default role
