@@ -75,9 +75,11 @@ class PlayerCog(commands.Cog):
         for player in players:
             discord_id = player.get('ID')
             player_record = dbInfo.player_collection.find_one({"discord_id": discord_id, "left_at": None})
+
+            logger.info(f"Processing player: {player.get('name')}")
             
             if not player_record:
-                logger.info(f"Skipping player {discord_id} because not found or left server.")
+                logger.info(f"Skipping player {player.get('name')} because not found or left server.")
                 continue
 
             # Process player and alt accounts
@@ -97,6 +99,48 @@ class PlayerCog(commands.Cog):
             logger.info(f"Updated rank information for player {player_record['name']} from their {highest_rank_info['account_type']} account.")
         logger.info("Completed rank and eligibility check for all players.")
 
+
+    @commands.slash_command(guild_ids=[config.lol_server], description="Update player rank and check eligibility for a single user")
+    @commands.has_role("Bot Guy")
+    async def dev_check_single_player(self, ctx, player_name: Option(discord.Member)):
+        """
+        Command to update rank and check eligibility for a single user.
+        """
+        try:
+            await ctx.defer(ephemeral=True)
+
+            # Find the player by name in the database
+            player_record = dbInfo.player_collection.find_one({"name": player_name, "left_at": None})
+
+            if not player_record:
+                await ctx.respond(f"Player '{player_name}' not found or has left the server.", ephemeral=True)
+                return
+
+            logger.info(f"Processing player: {player_record['name']}")
+            riot_id_log_channel = self.bot.get_channel(config.failure_log_channel)
+
+            # Process player and their alt accounts
+            highest_rank_info = await self.process_player_and_alts(player_record, riot_id_log_channel)
+            if highest_rank_info is None:
+                await ctx.respond(f"Failed to retrieve rank information for '{player_name}'.", ephemeral=True)
+                return
+            
+            # Update rank info with the highest rank found
+            dbInfo.player_collection.update_one(
+                {"discord_id": player_record['discord_id']},
+                {"$set": {
+                    "rank_info": highest_rank_info['rank_info'],
+                    "last_updated": datetime.now(pytz.utc).strftime('%m-%d-%Y'),
+                    "highest_account_type": highest_rank_info['account_type'],  # Indicates whether it's from main or alt
+                }}
+            )
+
+            logger.info(f"Updated rank information for player {player_record['name']} from their {highest_rank_info['account_type']} account.")
+            await ctx.respond(f"Rank and eligibility check completed for '{player_name}'.", ephemeral=True)
+
+        except Exception as e:
+            await ctx.respond(f"There was an error processing {player_name}")
+            logger.error(f"Error processing ranks for {player_name}: {e}")
 
 
     async def process_player_and_alts(self, player_record, riot_id_log_channel):
