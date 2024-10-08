@@ -187,7 +187,7 @@ class ReplaysCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Start a replay submission")
     @commands.has_any_role("League Ops", "Bot Guy")  # League Ops only for now
-    async def replay_start_submission(self, ctx):
+    async def start_submission(self, ctx):
         # Create a thread for the user to submit replays
         thread = await ctx.channel.create_thread(name=f"Replay Submission by {ctx.author.name}")
         self.submissions[ctx.author.id] = {
@@ -201,7 +201,7 @@ class ReplaysCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Start a replay submission")
     @commands.has_any_role("League Ops", "Bot Guy")
-    async def replay_associate_puuid(self, ctx, discord_id, puuid):
+    async def associate_puuid(self, ctx, discord_id, puuid):
         try:
             criteria = {'discord_id': int(discord_id)}
             player_info = dbInfo.player_collection.find_one(criteria)
@@ -234,7 +234,7 @@ class ReplaysCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Start a replay submission")
     @commands.has_any_role("League Ops", "Bot Guy")
-    async def replay_extract_puuids(self, ctx, replay: discord.Attachment):
+    async def extract_puuids(self, ctx, replay: discord.Attachment):
         try:
             if not replay.filename.endswith('.rofl'):
                 await ctx.respond("An error occurred. Please ensure the provided file is a valid .rofl file.")
@@ -321,7 +321,7 @@ class ReplaysCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Finish uploading replays")
     @commands.has_any_role("League Ops", "Bot Guy")  # League Ops only for now
-    async def replay_finish(self, ctx):
+    async def finish(self, ctx):
         submission = self.submissions.get(ctx.author.id)
         if submission and ctx.channel.id == submission["thread"]:
             await self.send_series_summary(ctx, submission)
@@ -330,7 +330,7 @@ class ReplaysCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Complete the submission process")
     @commands.has_any_role("League Ops", "Bot Guy")  # League Ops only for now
-    async def replay_complete_submission(self, ctx):
+    async def complete_submission(self, ctx):
         submission = self.submissions.get(ctx.author.id)
         if submission and ctx.channel.id == submission["thread"]:
             # save down the replays to the database
@@ -388,6 +388,14 @@ class ReplaysCog(commands.Cog):
         if player_info is None:
             return None
         return player_info['name']
+
+    @staticmethod
+    async def fetch_team_logo_url(team_code):
+        criteria = {'team_code': team_code}
+        team_info = dbInfo.team_collection.find_one(criteria)
+        if team_info is None or team_info['logo'] is None:
+            return ""
+        return f"https://lol-web-app.onrender.com{team_info['logo']}"
 
     @staticmethod
     async def parse_replay(message, replay: discord.Attachment):
@@ -549,33 +557,29 @@ class ReplaysCog(commands.Cog):
             return None
 
     async def send_series_summary(self, ctx, submission):
-        embed = discord.Embed(
-            title="Series Summary", 
-            description="If the series summary is correct, submit the /complete_submission command to finalize the series. Otherwise, ping staff for any issues.",
-            color=discord.Color.blue()
-        )
-
         replays = submission["replays"]
 
         if not replays:
             await ctx.respond('please upload some replays')
             return
 
-        team_wins = {"100": 0, "200": 0}
-        team_players = {"100": [], "200": []}
+        team_wins = {}
 
         for replay_data in replays:
+
+            team_players = {"100": [], "200": []}
+
+            embed = discord.Embed(
+                title="Game Summary",
+                description="If this game summary is incorrect, please ping a staff member.",
+                color=discord.Color.blue()
+            )
+
             team_100_players = [p for p in replay_data['players'] if str(p["team_id"]) == "100"]
             team_200_players = [p for p in replay_data["players"] if str(p["team_id"]) == "200"]
 
             # Debug: Check how many players are detected for each team
             print(f"Match ID: {replay_data['match_id']}, Team 100 Players: {len(team_100_players)}, Team 200 Players: {len(team_200_players)}")
-
-            team_100 = next(team for team in replay_data['match_metadata']['teams'] if team['team_code'] == "100")
-            if team_100['win'] == 'Win':
-                team_wins["100"] += 1
-            else:
-                team_wins["200"] += 1
 
             for player in team_100_players:
                 player_name = await self.determine_player_name(player['puuid'])
@@ -585,45 +589,79 @@ class ReplaysCog(commands.Cog):
                 player_name = await self.determine_player_name(player['puuid'])
                 team_players["200"].append(f"{player_name} (KDA: {player['champions_killed']}/{player['num_deaths']}/{player['assists']})")
 
-        team_100_name = "FA"
-        team_200_name = "FA"
+            # determine team names
+            team_100_name = "FA"
+            team_200_name = "FA"
 
-        for player in team_100_players:
-            team_100_name = await self.determine_team(player['puuid'])
-            if team_100_name != "FA":
-                break
-        if team_100_name == "FA":
-            await ctx.respond('Error: Unable to determine team 100 name')
-            return
+            for player in team_100_players:
+                team_100_name = await self.determine_team(player['puuid'])
+                if team_100_name != "FA":
+                    break
+            if team_100_name == "FA":
+                await ctx.respond('Error: Unable to determine team 100 name')
+                return
 
-        for player in team_200_players:
-            team_200_name = await self.determine_team(player['puuid'])
-            if team_200_name != "FA":
-                break
-        if team_200_name == "FA":
-            await ctx.respond('Error: Unable to determine team 200 name')
-            return
+            for player in team_200_players:
+                team_200_name = await self.determine_team(player['puuid'])
+                if team_200_name != "FA":
+                    break
+            if team_200_name == "FA":
+                await ctx.respond('Error: Unable to determine team 200 name')
+                return
 
-        embed.add_field(
-            name=f"{team_100_name} (Blue Side)",
-            value="\n".join(team_players["100"]) or "No players",
-            inline=False
+            # add teams to dictionary if they don't exist
+            if team_100_name not in team_wins:
+                team_wins[team_100_name] = 0
+            if team_200_name not in team_wins:
+                team_wins[team_200_name] = 0
+
+            # add a win to the team that won the game
+            team_100 = next(team for team in replay_data['match_metadata']['teams'] if team['team_code'] == "100")
+            if team_100['win'] == 'Win':
+                winner = f"{team_100_name} (Blue Side) won this game"
+                embed.thumbnail = await self.fetch_team_logo_url(team_100_name)
+                team_wins[team_100_name] += 1
+            else:
+                winner = f"{team_200_name} (Red Side) won this game"
+                embed.thumbnail = await self.fetch_team_logo_url(team_200_name)
+                team_wins[team_200_name] += 1
+
+            embed.add_field(
+                name=f"{team_100_name} (Blue Side)",
+                value="\n".join(team_players["100"]) or "No players",
+                inline=False
+            )
+            embed.add_field(
+                name=f"{team_200_name} (Red Side)",
+                value="\n".join(team_players["200"]) or "No players",
+                inline=False
+            )
+
+            embed.add_field(
+                name="Game Result",
+                value=winner,
+                inline=False
+            )
+
+            await ctx.send(embed=embed)
+
+        embed = discord.Embed(
+            title="Series Result",
+            description="If the series Result is correct, submit the /complete_submission command to finalize the series. Otherwise, ping staff for any issues.",
+            color=discord.Color.blue()
         )
-        embed.add_field(
-            name=f"{team_200_name} (Red Side)",
-            value="\n".join(team_players["200"]) or "No players",
-            inline=False
-        )
 
-        # Determine series winner
-        if team_wins["100"] > team_wins["200"]:
+        # Determine game winner
+        if team_wins[team_100_name] > team_wins[team_200_name]:
             submission["winner"] = team_100_name
             submission["loser"] = team_200_name
-            winner = f"{team_100_name} (Blue Side) wins the series!"
-        elif team_wins["200"] > team_wins["100"]:
+            winner = f"{team_100_name} wins the series!"
+            embed.thumbnail = await self.fetch_team_logo_url(team_100_name)
+        elif team_wins[team_200_name] > team_wins[team_100_name]:
             submission["winner"] = team_200_name
             submission["loser"] = team_100_name
-            winner = f"{team_200_name} (Red Side) wins the series!"
+            winner = f"{team_200_name} wins the series!"
+            embed.thumbnail = await self.fetch_team_logo_url(team_200_name)
         else:
             winner = "The series is tied!"
 
