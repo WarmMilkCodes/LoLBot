@@ -114,21 +114,31 @@ class PlayerCog(commands.Cog):
             'IV': 1, 'III': 2, 'II': 3, 'I': 4
         }
 
-        # Step 1: Check rank for main account
-        main_rank_info = await self.get_player_rank(player_record['summoner_id'])
-        if main_rank_info:
-            for rank in main_rank_info:
-                tier = rank.get('tier')
-                division = rank.get('division')
-                if highest_rank_tier is None or rank_order[tier] > rank_order.get(highest_rank_tier, 0) or (
-                    rank_order[tier] == rank_order.get(highest_rank_tier, 0) and 
-                    division_order[division] > division_order.get(highest_rank_division, 0)
-                ):
-                    highest_rank_tier = tier
-                    highest_rank_division = division
-                    highest_rank_info = {"rank_info": main_rank_info, "account_type": "main"}
+        # Step 1: Check rank for main account via API
+        puuid = player_record.get('puuid') or await self.get_puuid(player_record['game_name'], player_record['tag_line'])
+        if puuid:
+            summoner_id = await self.get_summoner_id(puuid)
+            if summoner_id:
+                main_rank_info = await self.get_player_rank(summoner_id)
+                if main_rank_info:
+                    for rank in main_rank_info:
+                        tier = rank.get('tier')
+                        division = rank.get('division')
+                        if highest_rank_tier is None or rank_order[tier] > rank_order.get(highest_rank_tier, 0) or (
+                            rank_order[tier] == rank_order.get(highest_rank_tier, 0) and 
+                            division_order[division] > division_order.get(highest_rank_division, 0)
+                        ):
+                            highest_rank_tier = tier
+                            highest_rank_division = division
+                            highest_rank_info = {"rank_info": main_rank_info, "account_type": "main"}
+            else:
+                logger.warning(f"Failed to retrieve Summoner ID for main account of {player_record['name']}.")
+                return None
+        else:
+            logger.warning(f"Failed to retrieve PUUID for main account of {player_record['name']}.")
+            return None
 
-        # Step 2: Check ranks for alt accounts
+        # Step 2: Check ranks for alt accounts via API
         alt_accounts = player_record.get('alt_accounts', [])
         for alt in alt_accounts:
             alt_puuid = await self.get_puuid(alt['game_name'], alt['tag_line'])
@@ -155,6 +165,7 @@ class PlayerCog(commands.Cog):
                         highest_rank_info = {"rank_info": alt_rank_info, "account_type": "alt"}
 
         return highest_rank_info
+
 
 
     async def get_match_history(self, puuid):
