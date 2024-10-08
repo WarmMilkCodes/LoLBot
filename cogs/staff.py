@@ -5,7 +5,7 @@ from discord.commands import Option
 import app.dbInfo as dbInfo
 import app.config as config
 from tabulate import tabulate
-from app.utils import update_nickname
+from app.helper import update_nickname
 
 logger = logging.getLogger(__name__)
 

@@ -5,7 +5,7 @@ import pytz
 from app import config, dbInfo
 import logging
 import asyncio, re
-from app.utils import update_nickname
+from app.helper import update_nickname
 
 logger = logging.getLogger('lol_log')
 
