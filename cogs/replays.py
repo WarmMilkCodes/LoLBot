@@ -529,8 +529,8 @@ class ReplaysCog(commands.Cog):
             for p in players:
                 team = await ReplaysCog.determine_team(p.puuid)
                 if team is None:
-                    await message.channel.send(f"An error occurred retrieving player data for {p.name}({p.skin})")
-                    return None
+                    await message.channel.send(f"Warning: Could not find a team for {p.name}({p.skin})")
+                    continue
                 p.team_code = team
                 team_exists = (any(t.get('team') == team for t in match_metadata.get('teams')) and team is not "FA")
                 if not team_exists:
