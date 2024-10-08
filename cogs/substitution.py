@@ -1,16 +1,18 @@
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 import app.config as config
 import app.dbInfo as dbInfo
 from datetime import datetime, timedelta
+from discord.commands import Option
+import asyncio
 
 class SubstitutionCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.substitution_timers = {}
+        self.substitution_timers = {}  # A dictionary to track substitution end times
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Substitute a player onto a team")
-    async def substitute_player(self, ctx, player: discord.Member, team_code: str("Enter 3-digit team abbreviation"), duration: int("Enter number for amount of minutes")):
+    async def substitute_player(self, ctx, player: discord.Member, team_code: Option(str, "Enter 3-digit team abbreviation"), duration: Option(int, "Enter number for amount of minutes")):
         # Check if the player is a free agent
         player_data = dbInfo.players_collection.find_one({"discord_id": player.id})
         if not player_data or player_data.get("team") not in ["FA", None]:
@@ -36,21 +38,22 @@ class SubstitutionCog(commands.Cog):
         # Set a timer to remove the role after the specified duration
         end_time = datetime.now() + timedelta(minutes=duration)
         self.substitution_timers[player.id] = (team_role.id, end_time)
-        self.remove_role_after_duration.start(player, team_role, duration)
+        
+        # Start a task to remove the role after the duration
+        self.bot.loop.create_task(self.remove_role_after_duration(player, team_role, duration))
 
-    @tasks.loop(seconds=60)
-    async def remove_role_after_duration(self, player, team_role, duration):
+    async def remove_role_after_duration(self, player: discord.Member, team_role: discord.Role, duration: int):
+        # Wait for the specified duration
+        await asyncio.sleep(duration * 60)
+
+        # Check if the player still has the team role
+        if team_role in player.roles:
+            await player.remove_roles(team_role)
+            await player.send(f"Your substitution time on team '{team_role.name}' has ended, and your role has been removed.")
+
+        # Remove the substitution timer entry
         if player.id in self.substitution_timers:
-            _, end_time = self.substitution_timers[player.id]
-            if datetime.now() >= end_time:
-                await player.remove_roles(team_role)
-                await player.send(f"Your substitution time on team '{team_role.name}' has ended, and your role has been removed.")
-                del self.substitution_timers[player.id]
-                self.remove_role_after_duration.cancel()
-
-    @remove_role_after_duration.before_loop
-    async def before_remove_role(self):
-        await self.bot.wait_until_ready()
+            del self.substitution_timers[player.id]
 
 def setup(bot):
     bot.add_cog(SubstitutionCog(bot))

@@ -5,7 +5,7 @@ from discord.commands import Option
 import app.dbInfo as dbInfo
 import app.config as config
 from tabulate import tabulate
-from cogs.utils import update_nickname
+from app.utils import update_nickname
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ class StaffCog(commands.Cog):
     async def admn_ff_series(self, ctx, ff_team: Option(str, "Enter 3-digit code of forfeiting team (ex. SDA)"), win_team: Option(str, "Enter 3-digit code of winning team (ex. SDA)")):
         try:
             await ctx.defer()
-            
+
             # Ensure team codes entered correctly
             winning_team = dbInfo.team_collection.find_one({"team_code": win_team.upper()})
             ffing_team = dbInfo.team_collection.find_one({"team_code": ff_team.upper()})

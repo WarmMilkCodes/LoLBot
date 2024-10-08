@@ -4,7 +4,7 @@ import logging
 import app.config as config
 import app.dbInfo as dbInfo
 import re
-from cogs.utils import update_nickname
+from app.utils import update_nickname
 from cogs.salaries import SalaryCog
 
 logger = logging.getLogger('lol_log')
