@@ -47,10 +47,11 @@ class SalaryCog(commands.Cog):
 
     def is_rank_higher(self, current_tier, current_division, peak_tier, peak_division):
         """Compare current rank with peak rank"""
+        div_order = {'IV': 1, "III": 2, 'II': 4, 'I':4}
         if RANK_ORDER.get(current_tier) > RANK_ORDER.get(peak_tier):
             return True
         elif RANK_ORDER.get(current_tier) == RANK_ORDER.get(peak_tier):
-            return DIVISION_ORDER.get(current_division) > DIVISION_ORDER.get(peak_division)
+            return div_order.get(current_division) > div_order.get(peak_division)
         return False
 
     def calculate_salary(self, rank, division):
