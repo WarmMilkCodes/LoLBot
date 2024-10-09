@@ -111,10 +111,10 @@ class PlayerCog(commands.Cog):
             await ctx.defer(ephemeral=True)
 
             # Find the player by name in the database
-            player_record = dbInfo.player_collection.find_one({"name": player_name, "left_at": None})
+            player_record = dbInfo.player_collection.find_one({"discord_id": player_name.id, "left_at": None})
 
             if not player_record:
-                await ctx.respond(f"Player '{player_name}' not found or has left the server.", ephemeral=True)
+                await ctx.respond(f"Player '{player_name.display_name}' not found or has left the server.", ephemeral=True)
                 return
 
             logger.info(f"Processing player: {player_record['name']}")
@@ -123,7 +123,7 @@ class PlayerCog(commands.Cog):
             # Process player and their alt accounts
             highest_rank_info = await self.process_player_and_alts(player_record, riot_id_log_channel)
             if highest_rank_info is None:
-                await ctx.respond(f"Failed to retrieve rank information for '{player_name}'.", ephemeral=True)
+                await ctx.respond(f"Failed to retrieve rank information for '{player_name.display_name}'.", ephemeral=True)
                 return
             
             # Update rank info with the highest rank found
@@ -137,7 +137,7 @@ class PlayerCog(commands.Cog):
             )
 
             logger.info(f"Updated rank information for player {player_record['name']} from their {highest_rank_info['account_type']} account.")
-            await ctx.respond(f"Rank and eligibility check completed for '{player_name}'.", ephemeral=True)
+            await ctx.respond(f"Rank and eligibility check completed for '{player_name.display_name}'.", ephemeral=True)
 
         except Exception as e:
             await ctx.respond(f"There was an error processing {player_name}")
