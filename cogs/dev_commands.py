@@ -19,6 +19,23 @@ class DevCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.slash_command(guild_ids=[config.lol_server], description="Flush peak ranks from DB")
+    @commands.has_role("Bot Guy")
+    async def dev_flush_peaks(self, ctx):
+        try:
+            await ctx.defer()
+            flush_peaks = dbInfo.player_collection.update_many(
+                {},
+                {"$unset": {"peak_rank": ""}}
+            )
+            logger.info(f"Finished flushing {flush_peaks.modified_count} peak ranks from DB.")
+            await ctx.respond(f"Flushed {flush_peaks.modified_count} peak ranks.")
+        
+        except Exception as e:
+            logger.error("Error flushing peak ranks: {e}")
+            await ctx.respond("Error flushing peak ranks.")
+
+
     @commands.slash_command(guild_ids=[config.lol_server], description="Clear split count for specific user")
     @commands.has_role("Bot Guy")
     async def dev_clear_split(self, ctx, user: Option(discord.Member, "Select user you wish to clear the split count of.")):
