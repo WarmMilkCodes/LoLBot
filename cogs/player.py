@@ -77,10 +77,10 @@ class PlayerCog(commands.Cog):
             discord_id = player.get('ID')
             player_record = dbInfo.player_collection.find_one({"discord_id": discord_id, "left_at": None})
 
-            logger.info(f"Processing player: {player.get('name')}")
+            logger.info(f"Processing player: {player_record.get('name')}")
             
             if not player_record:
-                logger.info(f"Skipping player {player.get('name')} because not found or left server.")
+                logger.info(f"Skipping player {player_record.get('name')} because not found or left server.")
                 continue
 
             # Process player and alt accounts
