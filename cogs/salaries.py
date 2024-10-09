@@ -45,6 +45,14 @@ class SalaryCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    def is_rank_higher(self, current_tier, current_division, peak_tier, peak_division):
+        """Compare current rank with peak rank"""
+        if RANK_ORDER.get(current_tier) > RANK_ORDER.get(peak_tier):
+            return True
+        elif RANK_ORDER.get(current_tier) == RANK_ORDER.get(peak_tier):
+            return DIVISION_ORDER.get(current_division) > DIVISION_ORDER.get(peak_division)
+        return False
+
     def calculate_salary(self, rank, division):
         """Calculate salary based on rank and division"""
         base = BASE_SALARY.get(rank, 0)

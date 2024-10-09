@@ -68,6 +68,7 @@ class Audit(commands.Cog):
                 manually_adjusted_salary = player_info.get("manual_salary", None)
                 rank_info = player_info.get('rank_info', [])
                 historical_rank_info = player_info.get('historical_rank_info', {})
+                peak_rank = player_info.get('peak_rank', {})
 
                 # Calculate the player's highest rank and salary
                 salary_cog = SalaryCog(self.bot)
@@ -76,17 +77,33 @@ class Audit(commands.Cog):
                 # Store peak rank
                 if highest_rank and highest_division:
                     new_salary = salary_cog.calculate_salary(highest_rank, highest_division)
+                    
+                    # Check if current rank exceeds peak rank
+                    if peak_rank:
+                        peak_tier = peak_rank.get('tier')
+                        peak_division = peak_rank.get('division')
 
-                    # Update peak rank in DB
-                    dbInfo.player_collection.update_one(
-                        {'discord_id': member.id},
-                        {'$set': {'peak_rank': {'tier': highest_rank, 'division': highest_division}}}
-                    )
-                    logger.info(f"Stored peak rank for {member.name}: {highest_rank} {highest_division}")
+                        # Compare rank order and division
+                        if salary_cog.is_rank_higher(highest_rank, highest_division, peak_tier, peak_division):
+                            # Update peak rank if current rank is higher
+                            dbInfo.player_collection.update_one(
+                                {'discord_id': member.id},
+                                {'$set': {'peak_rank': {'tier': highest_rank, 'division': highest_division}}}
+                            )
+                            logger.info(f"Stored peak rank for {member.name}: {highest_rank} {highest_division}")
+
+                    else:
+                        # If no peak rank exists, store current as peak
+                        dbInfo.player_collection.update_one(
+                            {'discord_id': member.id},
+                            {'$set': {'peak_rank': {'tier': highest_rank, 'division': highest_division}}}
+                        )
+                        logger.info(f"Stored peak rank for {member.name}: {highest_rank} {highest_division}")
                 else:
                     logger.warning(f"No valid rank found for {member.name}")
                     continue
 
+                # Salary adjustment logic for FA and team players                        
                 if is_free_agent:
                     # Free agent: only update salary if the new one is higher
                     if new_salary > current_salary:
