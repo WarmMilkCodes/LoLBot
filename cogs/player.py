@@ -162,8 +162,11 @@ class PlayerCog(commands.Cog):
         # Step 1: Check rank for main account via API
         puuid = player_record.get('puuid') or await self.get_puuid(player_record['game_name'], player_record['tag_line'])
         if puuid:
+            logger.debug(f"Retrieve PUUID for {player_record['name']}: {puuid}\nAttempting to get summoner ID now.")
             summoner_id = await self.get_summoner_id(puuid)
+            logger.debug(f"Passed 'Get Summoner ID' for {player_record['name']}")
             if summoner_id:
+                logger.debug("Summoner ID found. Getting player rank")
                 main_rank_info = await self.get_player_rank(summoner_id)
                 if main_rank_info:
                     for rank in main_rank_info:
@@ -177,10 +180,10 @@ class PlayerCog(commands.Cog):
                             highest_rank_division = division
                             highest_rank_info = {"rank_info": main_rank_info, "account_type": "main"}
             else:
-                logger.warning(f"Failed to retrieve Summoner ID for main account of {player_record['name']}.")
+                logger.error(f"Failed to retrieve Summoner ID for main account of {player_record['name']}.")
                 return None
         else:
-            logger.warning(f"Failed to retrieve PUUID for main account of {player_record['name']}.")
+            logger.error(f"Failed to retrieve PUUID for main account of {player_record['name']}.")
             return None
 
         # Step 2: Check ranks for alt accounts via API
