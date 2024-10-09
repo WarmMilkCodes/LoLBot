@@ -121,7 +121,9 @@ class PlayerCog(commands.Cog):
             riot_id_log_channel = self.bot.get_channel(config.failure_log_channel)
 
             # Process player and their alt accounts
+            logger.debug(f"Preparing to run process player and alts function for {player_record['name']}...")
             highest_rank_info = await self.process_player_and_alts(player_record, riot_id_log_channel)
+            logger.debug(f"highest_rank_info function completed for {player_record['name']}")
             if highest_rank_info is None:
                 await ctx.respond(f"Failed to retrieve rank information for '{player_name.display_name}'.", ephemeral=True)
                 return
@@ -145,6 +147,7 @@ class PlayerCog(commands.Cog):
 
 
     async def process_player_and_alts(self, player_record, riot_id_log_channel):
+        logger.debug(f"Running process player and alts on {player_record['name']}")
         """Process a player and their alt accounts to find the highest rank."""
         highest_rank_info = None
         highest_rank_tier = None
@@ -159,10 +162,11 @@ class PlayerCog(commands.Cog):
             'IV': 1, 'III': 2, 'II': 3, 'I': 4
         }
 
+        logger.debug(f"Attempting to get PUUID from DB or API for {player_record['name']}")
         # Step 1: Check rank for main account via API
         puuid = player_record.get('puuid') or await self.get_puuid(player_record['game_name'], player_record['tag_line'])
         if puuid:
-            logger.debug(f"Retrieve PUUID for {player_record['name']}: {puuid}\nAttempting to get summoner ID now.")
+            logger.debug(f"Retrieved PUUID for {player_record['name']}: {puuid}\nAttempting to get summoner ID now.")
             summoner_id = await self.get_summoner_id(puuid)
             logger.debug(f"Passed 'Get Summoner ID' for {player_record['name']}")
             if summoner_id:
