@@ -71,100 +71,111 @@ class SalaryCog(commands.Cog):
     @commands.slash_command(guild_ids=[config.lol_server], description="Calculate and display salaries for all players based on their highest rank")
     @commands.has_any_role("Bot Guy", "League Ops")
     async def calculate_all_salaries(self, ctx):
-        await ctx.defer()
+        try:
+            await ctx.defer()
 
-        players = dbInfo.player_collection.find({"left_at": None, "salary": None})  # Only active players and those who don't have a salary already
-        salary_report = []
-        total_salary = 0
+            players = dbInfo.player_collection.find({"left_at": None, "salary": None})  # Only active players and those who don't have a salary already
+            salary_report = []
+            total_salary = 0
 
-        ## UPDATE THIS EACH SEASON ##
-        season_number = "1" 
+            ## UPDATE THIS EACH SEASON ##
+            season_number = "1" 
 
-        for player in players:
-            player_name = player.get('name', 'Unknown')
-            rank_info = player.get('rank_info', [])
-            historical_rank_info = player.get('historical_rank_info', {})
+            for player in players:
+                player_name = player.get('name', 'Unknown')
+                rank_info = player.get('rank_info', [])
+                historical_rank_info = player.get('historical_rank_info', {})
 
-            # Get the highest rank
-            highest_rank, highest_division = self.get_highest_rank(rank_info, historical_rank_info)
+                # Get the highest rank
+                highest_rank, highest_division = self.get_highest_rank(rank_info, historical_rank_info)
 
-            if highest_rank and highest_division:
-                salary = self.calculate_salary(highest_rank, highest_division)
+                if highest_rank and highest_division:
+                    salary = self.calculate_salary(highest_rank, highest_division)
+                    
+                    # Store the calculated salary in the player's document
+                    dbInfo.player_collection.update_one(
+                        {"discord_id": player['discord_id']},
+                        {"$set": {"salary": salary, "salary_season": season_number}}
+                    )
+
+                    salary_report.append(f"**{player_name}**: {highest_rank} {highest_division} - Salary: {salary}")
+                    total_salary += salary
+
+                    # Update user's nickname to reflect salary
+                    member = ctx.guild.get_member(player['discord_id'])
+                    if member:
+                        prefix = 'FA' if player.get('team') in ['FA', None, 'Unassigned'] else 'RFA'
+                        await update_nickname(member, prefix=prefix)
+
+                else:
+                    continue
                 
-                # Store the calculated salary in the player's document
-                dbInfo.player_collection.update_one(
-                    {"discord_id": player['discord_id']},
-                    {"$set": {"salary": salary, "salary_season": season_number}}
-                )
+            if not salary_report:
+                await ctx.respond("No new salaries were calculated.", ephemeral=True)
 
-                salary_report.append(f"**{player_name}**: {highest_rank} {highest_division} - Salary: {salary}")
-                total_salary += salary
+            # Split the report into multiple embeds if the content exceeds the 4096-character limit
+            max_length = 4096
+            embed_list = []
+            description = ""
 
-                # Update user's nickname to reflect salary
-                member = ctx.guild.get_member(player['discord_id'])
-                if member:
-                    prefix = 'FA' if player.get('team') in ['FA', None, 'Unassigned'] else 'RFA'
-                    await update_nickname(member, prefix=prefix)
+            for report_line in salary_report:
+                if len(description) + len(report_line) > max_length:
+                    embed = discord.Embed(title=f"Season {season_number} Player Salary Report", description=description, color=discord.Color.green())
+                    embed_list.append(embed)
+                    description = ""
 
-            else:
-                continue
-            
-        if not salary_report:
-            await ctx.respond("No new salaries were calculated.", ephemeral=True)
+                description += report_line + "\n"
 
-        # Split the report into multiple embeds if the content exceeds the 4096-character limit
-        max_length = 4096
-        embed_list = []
-        description = ""
-
-        for report_line in salary_report:
-            if len(description) + len(report_line) > max_length:
-                embed = discord.Embed(title=f"Season {season_number} Player Salary Report", description=description, color=discord.Color.green())
+            # Add the last part of the report
+            if description:
+                embed = discord.Embed(title="Player Salary Report", description=description, color=discord.Color.green())
                 embed_list.append(embed)
-                description = ""
 
-            description += report_line + "\n"
+            # Add the total salary to the last embed
+            embed_list[-1].set_footer(text=f"Total Salary: {total_salary}")
 
-        # Add the last part of the report
-        if description:
-            embed = discord.Embed(title="Player Salary Report", description=description, color=discord.Color.green())
-            embed_list.append(embed)
-
-        # Add the total salary to the last embed
-        embed_list[-1].set_footer(text=f"Total Salary: {total_salary}")
-
-        # Send all embeds
-        for embed in embed_list:
-            await ctx.send(embed=embed)
+            # Send all embeds
+            for embed in embed_list:
+                await ctx.send(embed=embed)
+        
+        except Exception as e:
+            await ctx.respond("There was an error assigning salaries.")
+            logger.error(f"There was an error running calculate salaries command: {e}")
 
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Manually adjust a player's salary")
     @commands.has_any_role("Bot Guy", "Commissioner", "URLOL Owner", "League Ops")
     async def adjust_salary(self, ctx, user: discord.Member, new_salary: int):
         """Command for staff to manually adjust a player's salary"""
-        player_data = dbInfo.player_collection.find_one({"discord_id": user.id})
+        try:
+            await ctx.defer()
+            player_data = dbInfo.player_collection.find_one({"discord_id": user.id})
 
-        if not player_data:
-            return await ctx.respond(f"{user.mention} was not found in the database", ephemeral=True)
-        
-        current_salary = player_data.get('salary')
+            if not player_data:
+                return await ctx.respond(f"{user.mention} was not found in the database", ephemeral=True)
+            
+            current_salary = player_data.get('salary')
 
-        if not current_salary:
-            return await ctx.respond(f"{user.mention} does not have a current salary and cannot be manually changed.", ephemeral=True)
+            if not current_salary:
+                return await ctx.respond(f"{user.mention} does not have a current salary and cannot be manually changed.", ephemeral=True)
 
-        dbInfo.player_collection.update_one(
-            {"discord_id": user.id},
-            {"$set": {
-                "previous_salary": current_salary,
-                "manual_salary": new_salary,
-                "adjusted_by": ctx.author.name
-                }}
-        )
+            dbInfo.player_collection.update_one(
+                {"discord_id": user.id},
+                {"$set": {
+                    "previous_salary": current_salary,
+                    "manual_salary": new_salary,
+                    "adjusted_by": ctx.author.name
+                    }}
+            )
 
-        await ctx.respond(f"Adjusted {user.mention}'s salary to {new_salary}.", ephemeral=True)
+            await ctx.respond(f"Adjusted {user.mention}'s salary to {new_salary}.", ephemeral=True)
 
-        # Log the manual adjustment
-        logger.info(f"{ctx.author.name} adjusted {user.name}'s salary to {new_salary}")
+            # Log the manual adjustment
+            logger.info(f"{ctx.author.name} adjusted {user.name}'s salary to {new_salary}")
+
+        except Exception as e:
+            await ctx.respond(f"There was an error adjusting the salary of {user.name}.")
+            logger.error(f"Error adjusting {user.name}'s salary from {current_salary} to {new_salary}: {e}")
 
 def setup(bot):
     bot.add_cog(SalaryCog(bot))
