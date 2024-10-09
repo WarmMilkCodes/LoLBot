@@ -226,7 +226,7 @@ class StaffCog(commands.Cog):
         eligibility_status = 'Eligible' if is_eligible else 'Not Eligible'
 
         # Calculate peak rank (pass the entire player_info to get_peak_rank function)
-        peak_rank = get_peak_rank(player_info)
+        peak_rank = player_info.get('peak_rank', 'N/A')
 
         # Determine salary, prioritize manual salary if available
         manual_salary = player_info.get('manual_salary')
