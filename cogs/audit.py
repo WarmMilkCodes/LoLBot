@@ -143,33 +143,33 @@ class Audit(commands.Cog):
             logger.info("Audit finished. Next audit will occur in 24 hours.")
 
     def meets_threshold(self, current_tier, current_division, peak_rank):
-        """Check if player meets threshold for salary update notification"""
+        """Check if the player meets the threshold for salary update notification."""
         thresholds = {
-        "IRON": ("BRONZE", "III"),
-        "BRONZE": ("SILVER", "III"),
-        "SILVER": ("GOLD", "III"),
-        "GOLD": ("PLATINUM", "III"),
-        "PLATINUM": ("DIAMOND", "IV"),
-        "DIAMOND": {
-            "IV": ("DIAMOND", "II"),
-            "III": ("DIAMOND", "II"),
-            "II": ("DIAMOND", "I"),
-            "I": None  # No further salary updates after reaching Diamond I
+            "IRON": ("BRONZE", "III"),
+            "BRONZE": ("SILVER", "III"),
+            "SILVER": ("GOLD", "III"),
+            "GOLD": ("PLATINUM", "III"),
+            "PLATINUM": ("DIAMOND", "IV"),
+            "DIAMOND": {
+                "IV": ("DIAMOND", "II"),
+                "III": ("DIAMOND", "II"),
+                "II": ("DIAMOND", "I"),
+                "I": None  # No further salary updates after reaching Diamond I
             }
         }
-        
-        peak_tier = peak_rank.get('tier')
-        peak_division = peak_rank.get('division')
 
         if current_tier in thresholds:
             if current_tier == "DIAMOND":
                 if current_division in thresholds[current_tier]:
-                    return thresholds[current_tier][current_tier] is not None
+                    # Diamond 1 has no further updates
+                    return thresholds[current_tier][current_division] is not None
             else:
                 threshold_tier, threshold_division = thresholds[current_tier]
-                return SalaryCog.is_rank_higher(current_tier, current_division, threshold_tier, threshold_division)
-            
+                # Now passing both current and threshold divisions to is_rank_higher
+                return SalaryCog.is_rank_higher(self, current_tier, current_division, threshold_tier, threshold_division)
+
         return False
+
 
     @audit_roles.before_loop
     async def before_audit_roles(self):
