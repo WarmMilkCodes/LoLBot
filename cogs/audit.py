@@ -125,14 +125,15 @@ class Audit(commands.Cog):
                     else:
                         logger.info(f"{member.name} has a manually adjusted salary of {manually_adjusted_salary}, no update needed.")
                 elif team_code and team_code != "Unassigned":
-                    # Player is on a team: Notify staff if salary should be updated
-                    if new_salary > current_salary:
-                        notification_message = (
-                            f"{member.name}'s salary has increased to {new_salary} but is signed to {team_code}. "
-                            f"Please manually adjust their salary."
-                        )
-                        await audit_channel.send(notification_message)
-                        logger.info(f"Sent notification: {notification_message}")
+                    # Check if player meets the threshold for a salary increase
+                    if self.meets_threshold(highest_rank, highest_division, peak_rank):
+                        if new_salary > current_salary:
+                            notification_message = (
+                                f"{member.name}'s salary has increased to {new_salary} but is signed to {team_code}. "
+                                f"Please manually adjust their salary."
+                            )
+                            await audit_channel.send(notification_message)
+                            logger.info(f"Sent notification: {notification_message}")
 
                 # Update user's nickname to reflect salary or role
                 prefix = 'FA' if is_free_agent else (team_code if team_code != "Unassigned" else 'RFA')
@@ -141,6 +142,34 @@ class Audit(commands.Cog):
 
             logger.info("Audit finished. Next audit will occur in 24 hours.")
 
+    def meets_threshold(self, current_tier, current_division, peak_rank):
+        """Check if player meets threshold for salary update notification"""
+        thresholds = {
+        "IRON": ("BRONZE", "III"),
+        "BRONZE": ("SILVER", "III"),
+        "SILVER": ("GOLD", "III"),
+        "GOLD": ("PLATINUM", "III"),
+        "PLATINUM": ("DIAMOND", "IV"),
+        "DIAMOND": {
+            "IV": ("DIAMOND", "II"),
+            "III": ("DIAMOND", "II"),
+            "II": ("DIAMOND", "I"),
+            "I": None  # No further salary updates after reaching Diamond I
+            }
+        }
+        
+        peak_tier = peak_rank.get('tier')
+        peak_division = peak_rank.get('division')
+
+        if current_tier in thresholds:
+            if current_tier == "DIAMOND":
+                if current_division in thresholds[current_tier]:
+                    return thresholds[current_tier][current_tier] is not None
+            else:
+                threshold_tier, threshold_division = thresholds[current_tier]
+                return SalaryCog.is_rank_higher(current_tier, current_division, threshold_tier, threshold_division)
+            
+        return False
 
     @audit_roles.before_loop
     async def before_audit_roles(self):
