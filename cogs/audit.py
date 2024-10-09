@@ -73,8 +73,16 @@ class Audit(commands.Cog):
                 salary_cog = SalaryCog(self.bot)
                 highest_rank, highest_division = salary_cog.get_highest_rank(rank_info, historical_rank_info)
 
+                # Store peak rank
                 if highest_rank and highest_division:
                     new_salary = salary_cog.calculate_salary(highest_rank, highest_division)
+
+                    # Update peak rank in DB
+                    dbInfo.player_collection.update_one(
+                        {'discord_id': member.id},
+                        {'$set': {'peak_rank': {'tier': highest_rank, 'division': highest_division}}}
+                    )
+                    logger.info(f"Stored peak rank for {member.name}: {highest_rank} {highest_division}")
                 else:
                     logger.warning(f"No valid rank found for {member.name}")
                     continue
