@@ -227,6 +227,12 @@ class StaffCog(commands.Cog):
 
         # Calculate peak rank (pass the entire player_info to get_peak_rank function)
         peak_rank = player_info.get('peak_rank', 'N/A')
+        if peak_rank != "N/A":
+            tier = peak_rank.get('tier', 'Unk Tier')
+            division = peak_rank.get('division', "Unk Div")
+            display_peak_rank = f"{tier} {division}"
+        else:
+            display_peak_rank = 'N/A'
 
         # Determine salary, prioritize manual salary if available
         manual_salary = player_info.get('manual_salary')
@@ -268,7 +274,7 @@ class StaffCog(commands.Cog):
             f"**Total Games (Last + Current Split)**: {total_games}",
             f"**Summer Split**: {summer_split_games}",
             f"**Fall Split**: {fall_split_games}",
-            f"**Peak Rank**:\n{peak_rank}",
+            f"**Peak Rank**:\n{display_peak_rank}",
             f"**Alt Account(s)**:\n{alt_accounts_list}"
         ]
 
