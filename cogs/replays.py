@@ -532,7 +532,7 @@ class ReplaysCog(commands.Cog):
                     await message.channel.send(f"Warning: Could not find a team for {p.name}({p.skin})")
                     continue
                 p.team_code = team
-                team_exists = (any(t.get('team') == team for t in match_metadata.get('teams')) and team is not "FA")
+                team_exists = (any(t.get('team') == team for t in match_metadata.get('teams')) and team != "FA")
                 if not team_exists:
                     team_info = {
                         "team": team,
