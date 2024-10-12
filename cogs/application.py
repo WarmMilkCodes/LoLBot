@@ -6,11 +6,14 @@ from app import config, dbInfo
 import logging
 import asyncio, re
 from app.helper import update_nickname
+from cogs.player import PlayerCog
+from cogs.salaries import SalaryCog
 
 logger = logging.getLogger('lol_log')
 
+season_number = 1
 lol_server_id = config.lol_server
-submission_log_channel_id = config.submission_log_channel  # Ensure this is in your config
+submission_log_channel_id = config.submission_log_channel 
 game_name_image = "https://media.discordapp.net/attachments/1171263861240889405/1271892784315498556/gamename.png?ex=66b8fdf6&is=66b7ac76&hm=74fdbff2be50b7e43ad8e6aad38a29a0dad698badb361572e8ce54758c83abf4&=&format=webp&quality=lossless&width=960&height=540"
 tagline_image = "https://media.discordapp.net/attachments/1171263861240889405/1271892783892008971/tagline.png?ex=66b8fdf6&is=66b7ac76&hm=d019a8ae1a58ab3344c9776465e5c74f4e5d37324cd147cff4ca26e180fb9f68&=&format=webp&quality=lossless&width=960&height=540"
 
@@ -157,7 +160,8 @@ class ApplicationButton(discord.ui.View):
             "Playing": responses[0],
             "Development Team": responses[1],
             "Production Team": responses[2],
-            "Completed On": dateStr
+            "Completed On": dateStr,
+            "Season": season_number
         }
         
 
@@ -212,6 +216,49 @@ class ApplicationButton(discord.ui.View):
         if riot_id_log_channel:
             await riot_id_log_channel.send(f"{interaction.user.mention} updated their Riot ID: {riot_game_name}#{riot_tag_line}")
 
+        # Logic for processing Riot ID for rank
+        player_record = dbInfo.player_collection.find_one({"discord_id": interaction.user.id})
+
+        if not player_record:
+            logger.warning(f"Player record for {interaction.user.name} wasn't found. User submitted intent application but will not be assigned salary automatically.")
+            return
+        
+        logger.info(f"Processing rank and salary for {player_record['name']}")
+        riot_id_log_channel = self.bot.get_channel(config.failure_log_channel)
+
+        rank = await PlayerCog.process_player_and_alts(player_record, riot_id_log_channel)
+        if rank is None:
+            logger.error(f"Ran rank check but was unable to determine rank for {player_record['name']}")
+            return
+        
+        # Assign salary
+        rank_info = player_record.get('rank_info', [])
+        historical_rank_info = player_record.get('historical_rank_info', {})
+
+        # Get the highest rank
+        highest_rank, highest_division = SalaryCog.get_highest_rank(rank_info, historical_rank_info)
+
+
+        if highest_rank and highest_division:
+                    salary = SalaryCog.calculate_salary(highest_rank, highest_division)
+                    
+                    # Store the calculated salary in the player's document
+                    dbInfo.player_collection.update_one(
+                        {"discord_id": player_record['discord_id']},
+                        {"$set": {"salary": salary, "salary_season": season_number}}
+                    )
+
+                    # Update user's nickname to reflect salary
+                    member = interaction.guild.get_member(player_record['discord_id'])
+                    if member:
+                        prefix = 'FA' if player_record.get('team') in ['FA', None, 'Unassigned'] else 'RFA'
+                        await update_nickname(member, prefix=prefix)
+
+        else:
+            logger.error(f"Unable to calculate salary of {player_record['name']}")
+            return
+        
+        
 class ButtonOptions(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
