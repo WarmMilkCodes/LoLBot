@@ -5,6 +5,7 @@ from discord.commands import Option
 import app.dbInfo as dbInfo
 import app.config as config
 from tabulate import tabulate
+from urllib.parse import quote_plus
 from app.helper import update_nickname
 
 logger = logging.getLogger(__name__)
@@ -242,12 +243,15 @@ class StaffCog(commands.Cog):
         alt_accounts = player_info.get("alt_accounts", [])
         alt_accounts_list = "\n".join([f"{alt['game_name']}#{alt['tag_line']}" for alt in alt_accounts]) if alt_accounts else "None"
 
-        # Buld op.gg link
+        # Build OP.GG link
         if player_info.get('game_name') and player_info.get('tag_line'):
-            opgg_base_url = f"https://www.op.gg/summoners/na/{player_info.get('game_name')}-{player_info.get('tag_line')}"
+            # URL encode the game_name to handle spaces and special characters
+            encoded_game_name = quote_plus(player_info.get('game_name'))
+            opgg_base_url = f"https://www.op.gg/summoners/na/{encoded_game_name}-{player_info.get('tag_line')}"
             opgg_embed_value = f"[Click here to view OP.GG profile]({opgg_base_url})"
         else:
             opgg_embed_value = "No OP.GG link for this player."
+
 
         # Build Riot ID
         game_name = player_info.get('game_name', '')
