@@ -78,16 +78,23 @@ class PlayerCog(commands.Cog):
             player_record = dbInfo.player_collection.find_one({"discord_id": discord_id, "left_at": None})
 
             logger.info(f"Processing player: {player_record.get('name')}")
-            
+
             if not player_record:
                 logger.info(f"Skipping player {player_record.get('name')} because not found or left server.")
+                continue
+
+            # Check if the player is eligible for the current split
+            eligible_for_split = player_record.get('eligible_for_split', False)
+            
+            if eligible_for_split:
+                logger.info(f"Player {player_record['name']} is already eligible for the current split. Skipping.")
                 continue
 
             # Process player and alt accounts
             highest_rank_info = await self.process_player_and_alts(player_record, riot_id_log_channel)
             if highest_rank_info is None:
                 continue  # Skip to the next player if there was an issue with rank retrieval
-            
+
             # Update rank info with the highest rank found
             dbInfo.player_collection.update_one(
                 {"discord_id": player_record['discord_id']},
@@ -98,7 +105,21 @@ class PlayerCog(commands.Cog):
                 }}
             )
             logger.info(f"Updated rank information for player {player_record['name']} from their {highest_rank_info['account_type']} account.")
-        logger.info("Completed rank and eligibility check for all players.")
+
+            # Check and store eligible match count
+            eligible_matches = await self.get_match_history(player_record['puuid'])  # Get matches for this player
+
+            # Check if the player has reached the required number of eligible matches
+            if eligible_matches >= 30:
+                logger.info(f"Player {player_record['name']} has reached eligibility with {eligible_matches} matches.")
+                # Update player record to reflect eligibility
+                await dbInfo.player_collection.update_one(
+                    {"discord_id": player_record['discord_id']},
+                    {"$set": {"eligible_for_split": True, "eligible_match_count": eligible_matches}}
+                )
+            else:
+                logger.info(f"Player {player_record['name']} still has {eligible_matches} eligible matches.")
+
 
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Update player rank and check eligibility for a single user")
