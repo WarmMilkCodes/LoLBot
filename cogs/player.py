@@ -79,7 +79,7 @@ class PlayerCog(commands.Cog):
 
             logger.info(f"Processing player: {player_record.get('name')}")
 
-            if not player_record:
+            if player_record is None:
                 logger.info(f"Skipping player {player_record.get('name')} because not found or left server.")
                 continue
 
