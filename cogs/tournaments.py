@@ -99,9 +99,9 @@ class TournamentCog(commands.Cog):
 
             # Send codes to the provided team channels if specified
             if team1_channel:
-                await team1_channel.send(f"Here are your tournament codes:\n{formatted_codes}")
+                await team1_channel.send(f"Here are your codes for your series:\n{formatted_codes}")
             if team2_channel:
-                await team2_channel.send(f"Here are your tournament codes:\n{formatted_codes}")
+                await team2_channel.send(f"Here are your codes for your series:\n{formatted_codes}")
 
             # Respond in the original channel as well
             await ctx.respond(f"Tournament codes generated:\n{formatted_codes}")
