@@ -77,14 +77,11 @@ class PlayerCog(commands.Cog):
             discord_id = player.get('ID')
             player_record = dbInfo.player_collection.find_one({"discord_id": discord_id, "left_at": None})
 
-            if player_record.get('name'):
+            if player_record is not None and player_record.get('name'):
                 logger.info(f"Processing player: {player_record.get('name')}")
             else:
-                logger.info(f"Processing player: {discord_id}")
+                logger.warning(f"Player record is None or 'name' not found for discord ID {discord_id}. Skipping.")
 
-            if player_record is None:
-                logger.info(f"Skipping player {discord_id} because not found or left server.")
-                continue
 
             # Check if the player is eligible for the current split
             eligible_for_split = player_record.get('eligible_for_split', False)
