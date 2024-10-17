@@ -80,7 +80,7 @@ class PlayerCog(commands.Cog):
             logger.info(f"Processing player: {player_record.get('name')}")
 
             if player_record is None:
-                logger.info(f"Skipping player {player_record.get('name')} because not found or left server.")
+                logger.info(f"Skipping player {discord_id} because not found or left server.")
                 continue
 
             # Check if the player is eligible for the current split
