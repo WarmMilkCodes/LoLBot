@@ -215,15 +215,11 @@ class StaffCog(commands.Cog):
         player_status = player_intent.get('Playing', 'N/A') if player_intent else 'N/A'
         player_status_embed = 'Playing' if player_status == 'Yes' else 'Spectator' if player_status == 'No' else 'N/A'
 
-        # Fetch Fall and Summer 2024 split counts
-        summer_split_games = player_info.get('summer_split_game_count', 0)
-        fall_split_games = player_info.get('fall_split_game_count', 0)
-
-        # Calculate total split games
-        total_games = summer_split_games + fall_split_games if isinstance(summer_split_games, int) and isinstance(fall_split_games, int) else 'N/A'
+        # Fetch split counts
+        eligible_match_count = player_info.get('eligible_match_count', 0)
 
         # Determine eligibility based on combined games from current and last split
-        is_eligible = total_games >= 30 if isinstance(total_games, int) else False
+        is_eligible = eligible_match_count >= 30 if isinstance(eligible_match_count, int) else False
         eligibility_status = 'Eligible' if is_eligible else 'Not Eligible'
 
         # Calculate peak rank (pass the entire player_info to get_peak_rank function)
@@ -275,9 +271,7 @@ class StaffCog(commands.Cog):
             f"**Salary**: {salary}",
             f"**Status**: {player_status_embed}",
             f"**Eligibility**: {eligibility_status}",
-            f"**Total Games (Last + Current Split)**: {total_games}",
-            f"**Summer Split**: {summer_split_games}",
-            f"**Fall Split**: {fall_split_games}",
+            f"**Eligible Matches**: {eligible_match_count}",
             f"**Peak Rank**:\n{display_peak_rank}",
             f"**Alt Account(s)**:\n{alt_accounts_list}"
         ]
