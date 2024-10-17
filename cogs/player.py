@@ -249,7 +249,7 @@ class PlayerCog(commands.Cog):
         url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids"
         headers = {'X-Riot-Token': config.RIOT_API}
         summer_split_start = int(self.get_summer_split_start().timestamp())
-        
+
         params = {
             "startTime": summer_split_start,  # Get matches starting from the Summer Split
             "type": "ranked",
@@ -265,22 +265,39 @@ class PlayerCog(commands.Cog):
                             match_ids = await response.json()
                             if not match_ids:
                                 logger.info(f"No matches found for PUUID {puuid} in the specified period.")
+                                return 0  # Return 0 if no matches found
+
                             logger.info(f"Retrieved match IDs for PUUID {puuid}: {match_ids}")
-                            return match_ids
+
+                            # Count eligible matches for queue ID 420
+                            eligible_count = 0
+                            for match_id in match_ids:
+                                match_details = await self.get_match_details(match_id)
+                                if match_details and match_details.get('queueId') == 420:
+                                    match_timestamp = match_details['gameCreation']
+                                    match_date = datetime.fromtimestamp(match_timestamp / 1000, tz=timezone.utc)
+
+                                    # Check if the match falls within the current or last split
+                                    if self.is_match_in_split(match_date):
+                                        eligible_count += 1
+
+                            logger.info(f"Total eligible matches for PUUID {puuid}: {eligible_count}")
+                            return eligible_count  # Return the count of eligible matches
+
                         else:
                             error_message = await response.text()
                             if response.status == 429:
                                 logger.error(f"Rate limited while fetching match history for {puuid}, attempt {attempt + 1}: {error_message}")
                             else:
                                 logger.error(f"Error fetching match history for PUUID {puuid}, attempt {attempt + 1}: {error_message}")
-                            
-                            # Add delay if rate-limited or error encountered
+
                             await asyncio.sleep(2 ** attempt)
             except Exception as e:
                 logger.error(f"Exception occurred while fetching match history for PUUID {puuid}, attempt {attempt + 1}: {e}")
 
         logger.error(f"Failed to retrieve match history for PUUID {puuid} after {max_retries} attempts.")
-        return []
+        return 0  # Default return in case of failure
+
 
 
     async def get_match_details(self, match_id):
