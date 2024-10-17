@@ -273,13 +273,20 @@ class PlayerCog(commands.Cog):
                             eligible_count = 0
                             for match_id in match_ids:
                                 match_details = await self.get_match_details(match_id)
-                                if match_details and match_details.get('queueId') == 420:
-                                    match_timestamp = match_details['gameCreation']
-                                    match_date = datetime.fromtimestamp(match_timestamp / 1000, tz=timezone.utc)
+                                if match_details:
+                                    queue_id = match_details.get('queueId')
+                                    
+                                    # Log only if queue ID is 420
+                                    if queue_id == 420:
+                                        match_timestamp = match_details['gameCreation']
+                                        match_date = datetime.fromtimestamp(match_timestamp / 1000, tz=timezone.utc)
 
-                                    # Check if the match falls within the current or last split
-                                    if self.is_match_in_split(match_date):
-                                        eligible_count += 1
+                                        # Log details for eligible matches
+                                        logger.info(f"Match ID {match_id} is eligible with queue ID {queue_id}.")
+                                        
+                                        # Check if the match falls within the current or last split
+                                        if self.is_match_in_split(match_date):
+                                            eligible_count += 1
 
                             logger.info(f"Total eligible matches for PUUID {puuid}: {eligible_count}")
                             return eligible_count  # Return the count of eligible matches
