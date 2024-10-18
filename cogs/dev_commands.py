@@ -53,7 +53,7 @@ class DevCommands(commands.Cog):
         logger.info(f"Cleared split counts for user: {user.name} ({discord_id})")
         await ctx.respond(f"Cleared split counts for {user.name} ({discord_id})")
 
-    @commands.slash_command(guild_ids=[config.lol_server], description="Run debug split check for a specified user")
+    @commands.slash_command(guild_ids=[config.lol_server], description="Run debug split check all users")
     @commands.has_role("Bot Guy")
     async def dev_split_check(self, ctx, user: discord.Option(discord.Member, "Select a user")):
         discord_id = user.id
@@ -74,6 +74,8 @@ class DevCommands(commands.Cog):
         total_game_count = summer_split_game_count + fall_split_game_count
 
         logger.info(f"Initial Summer Split Games: {summer_split_game_count}, Fall Split Games: {fall_split_game_count}")
+
+        eligible_match_count = summer_split_game_count + fall_split_game_count
 
         # Fetch PUUID
         puuid = player_record.get('puuid')
@@ -145,14 +147,21 @@ class DevCommands(commands.Cog):
                 new_fall_split_games += 1
 
             # Update total game count
-            total_game_count = summer_split_game_count + new_summer_split_games + fall_split_game_count + new_fall_split_games
+            eligible_match_count = summer_split_game_count + new_summer_split_games + fall_split_game_count + new_fall_split_games
 
-        logger.info(f"Player: {player_record['name']}, Summer Split Games: {new_summer_split_games}, Fall Split Games: {new_fall_split_games}")
+        logger.info(f"Player: {player_record['name']}, Summer Split Games: {new_summer_split_games}, Fall Split Games: {new_fall_split_games}, Total Games: {eligible_match_count}")
+
+        # Add to DB
+        dbInfo.player_collection.update_one(
+            {"discord_id": discord_id },
+            {"$set": {"eligible_match_count": eligible_match_count}}
+            )
 
         # Send debug info back to the command invoker
         await ctx.respond(f"Debug split check completed for {player_record['name']}\n"
                         f"Queue ID/Game Type logged.\n"
-                        f"Summer Split Games: {new_summer_split_games}, Fall Split Games: {new_fall_split_games}.",
+                        f"Summer Split Games: {new_summer_split_games}, Fall Split Games: {new_fall_split_games}.\n"
+                        f"Total Matches: {eligible_match_count}",
                         ephemeral=True)
 
     # Helper function to fetch PUUID
