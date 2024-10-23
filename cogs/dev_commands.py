@@ -32,9 +32,8 @@ class DevCommands(commands.Cog):
             await ctx.respond(f"Flushed {flush_peaks.modified_count} peak ranks.")
         
         except Exception as e:
-            logger.error("Error flushing peak ranks: {e}")
+            logger.error(f"Error flushing peak ranks: {e}")
             await ctx.respond("Error flushing peak ranks.")
-
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Clear split count for specific user")
     @commands.has_role("Bot Guy")
@@ -62,7 +61,7 @@ class DevCommands(commands.Cog):
         try:
             # Fetch all players who have not left the server
             active_players_cursor = dbInfo.player_collection.find({"left_at": None})
-            active_players = await active_players_cursor.to_list(length=None)
+            active_players = list(active_players_cursor)
         except Exception as e:
             logger.error(f"Error fetching active players: {e}")
             await ctx.respond("Error fetching active players.", ephemeral=True)
@@ -76,7 +75,7 @@ class DevCommands(commands.Cog):
         try:
             # Fetch all playing intents
             intents_cursor = dbInfo.intent_collection.find()
-            intents = await intents_cursor.to_list(length=None)
+            intents = list(intents_cursor)
             playing_discord_ids = set(intent['discord_id'] for intent in intents)
         except Exception as e:
             logger.error(f"Error fetching intents: {e}")
@@ -113,7 +112,7 @@ class DevCommands(commands.Cog):
                             logger.warning(f"Failed to retrieve PUUID for {player_record['name']}.")
                             continue
                         else:
-                            await dbInfo['player_collection'].update_one(
+                            dbInfo.player_collection.update_one(
                                 {"discord_id": discord_id},
                                 {"$set": {"puuid": puuid}}
                             )
@@ -180,7 +179,7 @@ class DevCommands(commands.Cog):
                             f"Fall Split Games: {new_fall_split_games}, Total Games: {eligible_match_count}")
 
                 # Update counts in the database
-                await dbInfo.player_collection.update_one(
+                dbInfo.player_collection.update_one(
                     {"discord_id": discord_id},
                     {
                         "$inc": {
