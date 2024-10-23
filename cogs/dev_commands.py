@@ -122,7 +122,9 @@ class DevCommands(commands.Cog):
 
                 # Get match history
                 try:
-                    match_history = await self.get_match_history(puuid)
+                    # Adjusted fall_split_end to handle None value
+                    fall_split_end = SPLITS[2]["end"] or datetime.now(timezone.utc)
+                    match_history = await self.get_match_history(puuid, SPLITS[1]["start"], fall_split_end)
                 except Exception as e:
                     logger.error(f"Failed to retrieve match history for {player_record['name']}: {e}")
                     continue
@@ -130,12 +132,6 @@ class DevCommands(commands.Cog):
                 if not match_history:
                     logger.error(f"No match history found for {player_record['name']}")
                     continue
-
-                # Get the start and end dates for the splits
-                summer_split_start = SPLITS[1]["start"]
-                summer_split_end = SPLITS[1]["end"]
-                fall_split_start = SPLITS[2]["start"]
-                fall_split_end = SPLITS[2]["end"]  # Ensure this exists
 
                 # Initialize counts for new games
                 new_summer_split_games = 0
@@ -164,11 +160,11 @@ class DevCommands(commands.Cog):
                     game_date = datetime.fromtimestamp(game_timestamp, timezone.utc)
 
                     # Count games for the Summer Split
-                    if summer_split_start <= game_date <= summer_split_end:
+                    if SPLITS[1]["start"] <= game_date <= SPLITS[1]["end"]:
                         new_summer_split_games += 1
 
                     # Count games for the Fall Split
-                    if fall_split_start <= game_date <= fall_split_end:
+                    if SPLITS[2]["start"] <= game_date <= fall_split_end:
                         new_fall_split_games += 1
 
                 # Update total game count
@@ -208,6 +204,7 @@ class DevCommands(commands.Cog):
             f"Errors: {errors}",
             ephemeral=True
         )
+
 
     # Helper function to fetch PUUID
     async def get_puuid(self, game_name, tag_line):
