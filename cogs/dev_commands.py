@@ -73,10 +73,10 @@ class DevCommands(commands.Cog):
 
         # Prepare a set of Discord IDs of players who are currently playing
         try:
-            # Fetch all playing intents
-            intents_cursor = dbInfo.intent_collection.find()
+            # Fetch all playing intents where 'Playing' is True
+            intents_cursor = dbInfo.intent_collection.find({"Playing": True})
             intents = list(intents_cursor)
-            playing_discord_ids = set(intent['discord_id'] for intent in intents)
+            playing_discord_ids = set(intent['id'] for intent in intents)  # 'id' field in intent_collection
         except Exception as e:
             logger.error(f"Error fetching intents: {e}")
             await ctx.respond("Error fetching intents.", ephemeral=True)
