@@ -19,6 +19,23 @@ class DevCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.slash_command(guild_ids=[config.lol_server], description="Set eligibilty flag to False")
+    @commands.has_role("Bot Guy")
+    async def eligible_flag_false(self, ctx):
+        try:
+            await ctx.defer()
+
+            dbInfo.player_collection.update_many(
+                {"eligible_for_split": True},
+                {"$set": {"eligible_for_split": False}}
+            )
+
+            await ctx.respond("Finished setting flags to false", ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"Error setting flag to false: {e}")
+            await ctx.respond(f"Error setting flags to false - check logs.")
+
     @commands.slash_command(guild_ids=[config.lol_server], description="Flush peak ranks from DB")
     @commands.has_role("Bot Guy")
     async def dev_flush_peaks(self, ctx):
