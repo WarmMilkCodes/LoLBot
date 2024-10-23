@@ -61,7 +61,7 @@ class DevCommands(commands.Cog):
         # Step 1: Fetch all active players who are playing
         try:
             # Fetch all players who have not left the server
-            active_players_cursor = dbInfo['player_collection'].find({"left_at": None})
+            active_players_cursor = dbInfo.player_collection.find({"left_at": None})
             active_players = await active_players_cursor.to_list(length=None)
         except Exception as e:
             logger.error(f"Error fetching active players: {e}")
@@ -75,7 +75,7 @@ class DevCommands(commands.Cog):
         # Prepare a set of Discord IDs of players who are currently playing
         try:
             # Fetch all playing intents
-            intents_cursor = dbInfo['intent_collection'].find()
+            intents_cursor = dbInfo.intent_collection.find()
             intents = await intents_cursor.to_list(length=None)
             playing_discord_ids = set(intent['discord_id'] for intent in intents)
         except Exception as e:
@@ -180,7 +180,7 @@ class DevCommands(commands.Cog):
                             f"Fall Split Games: {new_fall_split_games}, Total Games: {eligible_match_count}")
 
                 # Update counts in the database
-                await dbInfo['player_collection'].update_one(
+                await dbInfo.player_collection.update_one(
                     {"discord_id": discord_id},
                     {
                         "$inc": {
