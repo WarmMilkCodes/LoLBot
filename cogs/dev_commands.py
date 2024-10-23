@@ -3,7 +3,7 @@ import app.dbInfo as dbInfo
 import discord, logging
 from discord.ext import commands
 from discord.commands import Option
-import aiohttp
+import aiohttp, asyncio
 from datetime import datetime, timezone
 
 logger = logging.getLogger('dev_cmd_log')
@@ -53,116 +53,162 @@ class DevCommands(commands.Cog):
         logger.info(f"Cleared split counts for user: {user.name} ({discord_id})")
         await ctx.respond(f"Cleared split counts for {user.name} ({discord_id})")
 
-    @commands.slash_command(guild_ids=[config.lol_server], description="Run debug split check all users")
+    @commands.slash_command(guild_ids=[config.lol_server], description="Run debug split check for all playing users")
     @commands.has_role("Bot Guy")
-    async def dev_split_check(self, ctx, user: discord.Option(discord.Member, "Select a user")):
-        discord_id = user.id
+    async def dev_split_check_all(self, ctx):
         await ctx.defer(ephemeral=True)
 
-        player_record = dbInfo.player_collection.find_one({"discord_id": discord_id, "left_at": None})
-
-        if not player_record:
-            await ctx.respond(f"Player not found or has left the server.", ephemeral=True)
-            logger.info(f"Skipping player {discord_id} because not found or left server.")
+        # Step 1: Fetch all active players who are playing
+        try:
+            # Fetch all players who have not left the server
+            active_players_cursor = dbInfo['player_collection'].find({"left_at": None})
+            active_players = await active_players_cursor.to_list(length=None)
+        except Exception as e:
+            logger.error(f"Error fetching active players: {e}")
+            await ctx.respond("Error fetching active players.", ephemeral=True)
             return
 
-        logger.info(f"Running debug split check for player: {player_record['name']}")
+        total_players = len(active_players)
+        processed_players = 0
+        errors = 0
 
-        # Fetch existing split game counts
-        summer_split_game_count = player_record.get('summer_split_game_count', 0)
-        fall_split_game_count = player_record.get('fall_split_game_count', 0)
-        total_game_count = summer_split_game_count + fall_split_game_count
+        # Prepare a set of Discord IDs of players who are currently playing
+        try:
+            # Fetch all playing intents
+            intents_cursor = dbInfo['intent_collection'].find()
+            intents = await intents_cursor.to_list(length=None)
+            playing_discord_ids = set(intent['discord_id'] for intent in intents)
+        except Exception as e:
+            logger.error(f"Error fetching intents: {e}")
+            await ctx.respond("Error fetching intents.", ephemeral=True)
+            return
 
-        logger.info(f"Initial Summer Split Games: {summer_split_game_count}, Fall Split Games: {fall_split_game_count}")
+        # Filter active players to include only those who are playing
+        players_to_process = [player for player in active_players if player['discord_id'] in playing_discord_ids]
 
-        eligible_match_count = summer_split_game_count + fall_split_game_count
+        total_players_to_process = len(players_to_process)
 
-        # Fetch PUUID
-        puuid = player_record.get('puuid')
+        # Step 2: Loop through each player
+        for player_record in players_to_process:
+            discord_id = player_record['discord_id']
+            try:
+                logger.info(f"Running debug split check for player: {player_record['name']}")
 
-        if not puuid:
-            if not player_record.get('game_name') or not player_record.get('tag_line'):
-                logger.warning(f"Missing game_name or tag_line for {player_record['name']}. Skipping split check.")
-                await ctx.respond(f"Missing game_name or tag_line for {player_record['name']}.", ephemeral=True)
-                return
+                # Fetch existing split game counts
+                summer_split_game_count = player_record.get('summer_split_game_count', 0)
+                fall_split_game_count = player_record.get('fall_split_game_count', 0)
 
-            # Fetch PUUID if not already stored
-            puuid = await self.get_puuid(player_record['game_name'], player_record['tag_line'])
-            if not puuid:
-                logger.warning(f"Failed to retrieve PUUID for {player_record['name']}.")
-                await ctx.respond(f"Failed to retrieve PUUID for {player_record['name']}.", ephemeral=True)
-                return
-            else:
-                dbInfo.player_collection.update_one(
-                    {"discord_id": player_record['discord_id']},
-                    {"$set": {"puuid": puuid}}
+                # Fetch PUUID
+                puuid = player_record.get('puuid')
+
+                if not puuid:
+                    if not player_record.get('game_name') or not player_record.get('tag_line'):
+                        logger.warning(f"Missing game_name or tag_line for {player_record['name']}. Skipping split check.")
+                        continue
+
+                    # Fetch PUUID if not already stored
+                    try:
+                        puuid = await self.get_puuid(player_record['game_name'], player_record['tag_line'])
+                        if not puuid:
+                            logger.warning(f"Failed to retrieve PUUID for {player_record['name']}.")
+                            continue
+                        else:
+                            await dbInfo['player_collection'].update_one(
+                                {"discord_id": discord_id},
+                                {"$set": {"puuid": puuid}}
+                            )
+                    except Exception as e:
+                        logger.error(f"Error fetching PUUID for {player_record['name']}: {e}")
+                        continue
+
+                # Get match history
+                try:
+                    match_history = await self.get_match_history(puuid)
+                except Exception as e:
+                    logger.error(f"Failed to retrieve match history for {player_record['name']}: {e}")
+                    continue
+
+                if not match_history:
+                    logger.error(f"No match history found for {player_record['name']}")
+                    continue
+
+                # Get the start and end dates for the splits
+                summer_split_start = SPLITS[1]["start"]
+                summer_split_end = SPLITS[1]["end"]
+                fall_split_start = SPLITS[2]["start"]
+                fall_split_end = SPLITS[2]["end"]  # Ensure this exists
+
+                # Initialize counts for new games
+                new_summer_split_games = 0
+                new_fall_split_games = 0
+
+                # Process match history
+                for match_id in match_history:
+                    try:
+                        match_details = await self.get_match_details(match_id)
+                    except Exception as e:
+                        logger.error(f"Error fetching match details for {match_id}: {e}")
+                        continue
+
+                    if not match_details:
+                        continue
+
+                    # Get the queue ID
+                    queue_id = match_details['info'].get('queueId', 'Unknown Queue ID')
+
+                    # Only consider Solo/Duo games (queueId: 420)
+                    if queue_id != 420:
+                        continue
+
+                    # Get the game creation timestamp
+                    game_timestamp = match_details['info']['gameCreation'] / 1000
+                    game_date = datetime.fromtimestamp(game_timestamp, timezone.utc)
+
+                    # Count games for the Summer Split
+                    if summer_split_start <= game_date <= summer_split_end:
+                        new_summer_split_games += 1
+
+                    # Count games for the Fall Split
+                    if fall_split_start <= game_date <= fall_split_end:
+                        new_fall_split_games += 1
+
+                # Update total game count
+                eligible_match_count = (summer_split_game_count + new_summer_split_games +
+                                        fall_split_game_count + new_fall_split_games)
+
+                logger.info(f"Player: {player_record['name']}, Summer Split Games: {new_summer_split_games}, "
+                            f"Fall Split Games: {new_fall_split_games}, Total Games: {eligible_match_count}")
+
+                # Update counts in the database
+                await dbInfo['player_collection'].update_one(
+                    {"discord_id": discord_id},
+                    {
+                        "$inc": {
+                            "summer_split_game_count": new_summer_split_games,
+                            "fall_split_game_count": new_fall_split_games,
+                            "eligible_match_count": new_summer_split_games + new_fall_split_games
+                        }
+                    }
                 )
 
-        # Get match history (match IDs) for debugging
-        match_history = await self.get_match_history(puuid)
-        if match_history is None:
-            logger.error(f"Failed to retrieve match history for {player_record['name']}")
-            await ctx.respond(f"Failed to retrieve match history for {player_record['name']}.", ephemeral=True)
-            return
+                processed_players += 1
 
-        # Get the start and end dates for the Summer and Fall splits
-        summer_split_start = SPLITS[1]["start"]
-        summer_split_end = SPLITS[1]["end"]
-        fall_split_start = SPLITS[2]["start"]
+                # Optional: Add a delay to prevent hitting rate limits
+                await asyncio.sleep(1)  # Adjust as needed
 
-        logger.info(f"Summer Split Start: {summer_split_start}, Fall Split Start: {fall_split_start}")
-
-        # Initialize counts for new games
-        new_summer_split_games = 0
-        new_fall_split_games = 0
-
-        # Process match history for debugging purposes
-        for match_id in match_history:
-            match_details = await self.get_match_details(match_id)
-            if not match_details:
+            except Exception as e:
+                logger.error(f"Error processing player {player_record['name']}: {e}")
+                errors += 1
                 continue
 
-            # Get the queue ID and game type for each match
-            queue_id = match_details['info'].get('queueId', 'Unknown Queue ID')
-            game_type = match_details['info'].get('gameType', 'Unknown Game Type')
-            logger.info(f"Match {match_id} | Queue ID: {queue_id} | Game Type: {game_type}")
-
-            # Only consider Solo/Duo games (queueId: 420)
-            if queue_id != 420:
-                logger.info(f"Skipping match {match_id} as it is not a Solo/Duo game.")
-                continue
-
-            # Get the game creation timestamp
-            game_timestamp = match_details['info']['gameCreation'] / 1000
-            game_date = datetime.fromtimestamp(game_timestamp, timezone.utc)
-
-            logger.info(f"Match {match_id} timestamp: {game_date}")
-
-            # Count games for the Summer Split
-            if summer_split_start <= game_date <= summer_split_end:
-                new_summer_split_games += 1
-
-            # Count games for the Fall Split
-            if game_date >= fall_split_start:
-                new_fall_split_games += 1
-
-            # Update total game count
-            eligible_match_count = summer_split_game_count + new_summer_split_games + fall_split_game_count + new_fall_split_games
-
-        logger.info(f"Player: {player_record['name']}, Summer Split Games: {new_summer_split_games}, Fall Split Games: {new_fall_split_games}, Total Games: {eligible_match_count}")
-
-        # Add to DB
-        dbInfo.player_collection.update_one(
-            {"discord_id": discord_id },
-            {"$set": {"eligible_match_count": eligible_match_count}}
-            )
-
-        # Send debug info back to the command invoker
-        await ctx.respond(f"Debug split check completed for {player_record['name']}\n"
-                        f"Queue ID/Game Type logged.\n"
-                        f"Summer Split Games: {new_summer_split_games}, Fall Split Games: {new_fall_split_games}.\n"
-                        f"Total Matches: {eligible_match_count}",
-                        ephemeral=True)
+        # Send summary back to the command invoker
+        await ctx.respond(
+            f"Debug split check completed for all playing users.\n"
+            f"Total Players: {total_players_to_process}\n"
+            f"Processed Players: {processed_players}\n"
+            f"Errors: {errors}",
+            ephemeral=True
+        )
 
     # Helper function to fetch PUUID
     async def get_puuid(self, game_name, tag_line):
