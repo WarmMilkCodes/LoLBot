@@ -15,7 +15,7 @@ logger = logging.getLogger('__name__')
 SPLITS = [
     {"start": datetime(2024, 1, 10, tzinfo=timezone.utc), "end": datetime(2024, 5, 14, tzinfo=timezone.utc), "name": "Spring Split"},
     {"start": datetime(2024, 5, 15, tzinfo=timezone.utc), "end": datetime(2024, 9, 25, tzinfo=timezone.utc), "name": "Summer Split"},
-    {"start": datetime(2024, 9, 25, tzinfo=timezone.utc), "end": None, "name": "Fall Split"},  # End date unknown
+    {"start": datetime(2024, 9, 25, tzinfo=timezone.utc), "end": datetime(2024, 12, 31, tzinfo=timezone.utc), "name": "Fall Split"},  # Set an end date
 ]
 
 # Define required game count for eligibility
@@ -68,69 +68,97 @@ class PlayerCog(commands.Cog):
 
     async def update_ranks_and_check(self):
         logger.info("Updating ranks and checking eligibility for all players.")
-        riot_id_log_channel = self.bot.get_channel(config.failure_log_channel)
 
-        # Fetch all players currently playing
-        players = dbInfo.intent_collection.find({"Playing": "Yes"})
+        # Fetch all active players who have not left the server
+        try:
+            active_players_cursor = dbInfo.player_collection.find({"left_at": None})
+            active_players = list(active_players_cursor)
+        except Exception as e:
+            logger.error(f"Error fetching active players: {e}")
+            return
 
-        for player in players:
-            discord_id = player.get('ID')
-            player_record = dbInfo.player_collection.find_one({"discord_id": discord_id, "left_at": None})
+        # Fetch intents where 'Playing': 'Yes'
+        try:
+            intents_cursor = dbInfo.intent_collection.find({"Playing": "Yes"})
+            intents = list(intents_cursor)
+            playing_discord_ids = set(intent['ID'] for intent in intents)  # Adjust 'ID' if necessary
+        except Exception as e:
+            logger.error(f"Error fetching intents: {e}")
+            return
 
-            # Check if player_record is None
-            if player_record is None:
-                logger.info(f"Skipping player with discord ID {discord_id} because not found or left server.")
-                continue
+        # Filter active players to include only those who are playing
+        players_to_process = [player for player in active_players if player['discord_id'] in playing_discord_ids]
 
-            # Now that we know player_record is not None, we can safely access its attributes
-            logger.info(f"Processing player: {player_record.get('name')}")
+        total_players = len(players_to_process)
+        processed_players = 0
+        errors = 0
 
-            # Check if the player is eligible for the current split
-            eligible_for_split = player_record.get('eligible_for_split', False)
+        for player_record in players_to_process:
+            discord_id = player_record['discord_id']
+            try:
+                logger.info(f"Processing player: {player_record.get('name')}")
+                eligible_for_split = player_record.get('eligible_for_split', False)
+                if eligible_for_split:
+                    logger.info(f"Player {player_record['name']} is already eligible for the current split. Skipping.")
+                    continue
 
-            if eligible_for_split:
-                logger.info(f"Player {player_record['name']} is already eligible for the current split. Skipping.")
-                continue
+                # Process player and alt accounts to get highest rank
+                highest_rank_info = await self.process_player_and_alts(player_record)
+                if highest_rank_info is None:
+                    continue  # Skip to next player if failed to get rank info
 
-            # Process player and alt accounts
-            highest_rank_info = await self.process_player_and_alts(player_record, riot_id_log_channel)
-            if highest_rank_info is None:
-                continue  # Skip to the next player if there was an issue with rank retrieval
-
-            # Update rank info with the highest rank found
-            dbInfo.player_collection.update_one(
-                {"discord_id": player_record['discord_id']},
-                {"$set": {
-                    "rank_info": highest_rank_info['rank_info'],
-                    "last_updated": datetime.now(pytz.utc).strftime('%m-%d-%Y'),
-                    "highest_account_type": highest_rank_info['account_type'],  # Indicates whether it's from main or alt
-                }}
-            )
-            logger.info(f"Updated rank information for player {player_record['name']} from their {highest_rank_info['account_type']} account.")
-
-            # Check and store eligible match count
-            eligible_matches = await self.get_match_history(player_record['puuid'])  # Get matches for this player
-
-            # Check if the player has reached the required number of eligible matches
-            if eligible_matches >= 30:
-                logger.info(f"Player {player_record['name']} has reached eligibility with {eligible_matches} matches.")
-                # Update player record to reflect eligibility
-                await dbInfo.player_collection.update_one(
-                    {"discord_id": player_record['discord_id']},
-                    {"$set": {"eligible_for_split": True, "eligible_match_count": eligible_matches}}
+                # Update rank info
+                dbInfo.player_collection.update_one(
+                    {"discord_id": discord_id},
+                    {"$set": {
+                        "rank_info": highest_rank_info['rank_info'],
+                        "last_updated": datetime.now(pytz.utc).strftime('%m-%d-%Y'),
+                        "highest_account_type": highest_rank_info['account_type'],
+                    }}
                 )
-            else:
-                logger.info(f"Player {player_record['name']} still has {eligible_matches} eligible matches.")
+                logger.info(f"Updated rank information for player {player_record['name']} from their {highest_rank_info['account_type']} account.")
 
+                # Collect PUUIDs from main and alt accounts
+                puuids = await self.collect_puuids(player_record)
+                if not puuids:
+                    logger.warning(f"No valid PUUIDs found for player {player_record['name']}. Skipping eligibility check.")
+                    continue
 
+                # Get eligible matches from all PUUIDs
+                total_eligible_matches = 0
+                for puuid in puuids:
+                    eligible_matches = await self.get_match_history(puuid)
+                    total_eligible_matches += eligible_matches
 
+                # Update eligible match count
+                if total_eligible_matches >= REQUIRED_GAME_COUNT:
+                    logger.info(f"Player {player_record['name']} has reached eligibility with {total_eligible_matches} matches.")
+                    dbInfo.player_collection.update_one(
+                        {"discord_id": discord_id},
+                        {"$set": {"eligible_for_split": True, "eligible_match_count": total_eligible_matches}}
+                    )
+                else:
+                    logger.info(f"Player {player_record['name']} has {total_eligible_matches} eligible matches.")
+                    dbInfo.player_collection.update_one(
+                        {"discord_id": discord_id},
+                        {"$set": {"eligible_match_count": total_eligible_matches}}
+                    )
+
+                processed_players += 1
+
+                # Optional delay to prevent rate limiting
+                await asyncio.sleep(1)
+
+            except Exception as e:
+                logger.error(f"Error processing player {player_record['name']}: {e}")
+                errors += 1
+                continue
+
+        logger.info(f"Rank and eligibility update completed. Total players: {total_players}, Processed: {processed_players}, Errors: {errors}")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Update player rank and check eligibility for a single user")
     @commands.has_role("Bot Guy")
     async def dev_check_single_player(self, ctx, player_name: Option(discord.Member)):
-        """
-        Command to update rank and check eligibility for a single user.
-        """
         try:
             await ctx.defer(ephemeral=True)
 
@@ -142,79 +170,139 @@ class PlayerCog(commands.Cog):
                 return
 
             logger.info(f"Processing player: {player_record['name']}")
-            riot_id_log_channel = self.bot.get_channel(config.failure_log_channel)
 
-            # Process player and their alt accounts
-            logger.debug(f"Preparing to run process player and alts function for {player_record['name']}...")
-            highest_rank_info = await self.process_player_and_alts(player_record, riot_id_log_channel)
-            logger.debug(f"highest_rank_info function completed for {player_record['name']}")
+            eligible_for_split = player_record.get('eligible_for_split', False)
+            if eligible_for_split:
+                logger.info(f"Player {player_record['name']} is already eligible for the current split.")
+                await ctx.respond(f"Player '{player_name.display_name}' is already eligible for the current split.", ephemeral=True)
+                return
+
+            # Process player and alt accounts to get highest rank
+            highest_rank_info = await self.process_player_and_alts(player_record)
             if highest_rank_info is None:
                 await ctx.respond(f"Failed to retrieve rank information for '{player_name.display_name}'.", ephemeral=True)
                 return
-            
-            # Update rank info with the highest rank found
+
+            # Update rank info
             dbInfo.player_collection.update_one(
                 {"discord_id": player_record['discord_id']},
                 {"$set": {
                     "rank_info": highest_rank_info['rank_info'],
                     "last_updated": datetime.now(pytz.utc).strftime('%m-%d-%Y'),
-                    "highest_account_type": highest_rank_info['account_type'],  # Indicates whether it's from main or alt
+                    "highest_account_type": highest_rank_info['account_type'],
                 }}
             )
 
             logger.info(f"Updated rank information for player {player_record['name']} from their {highest_rank_info['account_type']} account.")
+
+            # Collect PUUIDs from main and alt accounts
+            puuids = await self.collect_puuids(player_record)
+            if not puuids:
+                await ctx.respond(f"No valid PUUIDs found for '{player_name.display_name}'.", ephemeral=True)
+                return
+
+            # Get eligible matches from all PUUIDs
+            total_eligible_matches = 0
+            for puuid in puuids:
+                eligible_matches = await self.get_match_history(puuid)
+                total_eligible_matches += eligible_matches
+
+            # Update eligible match count
+            if total_eligible_matches >= REQUIRED_GAME_COUNT:
+                logger.info(f"Player {player_record['name']} has reached eligibility with {total_eligible_matches} matches.")
+                dbInfo.player_collection.update_one(
+                    {"discord_id": player_record['discord_id']},
+                    {"$set": {"eligible_for_split": True, "eligible_match_count": total_eligible_matches}}
+                )
+            else:
+                logger.info(f"Player {player_record['name']} has {total_eligible_matches} eligible matches.")
+                dbInfo.player_collection.update_one(
+                    {"discord_id": player_record['discord_id']},
+                    {"$set": {"eligible_match_count": total_eligible_matches}}
+                )
+
             await ctx.respond(f"Rank and eligibility check completed for '{player_name.display_name}'.", ephemeral=True)
 
         except Exception as e:
             await ctx.respond(f"There was an error processing {player_name}")
             logger.error(f"Error processing ranks for {player_name}: {e}")
 
+    async def collect_puuids(self, player_record):
+        """Collect PUUIDs from main and alt accounts."""
+        puuids = []
 
-    async def process_player_and_alts(self, player_record, riot_id_log_channel):
-        logger.debug(f"Running process player and alts on {player_record['name']}")
+        # Main account
+        main_puuid = player_record.get('puuid')
+        if not main_puuid:
+            main_puuid = await self.get_puuid(player_record['game_name'], player_record['tag_line'])
+            if main_puuid:
+                dbInfo.player_collection.update_one(
+                    {"discord_id": player_record['discord_id']},
+                    {"$set": {"puuid": main_puuid}}
+                )
+        if main_puuid:
+            puuids.append(main_puuid)
+        else:
+            logger.warning(f"Could not get PUUID for main account of {player_record['name']}.")
+
+        # Alt accounts
+        alt_accounts = player_record.get('alt_accounts', [])
+        for alt in alt_accounts:
+            alt_puuid = await self.get_puuid(alt['game_name'], alt['tag_line'])
+            if alt_puuid:
+                puuids.append(alt_puuid)
+            else:
+                logger.warning(f"Failed to retrieve PUUID for alt {alt['game_name']}#{alt['tag_line']}.")
+
+        # Remove duplicates
+        puuids = list(set(puuids))
+        return puuids
+
+    async def process_player_and_alts(self, player_record):
         """Process a player and their alt accounts to find the highest rank."""
         highest_rank_info = None
         highest_rank_tier = None
         highest_rank_division = None
 
-        # Define rank order for comparison (used to determine highest rank)
+        # Define rank order for comparison
         rank_order = {
-            "IRON": 1, "BRONZE": 2, "SILVER": 3, "GOLD": 4, 
-            "PLATINUM": 5, "EMERALD": 8, "DIAMOND": 7, "MASTER": 8, "GRANDMASTER": 9, "CHALLENGER": 10
+            "IRON": 1, "BRONZE": 2, "SILVER": 3, "GOLD": 4,
+            "PLATINUM": 5, "EMERALD": 6, "DIAMOND": 7, "MASTER": 8, "GRANDMASTER": 9, "CHALLENGER": 10
         }
         division_order = {
             'IV': 1, 'III': 2, 'II': 3, 'I': 4
         }
 
-        logger.debug(f"Attempting to get PUUID from DB or API for {player_record['name']}")
-        # Step 1: Check rank for main account via API
-        puuid = player_record.get('puuid') or await self.get_puuid(player_record['game_name'], player_record['tag_line'])
-        if puuid:
-            logger.debug(f"Retrieved PUUID for {player_record['name']}: {puuid}\nAttempting to get summoner ID now.")
-            summoner_id = await self.get_summoner_id(puuid)
-            logger.debug(f"Passed 'Get Summoner ID' for {player_record['name']}")
+        # Process main account
+        main_puuid = player_record.get('puuid')
+        if not main_puuid:
+            main_puuid = await self.get_puuid(player_record['game_name'], player_record['tag_line'])
+            if main_puuid:
+                dbInfo.player_collection.update_one(
+                    {"discord_id": player_record['discord_id']},
+                    {"$set": {"puuid": main_puuid}}
+                )
+        if main_puuid:
+            summoner_id = await self.get_summoner_id(main_puuid)
             if summoner_id:
-                logger.debug("Summoner ID found. Getting player rank")
                 main_rank_info = await self.get_player_rank(summoner_id)
                 if main_rank_info:
                     for rank in main_rank_info:
                         tier = rank.get('tier')
                         division = rank.get('division')
-                        if highest_rank_tier is None or rank_order[tier] > rank_order.get(highest_rank_tier, 0) or (
-                            rank_order[tier] == rank_order.get(highest_rank_tier, 0) and 
-                            division_order[division] > division_order.get(highest_rank_division, 0)
+                        if highest_rank_tier is None or rank_order.get(tier, 0) > rank_order.get(highest_rank_tier, 0) or (
+                            rank_order.get(tier, 0) == rank_order.get(highest_rank_tier, 0) and 
+                            division_order.get(division, 0) > division_order.get(highest_rank_division, 0)
                         ):
                             highest_rank_tier = tier
                             highest_rank_division = division
                             highest_rank_info = {"rank_info": main_rank_info, "account_type": "main"}
             else:
                 logger.error(f"Failed to retrieve Summoner ID for main account of {player_record['name']}.")
-                return None
         else:
             logger.error(f"Failed to retrieve PUUID for main account of {player_record['name']}.")
-            return None
 
-        # Step 2: Check ranks for alt accounts via API
+        # Process alt accounts
         alt_accounts = player_record.get('alt_accounts', [])
         for alt in alt_accounts:
             alt_puuid = await self.get_puuid(alt['game_name'], alt['tag_line'])
@@ -232,28 +320,31 @@ class PlayerCog(commands.Cog):
                 for rank in alt_rank_info:
                     tier = rank.get('tier')
                     division = rank.get('division')
-                    if rank_order[tier] > rank_order.get(highest_rank_tier, 0) or (
-                        rank_order[tier] == rank_order.get(highest_rank_tier, 0) and 
-                        division_order[division] > division_order.get(highest_rank_division, 0)
+                    if rank_order.get(tier, 0) > rank_order.get(highest_rank_tier, 0) or (
+                        rank_order.get(tier, 0) == rank_order.get(highest_rank_tier, 0) and 
+                        division_order.get(division, 0) > division_order.get(highest_rank_division, 0)
                     ):
                         highest_rank_tier = tier
                         highest_rank_division = division
                         highest_rank_info = {"rank_info": alt_rank_info, "account_type": "alt"}
 
+        if highest_rank_info is None:
+            logger.error(f"Failed to retrieve rank information for {player_record['name']} from any account.")
         return highest_rank_info
 
-
-
     async def get_match_history(self, puuid):
-        """Get match history for the current and last split with retry."""
+        """Get number of eligible matches for a given PUUID."""
         url = f"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids"
         headers = {'X-Riot-Token': config.RIOT_API}
-        summer_split_start = int(self.get_summer_split_start().timestamp())
+        summer_split_start = int(SPLITS[1]["start"].timestamp())
+        fall_split_end = SPLITS[2]["end"] or datetime.now(timezone.utc)
+        fall_split_end_timestamp = int(fall_split_end.timestamp())
 
         params = {
-            "startTime": summer_split_start,  # Get matches starting from the Summer Split
+            "startTime": summer_split_start,
+            "endTime": fall_split_end_timestamp,
             "type": "ranked",
-            "count": 100  # Retrieve more matches if necessary
+            "count": 100
         }
 
         max_retries = 3
@@ -265,31 +356,24 @@ class PlayerCog(commands.Cog):
                             match_ids = await response.json()
                             if not match_ids:
                                 logger.info(f"No matches found for PUUID {puuid} in the specified period.")
-                                return 0  # Return 0 if no matches found
+                                return 0
 
-                            logger.info(f"Retrieved match IDs for PUUID {puuid}: {match_ids}")
+                            logger.info(f"Retrieved {len(match_ids)} match IDs for PUUID {puuid}")
 
-                            # Count eligible matches for queue ID 420
                             eligible_count = 0
                             for match_id in match_ids:
                                 match_details = await self.get_match_details(match_id)
                                 if match_details:
-                                    queue_id = match_details.get('queueId')
-                                    
-                                    # Log only if queue ID is 420
+                                    queue_id = match_details['info'].get('queueId')
                                     if queue_id == 420:
-                                        match_timestamp = match_details['gameCreation']
-                                        match_date = datetime.fromtimestamp(match_timestamp / 1000, tz=timezone.utc)
-
-                                        # Log details for eligible matches
-                                        logger.info(f"Match ID {match_id} is eligible with queue ID {queue_id}.")
-                                        
-                                        # Check if the match falls within the current or last split
-                                        if self.is_match_in_split(match_date):
+                                        game_creation = match_details['info'].get('gameCreation')
+                                        game_date = datetime.fromtimestamp(game_creation / 1000, tz=timezone.utc)
+                                        # Check if the match falls within the splits
+                                        if self.is_match_in_splits(game_date):
                                             eligible_count += 1
 
                             logger.info(f"Total eligible matches for PUUID {puuid}: {eligible_count}")
-                            return eligible_count  # Return the count of eligible matches
+                            return eligible_count
 
                         else:
                             error_message = await response.text()
@@ -303,9 +387,16 @@ class PlayerCog(commands.Cog):
                 logger.error(f"Exception occurred while fetching match history for PUUID {puuid}, attempt {attempt + 1}: {e}")
 
         logger.error(f"Failed to retrieve match history for PUUID {puuid} after {max_retries} attempts.")
-        return 0  # Default return in case of failure
+        return 0
 
-
+    def is_match_in_splits(self, game_date):
+        """Check if the game date falls within the defined splits."""
+        for split in SPLITS:
+            split_start = split['start']
+            split_end = split['end'] or datetime.now(timezone.utc)
+            if split_start <= game_date <= split_end:
+                return True
+        return False
 
     async def get_match_details(self, match_id):
         """Get the details of a specific match by match ID."""
@@ -335,12 +426,8 @@ class PlayerCog(commands.Cog):
                     logger.error(f"Error fetching PUUID for {game_name}#{tag_line}: {await response.text()}")
                     return None
 
-    def get_summer_split_start(self):
-        """Retrieve the start date of the Summer Split."""
-        summer_split = SPLITS[1]  # Summer Split is the second in the list
-        return summer_split['start']
-
     async def get_summoner_id(self, puuid):
+        """Get Summoner ID from PUUID."""
         url = f"https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
         headers = {'X-Riot-Token': config.RIOT_API}
         async with aiohttp.ClientSession() as session:
@@ -353,6 +440,7 @@ class PlayerCog(commands.Cog):
                     return None
 
     async def get_player_rank(self, summoner_id):
+        """Get player's rank information."""
         url = f"https://na1.api.riotgames.com/lol/league/v4/entries/by-summoner/{summoner_id}"
         headers = {'X-Riot-Token': config.RIOT_API}
         async with aiohttp.ClientSession() as session:
