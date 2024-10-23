@@ -186,7 +186,7 @@ class ReplaysCog(commands.Cog):
         self.submissions = {} 
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Start a replay submission")
-    @commands.has_any_role("League Ops", "Bot Guy", "General Managers", "Franchise Owner")
+    @commands.has_any_role("League Ops", "Bot Guy", "Captains", "General Managers")
     async def start_submission(self, ctx):
         # Create a thread for the user to submit replays
         thread = await ctx.channel.create_thread(name=f"Replay Submission by {ctx.author.name}")
@@ -320,7 +320,7 @@ class ReplaysCog(commands.Cog):
             return
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Finish uploading replays")
-    @commands.has_any_role("League Ops", "Bot Guy", "General Managers", "Franchise Owner")
+    @commands.has_any_role("League Ops", "Bot Guy", "Captains", "General Managers")  # League Ops only for now
     async def finish(self, ctx):
         submission = self.submissions.get(ctx.author.id)
         if submission and ctx.channel.id == submission["thread"]:
@@ -329,7 +329,7 @@ class ReplaysCog(commands.Cog):
             await ctx.respond("Please start a submission first with /start_submission.", ephemeral=True)
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Complete the submission process")
-    @commands.has_any_role("League Ops", "Bot Guy", "General Managers", "Franchise Owner")
+    @commands.has_any_role("League Ops", "Bot Guy")  # League Ops only for now
     async def complete_submission(self, ctx):
         submission = self.submissions.get(ctx.author.id)
         if submission and ctx.channel.id == submission["thread"]:
@@ -532,7 +532,7 @@ class ReplaysCog(commands.Cog):
                     await message.channel.send(f"Warning: Could not find a team for {p.name}({p.skin})")
                     continue
                 p.team_code = team
-                team_exists = (any(t.get('team') == team for t in match_metadata.get('teams')) and team != "FA")
+                team_exists = (any(t.get('team') == team for t in match_metadata.get('teams')) and team is not "FA")
                 if not team_exists:
                     team_info = {
                         "team": team,
@@ -558,6 +558,7 @@ class ReplaysCog(commands.Cog):
 
     async def send_series_summary(self, ctx, submission):
         replays = submission["replays"]
+        admin_summary_channel = self.bot.get_channel(config.failure_log_channel)
 
         if not replays:
             await ctx.respond('please upload some replays')
@@ -672,6 +673,20 @@ class ReplaysCog(commands.Cog):
         )
 
         await ctx.send(embed=embed)
+
+        if admin_summary_channel:
+            admin_embed = discord.Embed(
+                title="Series Report",
+                description=f"A series report has been submitted by {ctx.author.name}",
+                color=discord.Color.blue()
+            )
+
+            admin_embed.thumbnail = embed.thumbnail
+            embed.add_field(name="Team 1", value=team_100_name, inline=False)
+            embed.add_field(name="Team 2", value=team_200_name, inline=False)
+            embed.add_field(name="Winner", value=winner, inline=False)
+
+            await admin_summary_channel.send(embed=admin_embed)
 
     @commands.Cog.listener()
     async def on_message(self, message):
