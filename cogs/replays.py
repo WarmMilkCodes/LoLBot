@@ -329,7 +329,7 @@ class ReplaysCog(commands.Cog):
             await ctx.respond("Please start a submission first with /start_submission.", ephemeral=True)
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Complete the submission process")
-    @commands.has_any_role("League Ops", "Bot Guy")  # League Ops only for now
+    @commands.has_any_role("League Ops", "Bot Guy", "Captains", "General Managers")
     async def complete_submission(self, ctx):
         submission = self.submissions.get(ctx.author.id)
         if submission and ctx.channel.id == submission["thread"]:
