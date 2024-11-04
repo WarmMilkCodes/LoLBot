@@ -325,6 +325,8 @@ class ReplaysCog(commands.Cog):
         submission = self.submissions.get(ctx.author.id)
         if submission and ctx.channel.id == submission["thread"]:
             await self.send_series_summary(ctx, submission)
+            submission['is_finished'] = True
+            await ctx.respond("Submission marked as finished. You can now run the '/complete_submission' command.")
         else:
             await ctx.respond("Please start a submission first with /start_submission.", ephemeral=True)
 
@@ -333,6 +335,11 @@ class ReplaysCog(commands.Cog):
     async def complete_submission(self, ctx):
         submission = self.submissions.get(ctx.author.id)
         if submission and ctx.channel.id == submission["thread"]:
+            # Check if the finish command has been ran first
+            if not submission.get("is_finished"):
+                await ctx.respond("Please run the '/finish' command before completing the submission.")
+                return
+            
             # save down the replays to the database
             for replay_data in submission["replays"]:
                 dbInfo.replays_collection.insert_one(replay_data)
