@@ -226,7 +226,7 @@ class ReplaysCog(commands.Cog):
                 value=puuid,
                 inline=False
             )
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
         except Exception as e:
             logger.error(e)
             await ctx.respond("An unknown error occurred and has been logged. Please try again.")
@@ -313,7 +313,7 @@ class ReplaysCog(commands.Cog):
                     inline=False
                 )
 
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
         except Exception as e:
             logger.error(e)
             await ctx.respond("An unknown error occurred and has been logged. Please try again.")
