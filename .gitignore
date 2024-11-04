@@ -24,6 +24,7 @@ var/
 *.so
 *.sqlite
 *.venv
+.env/
 .venv/
 .coverage
 .cache
