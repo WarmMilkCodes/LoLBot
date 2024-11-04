@@ -80,7 +80,15 @@ class StaffCog(commands.Cog):
                 # Update loser record
                 dbInfo.team_collection.update_one({"team_code": ff_team.upper()}, {"$inc": {"losses": 1}})
 
-                await ctx.respond(f"Forfeit processed succesfully. {ff_team.upper()} forfeited to {win_team.upper()}.")
+                embed = discord.Embed(
+                    title="Series Forfeit Processed",
+                    description=f"{ff_team.upper()} forfeits to {win_team.upper()}",
+                    color=discord.Color.red()
+                )
+
+                embed.set_footer(text=f"Processed by {ctx.author.display_name}")
+
+                await ctx.respond(embed=embed)
                 logger.info(f"{ctx.author.display_name} processed FF of {ff_team.upper()} to {win_team.upper()}")
 
             else:
