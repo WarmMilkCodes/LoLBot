@@ -321,7 +321,7 @@ class ReplaysCog(commands.Cog):
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Finish uploading replays")
     @commands.has_any_role("League Ops", "Bot Guy", "Captains", "General Managers")  # League Ops only for now
-    async def finish(self, ctx):
+    async def finish_uploads(self, ctx):
         submission = self.submissions.get(ctx.author.id)
         if submission and ctx.channel.id == submission["thread"]:
             await self.send_series_summary(ctx, submission)
