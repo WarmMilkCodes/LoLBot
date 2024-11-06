@@ -4,8 +4,8 @@ import discord
 import logging
 import pytz
 from datetime import datetime, timezone
-import app.config as config
-import app.dbInfo as dbInfo
+import config
+import dbInfo
 from discord.ext import commands, tasks
 from discord.commands import Option
 

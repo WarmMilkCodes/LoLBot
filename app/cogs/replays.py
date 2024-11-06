@@ -4,8 +4,8 @@ import json
 from datetime import datetime, timezone
 import discord
 from discord.ext import commands
-import app.config as config
-import app.dbInfo as dbInfo
+import config
+import dbInfo
 
 logger = logging.getLogger('replay_log')
 

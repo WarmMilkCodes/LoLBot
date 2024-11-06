@@ -1,5 +1,5 @@
 import pymongo
-import app.config as config
+import config
 import certifi
 
 MongoURL = config.MONGO_URL

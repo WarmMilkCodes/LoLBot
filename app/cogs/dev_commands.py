@@ -1,5 +1,5 @@
-import app.config as config
-import app.dbInfo as dbInfo
+import config
+import dbInfo
 import discord, logging
 from discord.ext import commands
 from discord.commands import Option

@@ -1,12 +1,11 @@
 import discord
-import logging, re
+import logging
 from discord.ext import commands
 from discord.commands import Option
-import app.dbInfo as dbInfo
-import app.config as config
-from tabulate import tabulate
+import dbInfo
+import config
 from urllib.parse import quote_plus
-from app.helper import update_nickname
+from helper import update_nickname
 
 logger = logging.getLogger(__name__)
 

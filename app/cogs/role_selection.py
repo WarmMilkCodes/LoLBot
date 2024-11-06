@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from app import dbInfo, config
+import dbInfo, config
 import logging
 
 logger = logging.getLogger('role_log')

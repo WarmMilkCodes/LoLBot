@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
-import app.config as config
-import app.dbInfo as dbInfo
+import config
+import dbInfo
 from datetime import datetime, timedelta
 from discord.commands import Option
 import asyncio

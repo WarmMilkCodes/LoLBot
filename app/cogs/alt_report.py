@@ -3,8 +3,8 @@ import discord
 import logging
 from discord.ext import commands
 from discord.commands import Option
-import app.config as config
-import app.dbInfo as dbInfo
+import config
+import dbInfo
 
 logger = logging.getLogger('alt_report')
 

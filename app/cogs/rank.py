@@ -1,7 +1,7 @@
 import discord
 import logging
 from discord.ext import commands
-import app.dbInfo as dbInfo
+import dbInfo
 
 # Set up logging
 logger = logging.getLogger('rank_log')

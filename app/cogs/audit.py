@@ -1,11 +1,11 @@
 import discord
 from discord.ext import commands, tasks
 import logging
-import app.config as config
-import app.dbInfo as dbInfo
+import config
+import dbInfo
 import re
-from app.helper import update_nickname
-from cogs.salaries import SalaryCog
+from helper import update_nickname
+from salaries import SalaryCog
 
 logger = logging.getLogger('lol_log')
 

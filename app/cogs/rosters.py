@@ -1,10 +1,9 @@
 import discord
 import logging
 from discord.ext import commands
-import app.config as config
-import app.dbInfo as dbInfo
+import config
+import dbInfo
 from tabulate import tabulate
-import re
 from datetime import datetime
 
 logger = logging.getLogger('__name__')

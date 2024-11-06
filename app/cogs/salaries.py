@@ -1,9 +1,9 @@
 import discord
 from discord.ext import commands
-import app.dbInfo as dbInfo
-import app.config as config
+import dbInfo
+import config
 import logging
-from app.helper import update_nickname
+from helper import update_nickname
 
 logger = logging.getLogger('salary_log')
 

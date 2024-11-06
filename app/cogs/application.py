@@ -5,9 +5,9 @@ import pytz
 from app import config, dbInfo
 import logging
 import asyncio, re
-from app.helper import update_nickname
-from cogs.player import PlayerCog
-from cogs.salaries import SalaryCog
+from helper import update_nickname
+from player import PlayerCog
+from salaries import SalaryCog
 
 logger = logging.getLogger('lol_log')
 

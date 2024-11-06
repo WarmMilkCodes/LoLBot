@@ -1,6 +1,5 @@
-import logging
-import app.config as config
-import app.dbInfo as dbInfo
+import config
+import dbInfo
 from discord.ext import commands
 from discord.utils import get
 

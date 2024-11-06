@@ -2,8 +2,8 @@ import requests
 import discord
 import logging
 from discord.ext import commands
-import app.config as config
-import app.dbInfo as dbInfo
+import config
+import dbInfo
 import json
 import io
 
