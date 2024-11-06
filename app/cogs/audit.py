@@ -5,7 +5,7 @@ import config
 import dbInfo
 import re
 from helper import update_nickname
-from salaries import SalaryCog
+from .salaries import SalaryCog
 
 class Audit(commands.Cog):
     def __init__(self, bot):

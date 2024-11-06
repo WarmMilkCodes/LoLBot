@@ -6,8 +6,8 @@ from app import config, dbInfo
 import logging
 import asyncio, re
 from helper import update_nickname
-from player import PlayerCog
-from salaries import SalaryCog
+from .player import PlayerCog
+from .salaries import SalaryCog
 
 season_number = 1
 lol_server_id = config.lol_server
