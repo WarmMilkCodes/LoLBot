@@ -3,8 +3,6 @@ from discord.ext import commands
 import dbInfo, config
 import logging
 
-logger = logging.getLogger('role_log')
-
 class RoleSelectionView(discord.ui.View):
     def __init__(self, bot, log_channel_id):
         super().__init__(timeout=None)
@@ -39,7 +37,7 @@ class RoleSelectionView(discord.ui.View):
 
         # Add the new role if they have fewer than 2
         await member.add_roles(new_role)
-        logger.info(f"Assigned {role_name} role to {member.name}")
+        self.bot.logger.info(f"Assigned {role_name} role to {member.name}")
 
         # Update the database with the new roles
         updated_roles = [role.name for role in (existing_roles + [new_role])]
@@ -48,7 +46,7 @@ class RoleSelectionView(discord.ui.View):
             {"$set": {"in_game_roles": updated_roles}},  # Store both roles
             upsert=True
         )
-        logger.info(f"Updated database for {member.name} with roles {updated_roles}")
+        self.bot.logger.info(f"Updated database for {member.name} with roles {updated_roles}")
 
         # Log role change in the log channel
         log_channel = interaction.guild.get_channel(self.log_channel_id)
@@ -95,7 +93,7 @@ class RoleSelectionCog(commands.Cog):
         if not self.persistent_views_added:
             self.bot.add_view(RoleSelectionView(self.bot, config.riot_id_log_channel))  # Make the view persistent
             self.persistent_views_added = True
-            logger.info("Persistent view added for role selection")
+            self.bot.logger.info("Persistent view added for role selection")
 
 
 def setup(bot):

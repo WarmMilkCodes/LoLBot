@@ -58,7 +58,7 @@ class Transactions(commands.Cog):
             await member.edit(nick=new_nickname)
             logger.info(f"Updated nickname for {member.name} to {new_nickname}")
         except Exception as e:
-            logger.error(f"Error updating nickname for {member.name}: {e}")
+            self.bot.logger.error(f"Error updating nickname for {member.name}: {e}")
 
 
     async def get_gm_id(self, team_code: str) -> int:
@@ -103,7 +103,7 @@ class Transactions(commands.Cog):
         try:
             await member.remove_roles(role, reason=reason)
         except Exception as e:
-            logger.error(f"Error removing role {role} from {member.name}: {e}")
+            self.bot.logger.error(f"Error removing role {role} from {member.name}: {e}")
 
 
     # Error Handling
@@ -119,7 +119,7 @@ class Transactions(commands.Cog):
             await ctx.respond(f"An error occured: {error}", ephemeral=True)
         else:
             await ctx.send(f"An unknown error occured: {error}", ephemeral=True)
-        logger.error(f"Error in command {ctx.command}: {error}")
+        self.bot.logger.error(f"Error in command {ctx.command}: {error}")
 
 
     # Commands

@@ -5,8 +5,6 @@ import config
 import logging
 from helper import update_nickname
 
-logger = logging.getLogger('salary_log')
-
 RANK_ORDER = {
     "IRON": 1,
     "BRONZE": 2,
@@ -149,7 +147,7 @@ class SalaryCog(commands.Cog):
         
         except Exception as e:
             await ctx.respond("There was an error assigning salaries.")
-            logger.error(f"There was an error running calculate salaries command: {e}")
+            self.bot.logger.error(f"There was an error running calculate salaries command: {e}")
 
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Manually adjust a player's salary")
@@ -180,11 +178,11 @@ class SalaryCog(commands.Cog):
             await ctx.respond(f"Adjusted {user.mention}'s salary to {new_salary}.", ephemeral=True)
 
             # Log the manual adjustment
-            logger.info(f"{ctx.author.name} adjusted {user.name}'s salary to {new_salary}")
+            self.bot.logger.info(f"{ctx.author.name} adjusted {user.name}'s salary to {new_salary}")
 
         except Exception as e:
             await ctx.respond(f"There was an error adjusting the salary of {user.name}.")
-            logger.error(f"Error adjusting {user.name}'s salary from {current_salary} to {new_salary}: {e}")
+            self.bot.logger.error(f"Error adjusting {user.name}'s salary from {current_salary} to {new_salary}: {e}")
 
 def setup(bot):
     bot.add_cog(SalaryCog(bot))

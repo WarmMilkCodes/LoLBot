@@ -6,8 +6,6 @@ from discord.commands import Option
 import aiohttp, asyncio
 from datetime import datetime, timezone
 
-logger = logging.getLogger('dev_cmd_log')
-
 # Split dates for 2024
 SPLITS = [
     {"start": datetime(2024, 1, 10, tzinfo=timezone.utc), "end": datetime(2024, 5, 14, tzinfo=timezone.utc), "name": "Spring Split"},
@@ -33,7 +31,7 @@ class DevCommands(commands.Cog):
             await ctx.respond("Finished setting flags to false", ephemeral=True)
 
         except Exception as e:
-            logger.error(f"Error setting flag to false: {e}")
+            self.bot.logger.error(f"Error setting flag to false: {e}")
             await ctx.respond(f"Error setting flags to false - check logs.")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Flush peak ranks from DB")
@@ -45,11 +43,11 @@ class DevCommands(commands.Cog):
                 {},
                 {"$unset": {"peak_rank": ""}}
             )
-            logger.info(f"Finished flushing {flush_peaks.modified_count} peak ranks from DB.")
+            self.bot.logger.info(f"Finished flushing {flush_peaks.modified_count} peak ranks from DB.")
             await ctx.respond(f"Flushed {flush_peaks.modified_count} peak ranks.")
         
         except Exception as e:
-            logger.error(f"Error flushing peak ranks: {e}")
+            self.bot.logger.error(f"Error flushing peak ranks: {e}")
             await ctx.respond("Error flushing peak ranks.")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Clear split count for specific user")
@@ -66,7 +64,7 @@ class DevCommands(commands.Cog):
              }}
         )
 
-        logger.info(f"Cleared split counts for user: {user.name} ({discord_id})")
+        self.bot.logger.info(f"Cleared split counts for user: {user.name} ({discord_id})")
         await ctx.respond(f"Cleared split counts for {user.name} ({discord_id})")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Run debug split check for all playing users")
@@ -80,7 +78,7 @@ class DevCommands(commands.Cog):
             active_players_cursor = dbInfo.player_collection.find({"left_at": None})
             active_players = list(active_players_cursor)
         except Exception as e:
-            logger.error(f"Error fetching active players: {e}")
+            self.bot.logger.error(f"Error fetching active players: {e}")
             await ctx.respond("Error fetching active players.", ephemeral=True)
             return
 
@@ -95,7 +93,7 @@ class DevCommands(commands.Cog):
             intents = list(intents_cursor)
             playing_discord_ids = set(intent['id'] for intent in intents)  # 'id' field in intent_collection
         except Exception as e:
-            logger.error(f"Error fetching intents: {e}")
+            self.bot.logger.error(f"Error fetching intents: {e}")
             await ctx.respond("Error fetching intents.", ephemeral=True)
             return
 
@@ -108,7 +106,7 @@ class DevCommands(commands.Cog):
         for player_record in players_to_process:
             discord_id = player_record['discord_id']
             try:
-                logger.info(f"Running debug split check for player: {player_record['name']}")
+                self.bot.logger.info(f"Running debug split check for player: {player_record['name']}")
 
                 # Fetch existing split game counts
                 summer_split_game_count = player_record.get('summer_split_game_count', 0)
@@ -119,14 +117,14 @@ class DevCommands(commands.Cog):
 
                 if not puuid:
                     if not player_record.get('game_name') or not player_record.get('tag_line'):
-                        logger.warning(f"Missing game_name or tag_line for {player_record['name']}. Skipping split check.")
+                        self.bot.logger.warning(f"Missing game_name or tag_line for {player_record['name']}. Skipping split check.")
                         continue
 
                     # Fetch PUUID if not already stored
                     try:
                         puuid = await self.get_puuid(player_record['game_name'], player_record['tag_line'])
                         if not puuid:
-                            logger.warning(f"Failed to retrieve PUUID for {player_record['name']}.")
+                            self.bot.logger.warning(f"Failed to retrieve PUUID for {player_record['name']}.")
                             continue
                         else:
                             dbInfo.player_collection.update_one(
@@ -134,7 +132,7 @@ class DevCommands(commands.Cog):
                                 {"$set": {"puuid": puuid}}
                             )
                     except Exception as e:
-                        logger.error(f"Error fetching PUUID for {player_record['name']}: {e}")
+                        self.bot.logger.error(f"Error fetching PUUID for {player_record['name']}: {e}")
                         continue
 
                 # Get match history
@@ -143,11 +141,11 @@ class DevCommands(commands.Cog):
                     fall_split_end = SPLITS[2]["end"] or datetime.now(timezone.utc)
                     match_history = await self.get_match_history(puuid, SPLITS[1]["start"], fall_split_end)
                 except Exception as e:
-                    logger.error(f"Failed to retrieve match history for {player_record['name']}: {e}")
+                    self.bot.logger.error(f"Failed to retrieve match history for {player_record['name']}: {e}")
                     continue
 
                 if not match_history:
-                    logger.error(f"No match history found for {player_record['name']}")
+                    self.bot.logger.error(f"No match history found for {player_record['name']}")
                     continue
 
                 # Initialize counts for new games
@@ -159,7 +157,7 @@ class DevCommands(commands.Cog):
                     try:
                         match_details = await self.get_match_details(match_id)
                     except Exception as e:
-                        logger.error(f"Error fetching match details for {match_id}: {e}")
+                        self.bot.logger.error(f"Error fetching match details for {match_id}: {e}")
                         continue
 
                     if not match_details:
@@ -188,7 +186,7 @@ class DevCommands(commands.Cog):
                 eligible_match_count = (summer_split_game_count + new_summer_split_games +
                                         fall_split_game_count + new_fall_split_games)
 
-                logger.info(f"Player: {player_record['name']}, Summer Split Games: {new_summer_split_games}, "
+                self.bot.logger.info(f"Player: {player_record['name']}, Summer Split Games: {new_summer_split_games}, "
                             f"Fall Split Games: {new_fall_split_games}, Total Games: {eligible_match_count}")
 
                 # Update counts in the database
@@ -209,7 +207,7 @@ class DevCommands(commands.Cog):
                 await asyncio.sleep(1)  # Adjust as needed
 
             except Exception as e:
-                logger.error(f"Error processing player {player_record['name']}: {e}")
+                self.bot.logger.error(f"Error processing player {player_record['name']}: {e}")
                 errors += 1
                 continue
 
@@ -235,7 +233,7 @@ class DevCommands(commands.Cog):
                     account_info = await response.json()
                     return account_info.get('puuid')
                 else:
-                    logger.error(f"Error fetching PUUID for {game_name}#{tag_line}: {await response.text()}")
+                    self.bot.logger.error(f"Error fetching PUUID for {game_name}#{tag_line}: {await response.text()}")
                     return None
 
     # Helper function to fetch match history
@@ -253,10 +251,10 @@ class DevCommands(commands.Cog):
             async with session.get(url, headers=headers, params=params) as response:
                 if response.status == 200:
                     match_ids = await response.json()
-                    logger.info(f"Retrieved match IDs for PUUID {puuid}: {match_ids}")
+                    self.bot.logger.info(f"Retrieved match IDs for PUUID {puuid}: {match_ids}")
                     return match_ids
                 else:
-                    logger.error(f"Error fetching match history for PUUID {puuid}: {await response.text()}")
+                    self.bot.logger.error(f"Error fetching match history for PUUID {puuid}: {await response.text()}")
                     return None
 
     # Helper function to fetch match details
@@ -271,7 +269,7 @@ class DevCommands(commands.Cog):
                     match_details = await response.json()
                     return match_details
                 else:
-                    logger.error(f"Error fetching match details for match ID {match_id}: {await response.text()}")
+                    self.bot.logger.error(f"Error fetching match details for match ID {match_id}: {await response.text()}")
                     return None
 
 def setup(bot):

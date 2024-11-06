@@ -9,8 +9,6 @@ import dbInfo
 from discord.ext import commands, tasks
 from discord.commands import Option
 
-logger = logging.getLogger('__name__')
-
 # Split dates for 2024
 SPLITS = [
     {"start": datetime(2024, 1, 10, tzinfo=timezone.utc), "end": datetime(2024, 5, 14, tzinfo=timezone.utc), "name": "Spring Split"},
@@ -26,12 +24,12 @@ class PlayerCog(commands.Cog):
         self.bot = bot
         self.task_started = False
         self.task_running = False
-        logger.info("PlayerCog loaded. Waiting for rank and eligibility check task to be started.")
+        self.bot.logger.info("PlayerCog loaded. Waiting for rank and eligibility check task to be started.")
 
     def cog_unload(self):
         if self.task_started:
             self.rank_and_eligibility_task.cancel()
-            logger.info("PlayerCog unloaded and task cancelled.")
+            self.bot.logger.info("PlayerCog unloaded and task cancelled.")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Start the rank and eligibility check task")
     @commands.has_role("Bot Guy")
@@ -40,24 +38,24 @@ class PlayerCog(commands.Cog):
             self.rank_and_eligibility_task.start()
             self.task_started = True
             await ctx.respond("Rank and eligibility check task started and will run every 24 hours.", ephemeral=True)
-            logger.info("Rank and eligibility check task started by admin command.")
+            self.bot.logger.info("Rank and eligibility check task started by admin command.")
         else:
             await ctx.respond("Rank and eligibility check task is already running.", ephemeral=True)
 
     @tasks.loop(hours=24)
     async def rank_and_eligibility_task(self):
         if self.task_running:
-            logger.warning("Rank and eligibility check task is already running. Skipping this execution.")
+            self.bot.logger.warning("Rank and eligibility check task is already running. Skipping this execution.")
             return
         
         self.task_running = True
-        logger.info("Rank and Eligibility update task triggered.")
+        self.bot.logger.info("Rank and Eligibility update task triggered.")
         
         try:
             await self.update_ranks_and_check()
         finally:
             self.task_running = False
-            logger.info("Rank and eligibility check task completed.")
+            self.bot.logger.info("Rank and eligibility check task completed.")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Update player ranks and check eligibility manually")
     @commands.has_role("Bot Guy")
@@ -67,14 +65,14 @@ class PlayerCog(commands.Cog):
         await ctx.respond("Updated ranks and checked eligibility for all players.", ephemeral=True)
 
     async def update_ranks_and_check(self):
-        logger.info("Updating ranks and checking eligibility for all players.")
+        self.bot.logger.info("Updating ranks and checking eligibility for all players.")
 
         # Fetch all active players who have not left the server
         try:
             active_players_cursor = dbInfo.player_collection.find({"left_at": None})
             active_players = list(active_players_cursor)
         except Exception as e:
-            logger.error(f"Error fetching active players: {e}")
+            self.bot.logger.error(f"Error fetching active players: {e}")
             return
 
         # Fetch intents where 'Playing': 'Yes'
@@ -83,7 +81,7 @@ class PlayerCog(commands.Cog):
             intents = list(intents_cursor)
             playing_discord_ids = set(intent['ID'] for intent in intents)  # Adjust 'ID' if necessary
         except Exception as e:
-            logger.error(f"Error fetching intents: {e}")
+            self.bot.logger.error(f"Error fetching intents: {e}")
             return
 
         # Filter active players to include only those who are playing
@@ -96,10 +94,10 @@ class PlayerCog(commands.Cog):
         for player_record in players_to_process:
             discord_id = player_record['discord_id']
             try:
-                logger.info(f"Processing player: {player_record.get('name')}")
+                self.bot.logger.info(f"Processing player: {player_record.get('name')}")
                 eligible_for_split = player_record.get('eligible_for_split', False)
                 if eligible_for_split:
-                    logger.info(f"Player {player_record['name']} is already eligible for the current split. Skipping.")
+                    self.bot.logger.info(f"Player {player_record['name']} is already eligible for the current split. Skipping.")
                     continue
 
                 # Process player and alt accounts to get highest rank
@@ -116,12 +114,12 @@ class PlayerCog(commands.Cog):
                         "highest_account_type": highest_rank_info['account_type'],
                     }}
                 )
-                logger.info(f"Updated rank information for player {player_record['name']} from their {highest_rank_info['account_type']} account.")
+                self.bot.logger.info(f"Updated rank information for player {player_record['name']} from their {highest_rank_info['account_type']} account.")
 
                 # Collect PUUIDs from main and alt accounts
                 puuids = await self.collect_puuids(player_record)
                 if not puuids:
-                    logger.warning(f"No valid PUUIDs found for player {player_record['name']}. Skipping eligibility check.")
+                    self.bot.logger.warning(f"No valid PUUIDs found for player {player_record['name']}. Skipping eligibility check.")
                     continue
 
                 # Get eligible matches from all PUUIDs
@@ -132,13 +130,13 @@ class PlayerCog(commands.Cog):
 
                 # Update eligible match count
                 if total_eligible_matches >= REQUIRED_GAME_COUNT:
-                    logger.info(f"Player {player_record['name']} has reached eligibility with {total_eligible_matches} matches.")
+                    self.bot.logger.info(f"Player {player_record['name']} has reached eligibility with {total_eligible_matches} matches.")
                     dbInfo.player_collection.update_one(
                         {"discord_id": discord_id},
                         {"$set": {"eligible_for_split": True, "eligible_match_count": total_eligible_matches}}
                     )
                 else:
-                    logger.info(f"Player {player_record['name']} has {total_eligible_matches} eligible matches.")
+                    self.bot.logger.info(f"Player {player_record['name']} has {total_eligible_matches} eligible matches.")
                     dbInfo.player_collection.update_one(
                         {"discord_id": discord_id},
                         {"$set": {"eligible_match_count": total_eligible_matches}}
@@ -150,11 +148,11 @@ class PlayerCog(commands.Cog):
                 await asyncio.sleep(1)
 
             except Exception as e:
-                logger.error(f"Error processing player {player_record['name']}: {e}")
+                self.bot.logger.error(f"Error processing player {player_record['name']}: {e}")
                 errors += 1
                 continue
 
-        logger.info(f"Rank and eligibility update completed. Total players: {total_players}, Processed: {processed_players}, Errors: {errors}")
+        self.bot.logger.info(f"Rank and eligibility update completed. Total players: {total_players}, Processed: {processed_players}, Errors: {errors}")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Update player rank and check eligibility for a single user")
     @commands.has_role("Bot Guy")
@@ -169,11 +167,11 @@ class PlayerCog(commands.Cog):
                 await ctx.respond(f"Player '{player_name.display_name}' not found or has left the server.", ephemeral=True)
                 return
 
-            logger.info(f"Processing player: {player_record['name']}")
+            self.bot.logger.info(f"Processing player: {player_record['name']}")
 
             eligible_for_split = player_record.get('eligible_for_split', False)
             if eligible_for_split:
-                logger.info(f"Player {player_record['name']} is already eligible for the current split.")
+                self.bot.logger.info(f"Player {player_record['name']} is already eligible for the current split.")
                 await ctx.respond(f"Player '{player_name.display_name}' is already eligible for the current split.", ephemeral=True)
                 return
 
@@ -193,7 +191,7 @@ class PlayerCog(commands.Cog):
                 }}
             )
 
-            logger.info(f"Updated rank information for player {player_record['name']} from their {highest_rank_info['account_type']} account.")
+            self.bot.logger.info(f"Updated rank information for player {player_record['name']} from their {highest_rank_info['account_type']} account.")
 
             # Collect PUUIDs from main and alt accounts
             puuids = await self.collect_puuids(player_record)
@@ -209,13 +207,13 @@ class PlayerCog(commands.Cog):
 
             # Update eligible match count
             if total_eligible_matches >= REQUIRED_GAME_COUNT:
-                logger.info(f"Player {player_record['name']} has reached eligibility with {total_eligible_matches} matches.")
+                self.bot.logger.info(f"Player {player_record['name']} has reached eligibility with {total_eligible_matches} matches.")
                 dbInfo.player_collection.update_one(
                     {"discord_id": player_record['discord_id']},
                     {"$set": {"eligible_for_split": True, "eligible_match_count": total_eligible_matches}}
                 )
             else:
-                logger.info(f"Player {player_record['name']} has {total_eligible_matches} eligible matches.")
+                self.bot.logger.info(f"Player {player_record['name']} has {total_eligible_matches} eligible matches.")
                 dbInfo.player_collection.update_one(
                     {"discord_id": player_record['discord_id']},
                     {"$set": {"eligible_match_count": total_eligible_matches}}
@@ -225,7 +223,7 @@ class PlayerCog(commands.Cog):
 
         except Exception as e:
             await ctx.respond(f"There was an error processing {player_name}")
-            logger.error(f"Error processing ranks for {player_name}: {e}")
+            self.bot.logger.error(f"Error processing ranks for {player_name}: {e}")
 
     async def collect_puuids(self, player_record):
         """Collect PUUIDs from main and alt accounts."""
@@ -243,7 +241,7 @@ class PlayerCog(commands.Cog):
         if main_puuid:
             puuids.append(main_puuid)
         else:
-            logger.warning(f"Could not get PUUID for main account of {player_record['name']}.")
+            self.bot.logger.warning(f"Could not get PUUID for main account of {player_record['name']}.")
 
         # Alt accounts
         alt_accounts = player_record.get('alt_accounts', [])
@@ -252,7 +250,7 @@ class PlayerCog(commands.Cog):
             if alt_puuid:
                 puuids.append(alt_puuid)
             else:
-                logger.warning(f"Failed to retrieve PUUID for alt {alt['game_name']}#{alt['tag_line']}.")
+                self.bot.logger.warning(f"Failed to retrieve PUUID for alt {alt['game_name']}#{alt['tag_line']}.")
 
         # Remove duplicates
         puuids = list(set(puuids))
@@ -298,21 +296,21 @@ class PlayerCog(commands.Cog):
                             highest_rank_division = division
                             highest_rank_info = {"rank_info": main_rank_info, "account_type": "main"}
             else:
-                logger.error(f"Failed to retrieve Summoner ID for main account of {player_record['name']}.")
+                self.bot.logger.error(f"Failed to retrieve Summoner ID for main account of {player_record['name']}.")
         else:
-            logger.error(f"Failed to retrieve PUUID for main account of {player_record['name']}.")
+            self.bot.logger.error(f"Failed to retrieve PUUID for main account of {player_record['name']}.")
 
         # Process alt accounts
         alt_accounts = player_record.get('alt_accounts', [])
         for alt in alt_accounts:
             alt_puuid = await self.get_puuid(alt['game_name'], alt['tag_line'])
             if not alt_puuid:
-                logger.warning(f"Failed to retrieve PUUID for alt {alt['game_name']}#{alt['tag_line']}. Skipping.")
+                self.bot.logger.warning(f"Failed to retrieve PUUID for alt {alt['game_name']}#{alt['tag_line']}. Skipping.")
                 continue
 
             alt_summoner_id = await self.get_summoner_id(alt_puuid)
             if not alt_summoner_id:
-                logger.warning(f"Failed to retrieve Summoner ID for alt {alt['game_name']}#{alt['tag_line']}. Skipping.")
+                self.bot.logger.warning(f"Failed to retrieve Summoner ID for alt {alt['game_name']}#{alt['tag_line']}. Skipping.")
                 continue
 
             alt_rank_info = await self.get_player_rank(alt_summoner_id)
@@ -329,7 +327,7 @@ class PlayerCog(commands.Cog):
                         highest_rank_info = {"rank_info": alt_rank_info, "account_type": "alt"}
 
         if highest_rank_info is None:
-            logger.error(f"Failed to retrieve rank information for {player_record['name']} from any account.")
+            self.bot.logger.error(f"Failed to retrieve rank information for {player_record['name']} from any account.")
         return highest_rank_info
 
     async def get_match_history(self, puuid):
@@ -355,10 +353,10 @@ class PlayerCog(commands.Cog):
                         if response.status == 200:
                             match_ids = await response.json()
                             if not match_ids:
-                                logger.info(f"No matches found for PUUID {puuid} in the specified period.")
+                                self.bot.logger.info(f"No matches found for PUUID {puuid} in the specified period.")
                                 return 0
 
-                            logger.info(f"Retrieved {len(match_ids)} match IDs for PUUID {puuid}")
+                            self.bot.logger.info(f"Retrieved {len(match_ids)} match IDs for PUUID {puuid}")
 
                             eligible_count = 0
                             for match_id in match_ids:
@@ -372,21 +370,21 @@ class PlayerCog(commands.Cog):
                                         if self.is_match_in_splits(game_date):
                                             eligible_count += 1
 
-                            logger.info(f"Total eligible matches for PUUID {puuid}: {eligible_count}")
+                            self.bot.logger.info(f"Total eligible matches for PUUID {puuid}: {eligible_count}")
                             return eligible_count
 
                         else:
                             error_message = await response.text()
                             if response.status == 429:
-                                logger.error(f"Rate limited while fetching match history for {puuid}, attempt {attempt + 1}: {error_message}")
+                                self.bot.logger.error(f"Rate limited while fetching match history for {puuid}, attempt {attempt + 1}: {error_message}")
                             else:
-                                logger.error(f"Error fetching match history for PUUID {puuid}, attempt {attempt + 1}: {error_message}")
+                                self.bot.logger.error(f"Error fetching match history for PUUID {puuid}, attempt {attempt + 1}: {error_message}")
 
                             await asyncio.sleep(2 ** attempt)
             except Exception as e:
-                logger.error(f"Exception occurred while fetching match history for PUUID {puuid}, attempt {attempt + 1}: {e}")
+                self.bot.logger.error(f"Exception occurred while fetching match history for PUUID {puuid}, attempt {attempt + 1}: {e}")
 
-        logger.error(f"Failed to retrieve match history for PUUID {puuid} after {max_retries} attempts.")
+        self.bot.logger.error(f"Failed to retrieve match history for PUUID {puuid} after {max_retries} attempts.")
         return 0
 
     def is_match_in_splits(self, game_date):
@@ -409,7 +407,7 @@ class PlayerCog(commands.Cog):
                     match_details = await response.json()
                     return match_details
                 else:
-                    logger.error(f"Error fetching match details for match ID {match_id}: {await response.text()}")
+                    self.bot.logger.error(f"Error fetching match details for match ID {match_id}: {await response.text()}")
                     return None
 
     async def get_puuid(self, game_name, tag_line):
@@ -423,7 +421,7 @@ class PlayerCog(commands.Cog):
                     account_info = await response.json()
                     return account_info.get('puuid')
                 else:
-                    logger.error(f"Error fetching PUUID for {game_name}#{tag_line}: {await response.text()}")
+                    self.bot.logger.error(f"Error fetching PUUID for {game_name}#{tag_line}: {await response.text()}")
                     return None
 
     async def get_summoner_id(self, puuid):
@@ -436,7 +434,7 @@ class PlayerCog(commands.Cog):
                     summoner_info = await response.json()
                     return summoner_info.get('id')
                 else:
-                    logger.error(f"Error fetching Summoner ID for PUUID {puuid}: {await response.text()}")
+                    self.bot.logger.error(f"Error fetching Summoner ID for PUUID {puuid}: {await response.text()}")
                     return None
 
     async def get_player_rank(self, summoner_id):
@@ -459,7 +457,7 @@ class PlayerCog(commands.Cog):
                         })
                     return tier_division_info
                 else:
-                    logger.error(f"Error fetching rank info for Summoner ID {summoner_id}: {await response.text()}")
+                    self.bot.logger.error(f"Error fetching rank info for Summoner ID {summoner_id}: {await response.text()}")
                     return None
 
 def setup(bot):

@@ -7,8 +7,6 @@ import re
 from helper import update_nickname
 from salaries import SalaryCog
 
-logger = logging.getLogger('lol_log')
-
 class Audit(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -55,11 +53,11 @@ class Audit(commands.Cog):
                 if member.bot:
                     continue
 
-                logger.info(f"Auditing member: {member.name}")
+                self.bot.logger.info(f"Auditing member: {member.name}")
 
                 player_info = dbInfo.player_collection.find_one({"discord_id": member.id})
                 if not player_info:
-                    logger.warning(f"No player info found for {member.name} in database")
+                    self.bot.logger.warning(f"No player info found for {member.name} in database")
                     continue
 
                 team_code = player_info.get("team", "Unassigned")
@@ -90,7 +88,7 @@ class Audit(commands.Cog):
                                 {'discord_id': member.id},
                                 {'$set': {'peak_rank': {'tier': highest_rank, 'division': highest_division}}}
                             )
-                            logger.info(f"Stored peak rank for {member.name}: {highest_rank} {highest_division}")
+                            self.bot.logger.info(f"Stored peak rank for {member.name}: {highest_rank} {highest_division}")
 
                     else:
                         # If no peak rank exists, store current as peak
@@ -98,32 +96,32 @@ class Audit(commands.Cog):
                             {'discord_id': member.id},
                             {'$set': {'peak_rank': {'tier': highest_rank, 'division': highest_division}}}
                         )
-                        logger.info(f"Stored peak rank for {member.name}: {highest_rank} {highest_division}")
+                        self.bot.logger.info(f"Stored peak rank for {member.name}: {highest_rank} {highest_division}")
                 else:
-                    logger.warning(f"No valid rank found for {member.name}")
+                    self.bot.logger.warning(f"No valid rank found for {member.name}")
                     continue
 
                 # Salary adjustment logic for FA and team players                        
                 if is_free_agent:
                     # Free agent: only update salary if the new one is higher
                     if new_salary > current_salary:
-                        logger.info(f"Updating salary for free agent {member.name} from {current_salary} to {new_salary}")
+                        self.bot.logger.info(f"Updating salary for free agent {member.name} from {current_salary} to {new_salary}")
                         dbInfo.player_collection.update_one(
                             {"discord_id": member.id}, 
                             {"$set": {"salary": new_salary}}
                         )
                     else:
-                        logger.info(f"Free agent {member.name} has a salary of {current_salary}, no update needed.")
+                        self.bot.logger.info(f"Free agent {member.name} has a salary of {current_salary}, no update needed.")
                 elif manually_adjusted_salary is not None:
                     # If salary has been manually adjusted, only update if the new salary is higher
                     if new_salary > manually_adjusted_salary:
-                        logger.info(f"Updating manually adjusted salary for {member.name} from {manually_adjusted_salary} to {new_salary}")
+                        self.bot.logger.info(f"Updating manually adjusted salary for {member.name} from {manually_adjusted_salary} to {new_salary}")
                         dbInfo.player_collection.update_one(
                             {"discord_id": member.id},
                             {"$set": {"manual_salary": new_salary}}
                         )
                     else:
-                        logger.info(f"{member.name} has a manually adjusted salary of {manually_adjusted_salary}, no update needed.")
+                        self.bot.logger.info(f"{member.name} has a manually adjusted salary of {manually_adjusted_salary}, no update needed.")
                 elif team_code and team_code != "Unassigned":
                     # Check if player meets the threshold for a salary increase
                     if self.meets_threshold(highest_rank, highest_division, peak_rank):
@@ -133,14 +131,14 @@ class Audit(commands.Cog):
                                 f"Please manually adjust their salary."
                             )
                             await audit_channel.send(notification_message)
-                            logger.info(f"Sent notification: {notification_message}")
+                            self.bot.logger.info(f"Sent notification: {notification_message}")
 
                 # Update user's nickname to reflect salary or role
                 prefix = 'FA' if is_free_agent else (team_code if team_code != "Unassigned" else 'RFA')
                 await update_nickname(member, prefix)
-                logger.info(f"Nickname updated for {member.display_name}")
+                self.bot.logger.info(f"Nickname updated for {member.display_name}")
 
-            logger.info("Audit finished. Next audit will occur in 24 hours.")
+            self.bot.logger.info("Audit finished. Next audit will occur in 24 hours.")
 
     def meets_threshold(self, current_tier, current_division, peak_rank):
         """Check if the player meets the threshold for salary update notification."""
@@ -180,7 +178,7 @@ class Audit(commands.Cog):
         try:
             await member.remove_roles(role, reason=reason)
         except Exception as e:
-            logger.error(f"Error removing role {role} from {member.display_name}: {e}")
+            self.bot.logger.error(f"Error removing role {role} from {member.display_name}: {e}")
 
     async def update_team_in_database(self, player_id, new_team):
         """Update player's team information in database"""

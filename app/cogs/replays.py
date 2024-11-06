@@ -7,8 +7,7 @@ from discord.ext import commands
 import config
 import dbInfo
 
-logger = logging.getLogger('replay_log')
-
+logger = logging.getLogger(__name__)
 
 class PlayerStats:
     def __init__(self,
@@ -228,7 +227,7 @@ class ReplaysCog(commands.Cog):
             )
             await ctx.respond(embed=embed)
         except Exception as e:
-            logger.error(e)
+            self.bot.logger.error(e)
             await ctx.respond("An unknown error occurred and has been logged. Please try again.")
             return
 
@@ -288,7 +287,7 @@ class ReplaysCog(commands.Cog):
             for p in replay_inner_data:
                 player_name = p.get('NAME', 'Unknown')
                 if not player_name:
-                    logger.warning(f"Player with UUID {p.get('PUUID')} has no name.")
+                    self.bot.logger.warning(f"Player with UUID {p.get('PUUID')} has no name.")
 
                 new_player = PlayerStats(
                     name=player_name,
@@ -315,7 +314,7 @@ class ReplaysCog(commands.Cog):
 
             await ctx.respond(embed=embed)
         except Exception as e:
-            logger.error(e)
+            self.bot.logger.error(e)
             await ctx.respond("An unknown error occurred and has been logged. Please try again.")
             return
 

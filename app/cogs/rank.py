@@ -3,10 +3,6 @@ import logging
 from discord.ext import commands
 import dbInfo
 
-# Set up logging
-logger = logging.getLogger('rank_log')
-logging.basicConfig(level=logging.INFO)
-
 # Update the rank order to match the capitalization in the database
 RANK_ORDER = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"]
 DIVISION_ORDER = ["I", "II", "III", "IV", "V"]
@@ -37,21 +33,21 @@ class RankCog(commands.Cog):
 
         for player in players:
             player_name = player.get('name', 'Unknown')
-            logger.info(f"Checking player: {player_name}")
+            self.bot.logger.info(f"Checking player: {player_name}")
 
             rank_info = player.get('rank_info')
             if not rank_info:
-                logger.info(f"No rank_info found for player: {player_name}")
+                self.bot.logger.info(f"No rank_info found for player: {player_name}")
                 continue  # Skip players with no rank_info
 
-            logger.info(f"Found rank_info for player: {player_name}")
+            self.bot.logger.info(f"Found rank_info for player: {player_name}")
 
             for rank in rank_info:
                 queue_type = rank.get('queue_type')
 
                 # Only process 'RANKED_SOLO_5x5'
                 if queue_type != "RANKED_SOLO_5x5":
-                    logger.info(f"Skipping {queue_type} for player: {player_name}")
+                    self.bot.logger.info(f"Skipping {queue_type} for player: {player_name}")
                     continue
 
                 # Increment the total ranked players count
@@ -60,7 +56,7 @@ class RankCog(commands.Cog):
                 tier = rank.get('tier')
                 division = rank.get('division')
 
-                logger.info(f"Player {player_name} - Queue: {queue_type}, Tier: {tier}, Division: {division}")
+                self.bot.logger.info(f"Player {player_name} - Queue: {queue_type}, Tier: {tier}, Division: {division}")
 
                 if tier and division:  # Only proceed if both tier and division are available
                     rank_label = f"{tier} {division}"

@@ -7,8 +7,6 @@ import config
 from urllib.parse import quote_plus
 from helper import update_nickname
 
-logger = logging.getLogger(__name__)
-
 def get_peak_rank(player_info):
     RANK_ORDER = {
         "IRON": 1, "BRONZE": 2, "SILVER": 3, "GOLD": 4, "PLATINUM": 5, 
@@ -88,14 +86,14 @@ class StaffCog(commands.Cog):
                 embed.set_footer(text=f"Processed by {ctx.author.display_name}")
 
                 await ctx.respond(embed=embed)
-                logger.info(f"{ctx.author.display_name} processed FF of {ff_team.upper()} to {win_team.upper()}")
+                self.bot.logger.info(f"{ctx.author.display_name} processed FF of {ff_team.upper()} to {win_team.upper()}")
 
             else:
                 await ctx.respond(f"One or both team codes were not found. Please ensure the correct abbreviations are used.")
         
         except Exception as e:
             await ctx.respond(f"There was an error processing the FF: {e}")
-            logger.error(f"There was an error processing FF submission: {e}")
+            self.bot.logger.error(f"There was an error processing FF submission: {e}")
 
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Change a player to spectator")
@@ -121,10 +119,10 @@ class StaffCog(commands.Cog):
                     
                     await update_nickname(user, "S")
 
-                    logger.info(f"{ctx.author.name} forced {user} to spectator.")
+                    self.bot.logger.info(f"{ctx.author.name} forced {user} to spectator.")
                     await ctx.respond(f"Succesfully forced {user.mention} to spectator.")
         except Exception as e:
-            logger.error(f"Unable to force change {user}'s intent form to spectator: {e}")
+            self.bot.logger.error(f"Unable to force change {user}'s intent form to spectator: {e}")
             await ctx.respond(f"Error forcing {user} to spectator: {e}")
         
 
@@ -150,7 +148,7 @@ class StaffCog(commands.Cog):
                     upsert=True
                 )
                 updated_count += 1
-                logger.info(f"Updated avatar for {member.name} ({member.id})")
+                self.bot.logger.info(f"Updated avatar for {member.name} ({member.id})")
 
         await ctx.respond(f"Avatar URLs updated for {updated_count} members.", ephemeral=True)
 

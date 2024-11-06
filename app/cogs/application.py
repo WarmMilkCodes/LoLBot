@@ -9,8 +9,6 @@ from helper import update_nickname
 from player import PlayerCog
 from salaries import SalaryCog
 
-logger = logging.getLogger('lol_log')
-
 season_number = 1
 lol_server_id = config.lol_server
 submission_log_channel_id = config.submission_log_channel 
@@ -82,10 +80,10 @@ class ApplicationButton(discord.ui.View):
                     timeout=60  # Wait for up to 60 seconds
                 )
                 riot_game_name = riot_game_name_msg.content
-                logger.info(f"Received Riot Game Name: {riot_game_name}")
+                self.bot.logger.info(f"Received Riot Game Name: {riot_game_name}")
             except asyncio.TimeoutError:
                 await interaction.user.send("You took too long to respond. Please try again.")
-                logger.warning("Timeout occurred while waiting for the Riot Game Name.")
+                self.bot.logger.warning("Timeout occurred while waiting for the Riot Game Name.")
                 return
 
             # Asking for Riot Tag Line
@@ -103,10 +101,10 @@ class ApplicationButton(discord.ui.View):
                     timeout=60  # Wait for up to 60 seconds
                 )
                 riot_tag_line = riot_tag_line_msg.content
-                logger.info(f"Received Riot Tag Line: {riot_tag_line}")
+                self.bot.logger.info(f"Received Riot Tag Line: {riot_tag_line}")
             except asyncio.TimeoutError:
                 await interaction.user.send("You took too long to respond. Please try again.")
-                logger.warning("Timeout occurred while waiting for the Riot Tag Line.")
+                self.bot.logger.warning("Timeout occurred while waiting for the Riot Tag Line.")
                 return
             
             # Update prefix to FA
@@ -115,7 +113,7 @@ class ApplicationButton(discord.ui.View):
         # Final message after form submission
         embed = discord.Embed(title="Intent Form Complete", description=lol_description, color=discord.Color.blue())
         await interaction.user.send(embed=embed)
-        logger.info(f"These are the responses: {responses}")
+        self.bot.logger.info(f"These are the responses: {responses}")
 
         # Assign roles based on responses
         # Get roles
@@ -147,7 +145,7 @@ class ApplicationButton(discord.ui.View):
             
             await update_nickname(interaction.user, "S")
 
-        logger.info(f"Roles updated for {interaction.user.name}: Playing - {responses[0]}")
+        self.bot.logger.info(f"Roles updated for {interaction.user.name}: Playing - {responses[0]}")
         
         # Set time for database entry                        
         dateTimeObj = datetime.now()
@@ -189,7 +187,7 @@ class ApplicationButton(discord.ui.View):
                 upsert=True
             )
 
-        logger.info(f"Database update result: {result}")
+        self.bot.logger.info(f"Database update result: {result}")
 
         # Send submission to log channel
         submission_log_channel = self.bot.get_channel(submission_log_channel_id)
@@ -220,15 +218,15 @@ class ApplicationButton(discord.ui.View):
         player_record = dbInfo.player_collection.find_one({"discord_id": interaction.user.id})
 
         if not player_record:
-            logger.warning(f"Player record for {interaction.user.name} wasn't found. User submitted intent application but will not be assigned salary automatically.")
+            self.bot.logger.warning(f"Player record for {interaction.user.name} wasn't found. User submitted intent application but will not be assigned salary automatically.")
             return
         
-        logger.info(f"Processing rank and salary for {player_record['name']}")
+        self.bot.logger.info(f"Processing rank and salary for {player_record['name']}")
         riot_id_log_channel = self.bot.get_channel(config.failure_log_channel)
 
         rank = await PlayerCog.process_player_and_alts(player_record, riot_id_log_channel)
         if rank is None:
-            logger.error(f"Ran rank check but was unable to determine rank for {player_record['name']}")
+            self.bot.logger.error(f"Ran rank check but was unable to determine rank for {player_record['name']}")
             return
         
         # Assign salary
@@ -255,7 +253,7 @@ class ApplicationButton(discord.ui.View):
                         await update_nickname(member, prefix=prefix)
 
         else:
-            logger.error(f"Unable to calculate salary of {player_record['name']}")
+            self.bot.logger.error(f"Unable to calculate salary of {player_record['name']}")
             return
         
         
@@ -291,7 +289,7 @@ class Application(commands.Cog):
         if not self.persistent_views_added:
             self.bot.add_view(ApplicationButton(self.bot))  # Make sure the button is persistent
             self.persistent_views_added = True
-            logger.info("Persistent view added")
+            self.bot.logger.info("Persistent view added")
 
 def setup(bot):
     bot.add_cog(Application(bot))

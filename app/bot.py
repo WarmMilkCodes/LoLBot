@@ -3,14 +3,14 @@ import config
 from discord.ext import commands
 from utils.logging_config import setup_logging
 
-logger = setup_logging()
-
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+bot.logger = setup_logging(bot)
+
 @bot.event
 async def on_ready():
-    logger.info(f"Logged in as {bot.user}")
+    bot.logger.info(f"Logged in as {bot.user}")
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name="UR LoL"))
 
 # Get the directory of the current script (bot.py)

@@ -6,8 +6,6 @@ import dbInfo
 from tabulate import tabulate
 from datetime import datetime
 
-logger = logging.getLogger('__name__')
-
 # Discord color mapping
 DISCORD_COLOR_MAP = {
     "Blue": discord.Color.blue(),
@@ -30,7 +28,7 @@ class Roster(commands.Cog):
         roster_channel = self.bot.get_channel(config.rosters_channel)
 
         if not roster_channel:
-            logger.error("Roster channel not found.")
+            self.bot.logger.error("Roster channel not found.")
             return
         
         # Clear all messages in roster channel before reposting

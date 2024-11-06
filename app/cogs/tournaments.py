@@ -27,7 +27,7 @@ class TournamentCog(commands.Cog):
             "url": PROVIDER_URL
         }
         try:
-            logger.debug(f"Provider payload: {provider_payload}")
+            self.bot.logger.debug(f"Provider payload: {provider_payload}")
             response = requests.post(
                 f"https://americas.api.riotgames.com/lol/tournament/v5/providers",
                 json=provider_payload,
@@ -39,9 +39,9 @@ class TournamentCog(commands.Cog):
 
             dbInfo.save_provider_id(provider_id)  # Save provider ID to database
             await ctx.respond(f"Provider registered with ID: {provider_id}")
-            logger.info(f"Provider registered with ID: {provider_id}")
+            self.bot.logger.info(f"Provider registered with ID: {provider_id}")
         except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to register provider: {e}")
+            self.bot.logger.error(f"Failed to register provider: {e}")
             await ctx.respond("Failed to register provider. Please check the logs for details.")
 
     @commands.slash_command(guild_ids=[GUILD_ID], description="Create a new tournament")
@@ -64,16 +64,16 @@ class TournamentCog(commands.Cog):
 
             dbInfo.save_tournament_id(tournament_id, tournament_name) # Save tournament ID to database
             await ctx.respond(f"Tournament created with ID: {tournament_id}")
-            logger.info(f"Tournament created with ID: {tournament_id}")
+            self.bot.logger.info(f"Tournament created with ID: {tournament_id}")
         except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to create tournament: {e}")
+            self.bot.logger.error(f"Failed to create tournament: {e}")
             await ctx.respond("Failed to create tournament. Please check the logs for details.")
 
     @commands.slash_command(guild_ids=[GUILD_ID], description="Generate tournament codes")
     @commands.has_any_role("Bot Guy", "League Ops")
     async def tournament_generate_codes(self, ctx, count: int = 3, team1_channel: discord.TextChannel = None, team2_channel: discord.TextChannel = None):
         tournament_id = dbInfo.get_tournament_id()
-        logger.debug(f"Passing tournament ID: {tournament_id}")
+        self.bot.logger.debug(f"Passing tournament ID: {tournament_id}")
 
         code_payload = {
             "mapType": "SUMMONERS_RIFT",
@@ -105,13 +105,13 @@ class TournamentCog(commands.Cog):
 
             # Respond in the original channel as well
             await ctx.respond(f"Tournament codes generated:\n{formatted_codes}")
-            logger.info(f"Tournament codes generated: {tournament_codes}")
+            self.bot.logger.info(f"Tournament codes generated: {tournament_codes}")
 
         except requests.exceptions.HTTPError as err:
             error_message = err.response.json().get('message', 'Unknown error')
-            logger.error(f"Failed to generate tournament codes: {err} - {error_message}")
-            logger.debug(f"Payload: {code_payload}")
-            logger.debug(f"Response: {err.response.text}")
+            self.bot.logger.error(f"Failed to generate tournament codes: {err} - {error_message}")
+            self.bot.logger.debug(f"Payload: {code_payload}")
+            self.bot.logger.debug(f"Response: {err.response.text}")
             await ctx.respond(f"Failed to generate tournament codes: {err} - {error_message}", ephemeral=True)
 
     
@@ -122,11 +122,11 @@ class TournamentCog(commands.Cog):
         await ctx.defer()
         try:
             # Fetch match details
-            logger.info(f"Fetching match details for tournament code: {tournament_code}")
+            self.bot.logger.info(f"Fetching match details for tournament code: {tournament_code}")
             match_details = self.get_match_details(tournament_code)
 
             # Fetch lobby events
-            logger.info(f"Fetching lobby events for tournament code: {tournament_code}")
+            self.bot.logger.info(f"Fetching lobby events for tournament code: {tournament_code}")
             lobby_events = self.get_lobby_events_by_tournament_code(tournament_code)
 
             # Prepare the data to write to a file
@@ -143,9 +143,9 @@ class TournamentCog(commands.Cog):
 
                 # Send the file as an attachment
                 await ctx.respond("Here are the match details and lobby events:", file=discord_file)
-            logger.info(f"Match details and lobby events fetched for tournament code {tournament_code}")
+            self.bot.logger.info(f"Match details and lobby events fetched for tournament code {tournament_code}")
         except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to fetch tournament info: {e}")
+            self.bot.logger.error(f"Failed to fetch tournament info: {e}")
             await ctx.respond("Failed to fetch tournament info. Please check the logs for details.")
 
     @staticmethod

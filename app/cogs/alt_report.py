@@ -6,8 +6,6 @@ from discord.commands import Option
 import config
 import dbInfo
 
-logger = logging.getLogger('alt_report')
-
 class AltReport(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -65,7 +63,7 @@ class AltReport(commands.Cog):
                 await ctx.respond(embed=embed)
         
         except Exception as e:
-            logger.error(f"There was an error returning alt accounts for {ctx.author.display_name}: {e}")
+            self.bot.logger.error(f"There was an error returning alt accounts for {ctx.author.display_name}: {e}")
             return await ctx.respond("There was an error returning your alt accounts. Open a modmail ticket.", ephemeral=True)
 
 class ReportConfirmationView(discord.ui.View):
@@ -93,16 +91,16 @@ class ReportConfirmationView(discord.ui.View):
             )
 
             await interaction.response.send_message(f"Report for `{self.game_name}#{self.tag_line}` has been confirmed.", ephemeral=True)
-            logger.info(f"User {self.ctx.author} reported alt account: {self.game_name}#{self.tag_line}")
+            self.bot.logger.info(f"User {self.ctx.author} reported alt account: {self.game_name}#{self.tag_line}")
         
         except Exception as e:
             await interaction.response.send_message(f"Failed to confirm report due to: {e}", ephemeral=True)
-            logger.error(f"Error updating database for alt report: {e}")
+            self.bot.logger.error(f"Error updating database for alt report: {e}")
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
     async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
         await interaction.response.send_message(f"Report for `{self.game_name}#{self.tag_line}` has been cancelled.", ephemeral=True)
-        logger.info(f"User {self.ctx.author} cancelled alt report for: {self.game_name}#{self.tag_line}")
+        self.bot.logger.info(f"User {self.ctx.author} cancelled alt report for: {self.game_name}#{self.tag_line}")
 
 # Adding the Cog to the bot
 def setup(bot):

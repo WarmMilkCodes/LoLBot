@@ -6,8 +6,6 @@ from discord.ext import commands
 from datetime import datetime
 import pytz
 
-logger = logging.getLogger(__name__)
-
 class EventsCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -33,9 +31,9 @@ class EventsCog(commands.Cog):
                     {"discord_id": {"$in": list(missing_members)}},
                     {"$set": {"left_at": left_date}}
                 )
-                logger.info(f"Marked {len(missing_members)} members as left in the database.")
+                self.bot.logger.info(f"Marked {len(missing_members)} members as left in the database.")
             else:
-                logger.info("No missing members found during reverse sync.")
+                self.bot.logger.info("No missing members found during reverse sync.")
             
             # Add or update members who are still in the server
             for member in guild.members:
@@ -43,7 +41,7 @@ class EventsCog(commands.Cog):
                     avatar_url = str(member.avatar.url if member.avatar else member.default_avatar.url)
                     self.add_member_to_db(member, avatar_url)
             
-            logger.info("Bot is ready and members have been checked and added to database.")
+            self.bot.logger.info("Bot is ready and members have been checked and added to database.")
             self.is_ready = True
 
     def add_member_to_db(self, member, avatar_url):
@@ -59,21 +57,21 @@ class EventsCog(commands.Cog):
                 "left_at": None,  # Initialize with None
                 "avatar_url": avatar_url
             })
-            logger.info(f"Added {member.name} ({member.id}) to database.")
+            self.bot.logger.info(f"Added {member.name} ({member.id}) to database.")
         else:
             # Update the member's name and avatar in case they changed
             dbInfo.player_collection.update_one(
                 {"discord_id": member.id},
                 {"$set": {"name": member.name, "avatar_url": avatar_url}}
             )
-            logger.info(f"Updated member {member.name} ({member.id}) in database.")
+            self.bot.logger.info(f"Updated member {member.name} ({member.id}) in database.")
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
         if member.bot:
             return
 
-        logger.info(f"New member joined: {member.name} ({member.id}). Adding to database.")
+        self.bot.logger.info(f"New member joined: {member.name} ({member.id}). Adding to database.")
         avatar_url = str(member.avatar.url if member.avatar else member.default_avatar.url)
 
         existing_member = dbInfo.player_collection.find_one({"discord_id": member.id})
@@ -83,7 +81,7 @@ class EventsCog(commands.Cog):
                 {"discord_id": member.id},
                 {"$set": {"left_at": None, "avatar_url": avatar_url}}
             )
-            logger.info(f"Cleared 'left_at' date for returning member: {member.name} ({member.id})")
+            self.bot.logger.info(f"Cleared 'left_at' date for returning member: {member.name} ({member.id})")
         else:
             # Add the new member to the database
             self.add_member_to_db(member, avatar_url)
@@ -107,13 +105,13 @@ class EventsCog(commands.Cog):
             upsert=True
         )
 
-        logger.info(f"Updated {member.name} ({member.id}) in the database with the date they left: {left_date}")
+        self.bot.logger.info(f"Updated {member.name} ({member.id}) in the database with the date they left: {left_date}")
 
         dbInfo.intent_collection.find_one_and_delete(
             {"ID": member.id}
         )
 
-        logger.info(f"Deleted {member.name}'s intent collection record due to leaving server.")
+        self.bot.logger.info(f"Deleted {member.name}'s intent collection record due to leaving server.")
         
         member_pfp = member.avatar.url if member.avatar else member.default_avatar.url
         embed = discord.Embed(title="Member Left", color=discord.Color.red())
@@ -127,7 +125,7 @@ class EventsCog(commands.Cog):
         if channel:
             await channel.send(embed=embed)
         else:
-            logger.error(f"Admin channel with ID {admin_channel} not found.")
+            self.bot.logger.error(f"Admin channel with ID {admin_channel} not found.")
 
     async def assign_role(self, member, role_name):
         guild = member.guild
@@ -135,9 +133,9 @@ class EventsCog(commands.Cog):
 
         if role:
             await member.add_roles(role)
-            logger.info(f"Assigned role '{role_name}' to {member.name}")
+            self.bot.logger.info(f"Assigned role '{role_name}' to {member.name}")
         else:
-            logger.error(f"Role '{role_name}' not found in guild '{guild.name}'.")
+            self.bot.logger.error(f"Role '{role_name}' not found in guild '{guild.name}'.")
 
     async def notify_admin_channel(self, member):
         member_pfp = member.avatar.url if member.avatar else member.default_avatar.url
@@ -153,7 +151,7 @@ class EventsCog(commands.Cog):
         if channel:
             await channel.send(embed=embed)
         else:
-            logger.error(f"Admin channel with ID {admin_channel} not found.")
+            self.bot.logger.error(f"Admin channel with ID {admin_channel} not found.")
 
 def setup(bot):
     bot.add_cog(EventsCog(bot))
