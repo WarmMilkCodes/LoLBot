@@ -43,6 +43,9 @@ class Roster(commands.Cog):
             team_name = team["team_name"]
             team_code = team["team_code"]
             team_logo_path = team.get("logo", None)
+            team_wins = team.get("wins", 0)
+            team_losses = team.get["losses", 0]
+
 
             team_owner = team.get("owner", "")
             team_gm = team.get("gm", "")
@@ -88,6 +91,7 @@ class Roster(commands.Cog):
             embed.add_field(name="GM", value=team_gm, inline=True)
             embed.add_field(name="Salary Cap", value=f"${team_cap}", inline=True)
             embed.add_field(name="Remaining Cap", value=f"${team_rmn_cap}", inline=True)
+            embed.add_field(name="Record", value=f"{team_wins}-{team_losses}")
             embed.set_footer(text=f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
             # Send embed to the roster channel
