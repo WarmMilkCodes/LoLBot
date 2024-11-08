@@ -17,6 +17,26 @@ class DevCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.slash_command(guild_ids=[config.lol_server], description="Restart the bot")
+    @commands.has_any_role("Bot Guy", "URLOL Owner")
+    async def dev_restart_bot(self, ctx, reason: str = "No reason provided"):
+        try:
+            await ctx.defer()
+            bot_ops_disc_channel_id = 1171263860716601364
+            bot_ops_disc_channel = ctx.guild.get_channel(bot_ops_disc_channel_id)
+            if bot_ops_disc_channel:
+                restart_message = f"**Bot is being restarted**\nRestart initiated by: {ctx.author.display_name}\nReason: {reason}"
+                await bot_ops_disc_channel.send(restart_message)
+            else:
+                await ctx.respond("Bot operations channel not found. Restarting bot.")
+
+            await self.bot.close()
+        except Exception as e:
+            self.bot.logger.error(f"Error restarting bot: {e}")
+            await ctx.respond(f"An error occured while restarting the bot. Check the log channel.")
+
+
+
     @commands.slash_command(guild_ids=[config.lol_server], description="Set eligibilty flag to False")
     @commands.has_role("Bot Guy")
     async def eligible_flag_false(self, ctx):
