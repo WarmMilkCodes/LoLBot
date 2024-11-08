@@ -44,7 +44,7 @@ class Roster(commands.Cog):
             team_code = team["team_code"]
             team_logo_path = team.get("logo", None)
             team_wins = team.get("wins", 0)
-            team_losses = team.get["losses", 0]
+            team_losses = team.get("losses", 0)
 
 
             team_owner = team.get("owner", "")
