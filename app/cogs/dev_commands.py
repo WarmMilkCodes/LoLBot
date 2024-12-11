@@ -42,6 +42,11 @@ class DevCommands(commands.Cog):
             await ctx.defer()
             guild = ctx.guild
 
+            transactions_cog = self.bot.get_cog("transactions")
+            if not transactions_cog:
+                await ctx.respond("Transactions cog not loaded. Unable to reset nickname prefixes.")
+                return
+
             roles_to_preserve = ['Franchise Owner', 'General Managers']
             
             free_agent_role = discord.utils.get(guild.roles, name="Free Agents")
@@ -80,7 +85,7 @@ class DevCommands(commands.Cog):
                     {"$set": {"team": "FA", "active_roster": False}}
                 )    
 
-                await self.update_nickname(member, "FA")
+                await transactions_cog.update_nickname(member, "FA")
 
                 if free_agent_role not in member.roles:
                     try:
