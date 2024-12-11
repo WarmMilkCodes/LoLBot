@@ -35,7 +35,65 @@ class DevCommands(commands.Cog):
             self.bot.logger.error(f"Error restarting bot: {e}")
             await ctx.respond(f"An error occured while restarting the bot. Check the log channel.")
 
+    @commands.slash_command(guild_ids=[config.lol_server], description="New Season Clear")
+    @commands.has_role("Bot Guy")
+    async def dev_clear_teams(self, ctx):
+        try:
+            await ctx.defer()
+            guild = ctx.guild
 
+            roles_to_preserve = ['Owner', 'General Managers']
+            
+            free_agent_role = discord.utils.get(guild.roles, name="Free Agent")
+            if not free_agent_role:
+                await ctx.respond("Free Agent role not found.")
+                return
+            
+            team_codes = [team["team_code"] for team in dbInfo.team_collection.find({})]
+
+            for member in guild.members:
+                if member.bot:
+                    continue
+
+                if any(role.name in roles_to_preserve for role in member.roles):
+                    continue
+
+                player_entry = dbInfo.player_collection.find_one({"discord_id": member.id})
+                if not player_entry:
+                    continue
+
+                current_team = player_entry.get("team", "FA")
+
+                if current_team not in team_codes:
+                    continue
+
+                for role in member.roles:
+                    if role.name.upper() == current_team:
+                        try:
+                            await member.remove_roles(role, reason="New season")
+                            self.bot.logger.info(f"Removed role {role.name} from {member.name}")
+                        except Exception as e:
+                            self.bot.logger.error(f"Error removing role {role.name} from {member.name}: {e}")
+
+                dbInfo.player_collection.update_one(
+                    {"discord_id": member.id},
+                    {"$set": {"team": "FA", "active_roster": False}}
+                )    
+
+                await self.update_nickname(member, "FA")
+
+                if free_agent_role not in member.roles:
+                    try:
+                        await member.add_roles(free_agent_role, reason="New season")
+                    except Exception as e:
+                        self.bot.logger.error(f"Error assigning FA to {member.name}: {e}")
+
+            await ctx.respond("All players have been reset to Free Agents")
+        
+        except Exception as e:
+            self.bot.logger.error(f"Error during dev_clear_teams command: {e}")
+            await ctx.respond(f"An error occured: {e}")
+            
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Set eligibilty flag to False")
     @commands.has_role("Bot Guy")
