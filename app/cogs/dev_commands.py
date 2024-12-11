@@ -42,9 +42,9 @@ class DevCommands(commands.Cog):
             await ctx.defer()
             guild = ctx.guild
 
-            roles_to_preserve = ['Owner', 'General Managers']
+            roles_to_preserve = ['Franchise Owner', 'General Managers']
             
-            free_agent_role = discord.utils.get(guild.roles, name="Free Agent")
+            free_agent_role = discord.utils.get(guild.roles, name="Free Agents")
             if not free_agent_role:
                 await ctx.respond("Free Agent role not found.")
                 return
