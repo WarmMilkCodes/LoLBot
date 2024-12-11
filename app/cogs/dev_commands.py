@@ -42,7 +42,7 @@ class DevCommands(commands.Cog):
             await ctx.defer()
             guild = ctx.guild
 
-            transactions_cog = self.bot.get_cog("transactions")
+            transactions_cog = self.bot.get_cog("Transactions")
             if not transactions_cog:
                 await ctx.respond("Transactions cog not loaded. Unable to reset nickname prefixes.")
                 return
