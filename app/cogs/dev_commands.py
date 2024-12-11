@@ -54,7 +54,9 @@ class DevCommands(commands.Cog):
                 await ctx.respond("Free Agent role not found.")
                 return
             
-            team_codes = [team["team_code"] for team in dbInfo.team_collection.find({})]
+            # Fetch all team codes and roles from the database
+            team_data = list(dbInfo.team_collection.find({}))  # Fetch all team documents
+            team_roles = {team["team_code"]: guild.get_role(team["team_id"]) for team in team_data if "team_id" in team}
 
             for member in guild.members:
                 if member.bot:
@@ -69,16 +71,13 @@ class DevCommands(commands.Cog):
 
                 current_team = player_entry.get("team", "FA")
 
-                if current_team not in team_codes:
-                    continue
-
-                for role in member.roles:
-                    if role.name.upper() == current_team:
-                        try:
-                            await member.remove_roles(role, reason="New season")
-                            self.bot.logger.info(f"Removed role {role.name} from {member.name}")
-                        except Exception as e:
-                            self.bot.logger.error(f"Error removing role {role.name} from {member.name}: {e}")
+                team_role = team_roles.get(current_team_code)
+                if team_role and team_role in member.roles:
+                try:
+                    await member.remove_roles(team_role, reason="Season reset: Team roles cleared")
+                    logger.info(f"Removed role {team_role.name} from {member.name}")
+                except Exception as e:
+                    logger.error(f"Error removing role {team_role.name} from {member.name}: {e}")
 
                 dbInfo.player_collection.update_one(
                     {"discord_id": member.id},
