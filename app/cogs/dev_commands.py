@@ -69,15 +69,15 @@ class DevCommands(commands.Cog):
                 if not player_entry:
                     continue
 
-                current_team = player_entry.get("team", "FA")
+                current_team_code = player_entry.get("team", "FA")
 
                 team_role = team_roles.get(current_team_code)
                 if team_role and team_role in member.roles:
-                try:
-                    await member.remove_roles(team_role, reason="Season reset: Team roles cleared")
-                    logger.info(f"Removed role {team_role.name} from {member.name}")
-                except Exception as e:
-                    logger.error(f"Error removing role {team_role.name} from {member.name}: {e}")
+                    try:
+                        await member.remove_roles(team_role, reason="Season reset: Team roles cleared")
+                        self.bot.logger.info(f"Removed role {team_role.name} from {member.name}")
+                    except Exception as e:
+                        self.bot.logger.error(f"Error removing role {team_role.name} from {member.name}: {e}")
 
                 dbInfo.player_collection.update_one(
                     {"discord_id": member.id},
