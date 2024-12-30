@@ -8,8 +8,11 @@ logger = logging.getLogger(__name__)
 async def update_nickname(member: discord.Member, prefix: str):
     """Update the member's nickname with the given prefix and append salary as suffix if Free Agent or Restricted Free Agent, unless Franchise Owner."""
     try:
+        # Log original nickname
+        logger.debug(f"Original nickname: {member.display_name}")
+        
         # Remove any existing prefix or suffix
-        new_nickname = re.sub(r"^(FA \| |RFA \| |S \| |TBD \| |[A-Z]{2,3} \| )", "", member.display_name)
+        new_nickname = re.sub(r"^(FA \| |RFA \| |S \| |TBD \| |[A-Z]{2,3} \| )| \| (\d{3}|TBD)$", "", member.display_name).strip()
 
         # Franchise Owner logic: Use team_code as prefix if the user has the Franchise Owner role
         franchise_owner_role = discord.utils.get(member.roles, name="Franchise Owner")
@@ -27,6 +30,12 @@ async def update_nickname(member: discord.Member, prefix: str):
         # Add the new prefix if applicable
         if prefix:
             new_nickname = f"{prefix} | {new_nickname}".strip()
+
+        # Ensure nickname not empty
+        if not new_nickname.strip():
+            new_nickname = member.name
+
+        logger.debug(f"Processed new nickname: {new_nickname}")
 
         # Update the member's nickname
         await member.edit(nick=new_nickname)
