@@ -9,7 +9,7 @@ from helper import update_nickname
 from .player import PlayerCog
 from .salaries import SalaryCog
 
-season_number = 1
+season_number = 2
 lol_server_id = config.lol_server
 submission_log_channel_id = config.submission_log_channel 
 game_name_image = "https://media.discordapp.net/attachments/1171263861240889405/1271892784315498556/gamename.png?ex=66b8fdf6&is=66b7ac76&hm=74fdbff2be50b7e43ad8e6aad38a29a0dad698badb361572e8ce54758c83abf4&=&format=webp&quality=lossless&width=960&height=540"
