@@ -5,6 +5,7 @@ from discord.ext import commands
 from discord.commands import Option
 import aiohttp, asyncio
 from datetime import datetime, timezone
+from helper import update_nickname
 
 # Split dates for 2024
 SPLITS = [
@@ -16,6 +17,32 @@ SPLITS = [
 class DevCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    @commands.slash_command(guild_ids=[config.lol_server], description="Clear suffixes and update nicknames")
+    @commands.has_role("Bot Guy")
+    async def dev_clear_suffixes(self, ctx):
+        try:
+            await ctx.defer()
+            guild = ctx.guild
+
+            for member in guild.members:
+                if member.bot:
+                    continue
+
+                player_info = dbInfo.player_collection.find_one({"discord_id": member.id})
+                team_code = player_info.get("team", "Unassigned") if player_info else "Unassigned"
+                is_free_agent = 'Free Agent' in [role.name for role in member.roles]
+
+                # Update user's nickname to reflect prefix only
+                prefix = 'FA' if is_free_agent else (team_code if team_code != "Unassigned" else 'RFA')
+                await update_nickname(member, prefix)
+                self.bot.logger.info(f"Nickname updated for {member.display_name}")
+
+            await ctx.respond("Suffixes cleared and nicknames updated for all members.")
+        
+        except Exception as e:
+            self.bot.logger.error(f"Error during dev_clear_suffixes command: {e}")
+            await ctx.respond(f"An error occurred: {e}")
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Restart the bot")
     @commands.has_any_role("Bot Guy", "URLOL Owner")
