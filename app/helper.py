@@ -10,10 +10,14 @@ async def update_nickname(member: discord.Member, prefix: str):
     try:
         # Log original nickname
         logger.debug(f"Original nickname: {member.display_name}")
-        
-        # Remove any existing prefix or suffix
-        new_nickname = re.sub(r"^(FA \| |RFA \| |S \| |TBD \| |[A-Z]{2,3} \| )| \| (\d{3}|TBD)$", "", member.display_name).strip()
 
+        # Remove existing prefixes and suffixes
+        new_nickname = re.sub(
+            r"^(FA \| |RFA \| |S \| |TBD \| |[A-Z]{2,3} \| )| \| \w+$", 
+            "", 
+            member.display_name
+        ).strip()
+        
         # Franchise Owner logic: Use team_code as prefix if the user has the Franchise Owner role
         franchise_owner_role = discord.utils.get(member.roles, name="Franchise Owner")
         if franchise_owner_role:
