@@ -10,8 +10,6 @@ async def update_nickname(member: discord.Member, prefix: str):
     try:
         # Remove any existing prefix or suffix
         new_nickname = re.sub(r"^(FA \| |RFA \| |S \| |TBD \| |[A-Z]{2,3} \| )", "", member.display_name)
-        new_nickname = re.sub(r" \| \d+$", "", new_nickname)  # Remove any existing salary suffix
-        new_nickname = re.sub(r" \| TBD$", "", new_nickname)  # Remove any existing TBD suffix
 
         # Franchise Owner logic: Use team_code as prefix if the user has the Franchise Owner role
         franchise_owner_role = discord.utils.get(member.roles, name="Franchise Owner")
@@ -29,15 +27,6 @@ async def update_nickname(member: discord.Member, prefix: str):
         # Add the new prefix if applicable
         if prefix:
             new_nickname = f"{prefix} | {new_nickname}".strip()
-
-        # If the player has the "Free Agents" or "Restricted Free Agents" role, append salary as suffix, but skip this for Franchise Owners
-        fa_role = discord.utils.get(member.roles, name="Free Agents")
-        rfa_role = discord.utils.get(member.roles, name="Restricted Free Agents")
-        if (fa_role or rfa_role) and not franchise_owner_role:  # Only add salary suffix if they are not a Franchise Owner
-            player_info = dbInfo.player_collection.find_one({"discord_id": member.id})
-            salary = player_info.get("salary", "TBD") if player_info else "TBD"
-            new_nickname = f"{new_nickname} | {salary}"  # Append salary to nickname
-            logger.info(f"User {member.name} (ID: {member.id}) has the {'RFA' if rfa_role else 'FA'} role. Salary: {salary}")
 
         # Update the member's nickname
         await member.edit(nick=new_nickname)
