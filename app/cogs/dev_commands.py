@@ -18,7 +18,7 @@ class DevCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.slash_command(guild_ids=[config.lol_server], descirption="Assigns 'Missing Intent Form' role to all members")
+    @commands.slash_command(guild_ids=[config.lol_server], description="Assigns 'Missing Intent Form' role to all members")
     @commands.has_role("Bot Guy")
     async def dev_missing_intent(self, ctx):
         try:
