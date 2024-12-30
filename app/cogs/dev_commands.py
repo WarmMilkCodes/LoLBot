@@ -18,6 +18,32 @@ class DevCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.slash_command(guild_ids=[config.lol_server], descirption="Assigns 'Missing Intent Form' role to all members")
+    @commands.has_role("Bot Guy")
+    async def dev_missing_intent(self, ctx):
+        try:
+            await ctx.defer()
+            guild = ctx.guild
+            role_name = "Missing Intent Form"
+
+            # Get role
+            role = discord.utils.get(guild.roles, name=role_name)
+            if not role:
+                await ctx.respond(f"Role '{role_name}' not found.")
+                return
+            
+            # Assign to all members
+            for member in guild.members:
+                if not member.bot and role not in member.roles:
+                    await member.add_roles(role)
+                    self.bot.logger.info(f"Assigned '{role_name}' to {member.name} (ID: {member.id})")
+            
+            await ctx.respond(f"'{role_name}' role assigned to all members")
+
+        except Exception as e:
+            self.bot.logger.error(f"Error occured assigning Missing Intent Form role: {e}")
+            await ctx.respond(f"An error occurred: {e}")
+
     @commands.slash_command(guild_ids=[config.lol_server], description="Clear suffixes and update nicknames")
     @commands.has_role("Bot Guy")
     async def dev_clear_suffixes(self, ctx):
