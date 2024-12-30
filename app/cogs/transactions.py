@@ -40,18 +40,8 @@ class Transactions(commands.Cog):
         try:
             # Remove any existing prefix and salary suffix
             new_nickname = re.sub(r"^(FA \| |S \| |[A-Z]{2,3} \| )", "", member.display_name)
-            new_nickname = re.sub(r" \| \d+$", "", new_nickname)  # Remove existing salary suffix if any
-
-            # Check if the player is a Free Agent
-            FA = discord.utils.get(member.guild.roles, name="Free Agents")
-            player_entry = await self.get_player_info(member.id)
-
-            if prefix == 'FA' and player_entry:
-                # Fetch salary and append to nickname if Free Agent
-                player_salary = player_entry.get("salary", "TBD")
-                new_nickname = f"{prefix} | {new_nickname} | {player_salary}"
-            elif prefix:
-                # Add the prefix without salary
+            
+            if prefix:
                 new_nickname = f"{prefix} | {new_nickname}"
 
             # Edit member's nickname
