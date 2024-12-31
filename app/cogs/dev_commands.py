@@ -34,7 +34,7 @@ class DevCommands(commands.Cog):
             await ctx.defer(ephemeral=True)
 
             # Fetch all team roles from the database without using await
-            team_role_docs = list(self.team_collection.find({}, {"team_id": 1, "_id": 0}))
+            team_role_docs = list(dbInfo.team_collection.find({}, {"team_id": 1, "_id": 0}))
             team_role_ids = [doc["team_id"] for doc in team_role_docs]  # Extract role IDs
 
             if not team_role_ids:
