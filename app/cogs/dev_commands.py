@@ -30,12 +30,12 @@ class DevCommands(commands.Cog):
             ctx: The context of the slash command.
         """
         try:
-            await ctx.defer()  # Defer the response since this can take time
+            await ctx.defer()
 
-            # Fetch all team roles from the database
+            # Fetch all team roles from the database (await the cursor, not the list)
             team_roles_cursor = dbInfo.team_collection.find({}, {"team_id": 1, "_id": 0})
-            team_role_docs = await team_roles_cursor.to_list(length=None)  # Await cursor to get the list
-            team_role_ids = [doc["team_id"] for doc in team_role_docs]  # Process list without await
+            team_role_docs = await team_roles_cursor.to_list(length=None)  # Get list of team roles
+            team_role_ids = [doc["team_id"] for doc in team_role_docs]  # Extract role IDs
 
             if not team_role_ids:
                 await ctx.respond("No team roles found in the database.", ephemeral=True)
@@ -57,13 +57,12 @@ class DevCommands(commands.Cog):
             if general_managers_role:
                 excluded_role_ids.add(general_managers_role.id)
 
-            # Counters
+            # Process all members in the guild
             members_processed = 0
             roles_removed_count = 0
 
-            # Iterate through all members of the guild
             for member in guild.members:
-                # Skip members with "Franchise Owner" or "General Managers" roles
+                # Skip members with excluded roles
                 if any(role.id in excluded_role_ids for role in member.roles):
                     continue
 
@@ -72,18 +71,17 @@ class DevCommands(commands.Cog):
 
                 if roles_to_remove:
                     try:
-                        # Remove the roles from the member
+                        # Remove the roles
                         await member.remove_roles(*roles_to_remove, reason="Removing team roles based on MongoDB.")
                         roles_removed_count += len(roles_to_remove)
                         members_processed += 1
                     except discord.Forbidden:
-                        # Skip members if the bot lacks permissions
+                        # Skip members if the bot lacks permission
                         continue
                     except discord.HTTPException as e:
-                        # Log or handle any HTTP exceptions
                         print(f"Error removing roles from {member.name}: {e}")
 
-            # Respond with a summary of the operation
+            # Respond with summary
             await ctx.respond(
                 f"Processed {members_processed} members (excluding Franchise Owners and General Managers) and removed {roles_removed_count} team roles.",
                 ephemeral=True
