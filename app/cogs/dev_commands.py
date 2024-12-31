@@ -57,9 +57,6 @@ class DevCommands(commands.Cog):
             if general_managers_role:
                 excluded_role_ids.add(general_managers_role.id)
 
-            # Optionally, fetch all members to ensure you have the latest data
-            # Note: guild.members might not include all members if the cache is incomplete.
-            # To ensure all members are fetched, you can use fetch_members.
             await guild.fetch_members(limit=None).flatten()
 
             # Process all members in the guild
@@ -80,7 +77,7 @@ class DevCommands(commands.Cog):
 
                 if roles_to_remove:
                     try:
-                        # Remove the roles
+                        # Remove roles
                         await member.remove_roles(*roles_to_remove, reason="Removing team roles based on MongoDB.")
                         roles_removed_count += len(roles_to_remove)
                         members_processed += 1
@@ -91,13 +88,12 @@ class DevCommands(commands.Cog):
                         self.bot.logger.error(f"HTTPException while removing roles from {member.display_name}: {e}")
                         continue
 
-            # Respond with summary
+            # Respond
             await ctx.respond(
                 f"Processed {members_processed} members and removed {roles_removed_count} team roles.",
                 ephemeral=True
             )
         except Exception as e:
-            # Log any exceptions that occur
             self.bot.logger.error(f"An error occurred in remove_all_team_roles: {e}", exc_info=True)
             await ctx.respond("An error occurred while removing team roles.", ephemeral=True)
 
