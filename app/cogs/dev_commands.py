@@ -33,8 +33,9 @@ class DevCommands(commands.Cog):
             await ctx.defer()  # Defer the response since this can take time
 
             # Fetch all team roles from the database
-            team_roles_cursor = dbInfo.team_collection.find({}, {"team_id": 1, "_id": 0})
-            team_role_ids = [doc["team_id"] for doc in await team_roles_cursor.to_list(length=None)]
+            team_roles_cursor = self.dbInfo.teams_collection.find({}, {"team_id": 1, "_id": 0})
+            team_role_docs = await team_roles_cursor.to_list(length=None)  # Await cursor to get the list
+            team_role_ids = [doc["team_id"] for doc in team_role_docs]  # Process list without await
 
             if not team_role_ids:
                 await ctx.respond("No team roles found in the database.", ephemeral=True)
