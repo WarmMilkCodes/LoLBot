@@ -19,10 +19,11 @@ class DevCommands(commands.Cog):
         self.bot = bot
 
     @commands.slash_command(
-    description="Remove all team roles from all members in the guild except Franchise Owners and General Managers."
-)
+        name="remove_all_team_roles",
+        description="Remove all team roles from all members in the guild except Franchise Owners and General Managers."
+    )
     @commands.has_permissions(manage_roles=True)  # Ensure only authorized users can run this command
-    async def remove_all_team_roles(self, ctx):
+    async def remove_all_team_roles(self, ctx: discord.ApplicationContext):
         """
         Removes all team roles from all members in the guild, excluding those with the "Franchise Owner" or "General Managers" roles.
 
@@ -30,11 +31,10 @@ class DevCommands(commands.Cog):
             ctx: The context of the slash command.
         """
         try:
-            await ctx.defer()
+            await ctx.defer(ephemeral=True)
 
-            # Fetch all team roles from the database (await the cursor, not the list)
-            team_roles_cursor = dbInfo.team_collection.find({}, {"team_id": 1, "_id": 0})
-            team_role_docs = await team_roles_cursor.to_list(length=None)  # Get list of team roles
+            # Fetch all team roles from the database without using await
+            team_role_docs = list(self.team_collection.find({}, {"team_id": 1, "_id": 0}))
             team_role_ids = [doc["team_id"] for doc in team_role_docs]  # Extract role IDs
 
             if not team_role_ids:
@@ -57,11 +57,20 @@ class DevCommands(commands.Cog):
             if general_managers_role:
                 excluded_role_ids.add(general_managers_role.id)
 
+            # Optionally, fetch all members to ensure you have the latest data
+            # Note: guild.members might not include all members if the cache is incomplete.
+            # To ensure all members are fetched, you can use fetch_members.
+            await guild.fetch_members(limit=None).flatten()
+
             # Process all members in the guild
             members_processed = 0
             roles_removed_count = 0
 
             for member in guild.members:
+                # Skip bots
+                if member.bot:
+                    continue
+
                 # Skip members with excluded roles
                 if any(role.id in excluded_role_ids for role in member.roles):
                     continue
@@ -76,22 +85,21 @@ class DevCommands(commands.Cog):
                         roles_removed_count += len(roles_to_remove)
                         members_processed += 1
                     except discord.Forbidden:
-                        # Skip members if the bot lacks permission
+                        self.bot.logger.warning(f"Missing permissions to remove roles from {member.display_name}.")
                         continue
                     except discord.HTTPException as e:
-                        print(f"Error removing roles from {member.name}: {e}")
+                        self.bot.logger.error(f"HTTPException while removing roles from {member.display_name}: {e}")
+                        continue
 
             # Respond with summary
             await ctx.respond(
-                f"Processed {members_processed} members (excluding Franchise Owners and General Managers) and removed {roles_removed_count} team roles.",
+                f"Processed {members_processed} members and removed {roles_removed_count} team roles.",
                 ephemeral=True
             )
         except Exception as e:
             # Log any exceptions that occur
-            self.bot.logger.error(f"An error occurred: {e}")
+            self.bot.logger.error(f"An error occurred in remove_all_team_roles: {e}", exc_info=True)
             await ctx.respond("An error occurred while removing team roles.", ephemeral=True)
-
-
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Assigns 'Missing Intent Form' role to all members")
     @commands.has_role("Bot Guy")
