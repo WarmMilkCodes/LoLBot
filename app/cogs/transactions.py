@@ -113,8 +113,8 @@ class Transactions(commands.Cog):
 
 
     # Commands
-    @commands.slash_command(guild_ids=[config.lol_server], description="Designate team Governor")        
-    @commands.has_any_role("League Ops", "Bot Guy")
+    @commands.slash_command(guild_ids=[config.lol_server], description="Designate team owner")        
+    @commands.has_any_role("URLOL Owner", "UR Owner", "Bot Guy")
     async def trn_designate_owner(self, ctx, user: Option(discord.Member), team_code: Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
         await ctx.defer()
         try:
@@ -145,6 +145,38 @@ class Transactions(commands.Cog):
 
         except Exception as e:
             await ctx.respond(f"There was an error designating {user.mention} as {team_code.upper()}'s Owner:\n{e}")
+
+    @commands.slash_command(guild_ids=[config.lol_server], description="Relieve team owner")
+    @commands.has_any_role("URLOL Owner", "UR Owner", "Bot Guy")
+    async def trn_relieve_owner(self, ctx, user: Option(discord.Member), team_code: Option(str, "Enter 3-digit team abbreviation (ex. SDA for San Diego Armada")):
+        await ctx.defer()
+        try:
+            if not await self.validate_command_channel(ctx):
+                return
+            
+            governor_role = discord.utils.get(ctx.guild.roles, name="Franchise Owner")
+            if governor_role not in user.roles:
+                return await ctx.respond(f"{user.mention} is not the owner of {team_code.upper()}")
+            
+            team_role_id = await self.get_team_role(team_code.upper())
+            if not team_role_id:
+                return await ctx.respond(f"Invalid team code used in command: {team_code.upper()}")
+            
+            await self.remove_role_from_member(user, governor_role, "Relieved of Owner")
+
+            message = f"{team_code.upper()} relieves {user.mention} of Owner duties"
+            channel = self.bot.get_channel(config.posted_transactions_channel)
+            await channel.send(message)
+
+            await ctx.respond(f"{team_code.upper()} relieves {user.mention} of Owner duties")
+
+            team_status = await self.get_player_info(user.id)
+            if team_status.get("team") != team_code.upper():
+                await self.update_nickname(user, 'FA')
+
+        except Exception as e:
+            await ctx.respond(f"Error relieving {user.mention} from Owner duties:\n{e}")
+
 
     @commands.slash_command(guild_ids=[config.lol_server], description="Designate GM to team")
     @commands.has_any_role("League Ops", "Bot Guy")
